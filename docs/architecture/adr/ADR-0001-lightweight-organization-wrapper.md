@@ -6,7 +6,7 @@ Status: accepted
 
 ## Context
 
-The product should be framed around an organization/client/workspace, but the MVP does not include authentication, teams, permissions, or multi-project management.
+The product should be framed around an organization/client/workspace, but the MVP does not include teams, permissions, or multi-project management.
 
 ## Decision
 

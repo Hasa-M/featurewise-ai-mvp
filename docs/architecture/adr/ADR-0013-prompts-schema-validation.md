@@ -1,5 +1,7 @@
 # ADR-013: Store Prompt Templates in the Repository and Validate Generated Specs in Backend Code
 
+Date: 2026-06-02
+
 Status: accepted
 
 ## Context

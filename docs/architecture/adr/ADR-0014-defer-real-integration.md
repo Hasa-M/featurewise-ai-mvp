@@ -1,5 +1,7 @@
 # ADR-014: Defer Real Integrations, Worker, and Dedicated AI Service
 
+Date: 2026-06-02
+
 Status: accepted
 
 ## Context

@@ -26,7 +26,7 @@ Spec generation is asynchronous from the user perspective, but runs inside the N
 
 ### PostgreSQL Database
 
-Stores business entities, minimal user records without authentication, context metadata, spec runs, generated specs, checkpoint statuses, quality-check results, and LLM call logs.
+Stores business entities, minimal user records without context metadata, spec runs, generated specs, checkpoint statuses, quality-check results, and LLM call logs.
 
 PostgreSQL is the main persistence, traceability, and audit/logging backbone for the MVP.
 
@@ -56,7 +56,6 @@ In the MVP, their context is represented through uploaded or pasted artifacts ra
 
 This diagram intentionally excludes:
 
-- authentication and permissions;
 - production deployment;
 - queue/worker infrastructure;
 - dedicated AI/FastAPI service;
