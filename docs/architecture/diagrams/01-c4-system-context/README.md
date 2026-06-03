@@ -51,25 +51,3 @@ Human developers use the specification artifact to understand what should be bui
 QA testers use the artifact to understand expected behavior, test scenarios, edge cases, acceptance criteria, and unresolved ambiguities.
 
 AI coding agents are shown only as future downstream consumers. The MVP may produce structured artifacts that are useful for agentic execution, but it does not execute agents, generate code, modify repositories, run tests, or open pull requests.
-
-## Exclusions
-
-This diagram intentionally excludes:
-
-- NestJS internals;
-- REST API;
-- PostgreSQL;
-- JSONB storage;
-- domain entities;
-- prompt templates;
-- generated spec schema;
-- Figma MCP integration;
-- GitHub repository ingestion;
-- Jira, Linear, or Notion integrations;
-- vector databases;
-- embeddings/RAG;
-- agent execution;
-- authentication;
-- permissions;
-- payments;
-- microservices.

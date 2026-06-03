@@ -52,21 +52,6 @@ Future integrations such as Figma, GitHub, Jira, Linear, and Notion are not part
 
 In the MVP, their context is represented through uploaded or pasted artifacts rather than direct integrations.
 
-## Exclusions
-
-This diagram intentionally excludes:
-
-- production deployment;
-- queue/worker infrastructure;
-- dedicated AI/FastAPI service;
-- real Figma/GitHub/Jira/Linear/Notion integrations;
-- vector database;
-- embeddings/RAG;
-- agent execution;
-- payments;
-- Kubernetes;
-- microservices.
-
 ## Notes
 
 The backend should be structured so that spec generation can later move to a worker or dedicated AI service without changing the core product model.
