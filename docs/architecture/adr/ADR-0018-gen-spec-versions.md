@@ -12,16 +12,9 @@ Users need to review and edit generated specs. The system also needs to preserve
 
 ## Decision
 
-Model generated specifications with two entities:
+We add versioning to the generated spec, with the actual being set as last + 1, and the first as 1:
 
-- `GeneratedSpec`;
-- `GeneratedSpecVersion`.
-
-A `GeneratedSpec` belongs to a `SpecRun` and a `Feature`.
-
-A `GeneratedSpecVersion` stores the structured JSON content for a specific saved version.
-
-Version 0 is the original generated output. Later versions are created only when the user explicitly saves a new version. Visualised version is always the "last one".
+Version is always 1 untile the user decide to manually create a new one, they are not automatically generated for now.
 
 NOTE:   For each feature, at most one generated spec can be marked as `valid`.
         Feature readiness remains on the `Feature`, not on the generated spec.

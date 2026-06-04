@@ -1,32 +1,36 @@
-# ADR-017: Model Context as Feature and Project Context Artifacts
+# ADR-016: Model Feature Context as a Single Editable Context Artifact
 
-Date: 2026-06-04
+Date: 2026-06-05
 
 Status: accepted
 
 ## Context
 
-Featurewise depends on contextual input such as product notes, design files, code files, architecture notes, API documentation, and execution rules.
+Featurewise needs structured context for each feature before generating an implementation-readiness specification.
 
-Some context is specific to the feature being generated. Other context describes the broader project and can help the LLM understand constraints, conventions, and existing knowledge.
+There is so the need for a core editable context that should belong to the feature itself.
+
+In addition there is the need to a project context summary that the user could use or not inside a feature.
 
 ## Decision
 
-Create `ContextArtifact` as a first-class entity.
+Each `Feature` has one editable `ContextArtifact`.
 
-A context artifact can be scoped to:
+The `ContextArtifact` represents the effective working context for that feature, including product notes, design information, code/context notes, execution rules, uploaded files, screenshots, and other relevant inputs.
 
-- `project`;
-- `feature`.
+For phase 1:
 
-Feature-level context is the core input for a generation.
+- `ContextArtifact` belongs only to `Feature`;
+- `Feature` has exactly one `ContextArtifact`;
+- the user edits only the current effective `ContextArtifact`;
+- project context is not modeled as editable context artifacts.
 
-Project-level context provides broader background knowledge, constraints, and execution rules.
-
-The system may also maintain a derived `ProjectContextSummary` as a generated background summary of useful project knowledge.
+The project may use selected feature knowledge to update a separate system-generated `ProjectContextSummary`.
 
 ## Consequences
 
-- Context becomes reusable instead of being hidden inside prompts.
-- The system can distinguish current feature context from broader project context.
-- Project context can be included or excluded during generation.
+- The MVP has one clear editable context object per feature.
+- The feature remains the main product object.
+- Context editing is simpler for the user and easier to implement.
+- Project-level knowledge is handled separately through a generated project summary.
+- The system avoids premature complexity around many context artifact records, scopes, and reusable presets.
