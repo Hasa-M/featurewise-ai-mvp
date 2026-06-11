@@ -128,13 +128,13 @@ The operator hits "generate". The API asks the SpecGeneration module to start a 
 
 The module walks the run through the statuses, writing each transition to Postgres so polling always reflects reality:
 
-### preparing_context:
+#### preparing_context:
 reads the ProjectContextSummary if the flag is set, fetches images from S3, downscales them, base64-encodes, assembles the prompt from the versioned template.
 
-### calling_llm:
+#### calling_llm:
 sends the request; transient errors (timeout/429/5xx) get up to 3 attempts; every attempt writes one LLM call log row. If all 3 fail → failed, done.
 
-### validating_output:
+#### validating_output:
 checks the JSON against the schema version. 
 
 If invalid → repairing_output: send the bad output plus the validation errors back to the LLM, up to 2 times, re-validating each answer. Still invalid → failed, raw output kept in the log for debugging.
