@@ -15,13 +15,15 @@ This is the most important rule in this file:
  
 1. Before designing or implementing anything non-trivial, READ the relevant ADRs in
    `docs/architecture/adr/` and the diagrams in `docs/architecture/diagrams/`.
-2. When you have a doubt about structure, naming, flow, or scope: check the ADRs FIRST.
-   ADRs win over your assumptions and over generic best practices.
-3. If a requested change conflicts with an accepted ADR: STOP. Do not silently diverge.
+   Consider still they could be not perfect and with some errors or things to update/change.
+   In particular the 'docs/architecture/diagrams/03-erd-core-mvp' is with impreciso e con lacune. 
+3. When you have a doubt about structure, naming, flow, or scope: check the ADRs FIRST.
+   Aske me considering them.
+4. If a requested change conflicts with an accepted ADR: STOP. Do not silently diverge.
    Say which ADR conflicts and propose either a different approach or an ADR amendment.
-4. If you are making a significant new architectural decision, propose a new ADR
+5. If you are making a significant new architectural decision, propose a new ADR
    (same minimal style: Context / Decision / Consequences). Do not bury decisions in code.
-5. The spec generation flow is fully defined in
+6. The spec generation flow is fully defined in
    `docs/architecture/diagrams/04-sequence-generate-spec-new-feature/` and ADR-0019.
    Implement exactly that flow. Do not invent statuses, retries, or endpoints.
 ## Stack
