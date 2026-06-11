@@ -1,4 +1,4 @@
-# ADR-009: Build Phase 1 as a Local-First Prototype
+# ADR-0010: Build Phase 1 as a Local-First Prototype
 
 Date: 2026-06-02
 
