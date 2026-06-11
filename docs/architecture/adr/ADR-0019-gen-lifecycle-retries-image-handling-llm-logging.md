@@ -6,7 +6,7 @@ Status: accepted
 
 ## Context
 
-ADR-0012 decided that spec generation is asynchronous but runs inside the NestJS process. ADR-0017 decided that each run snapshots the feature context. Neither defines the run's behavior: statuses, concurrency rules, failure handling, image delivery to the LLM, or what is logged per call.
+Spec generation is asynchronous but runs inside the NestJS process. Eeach run snapshots the feature context. The run's behavior: statuses, concurrency rules, failure handling, image delivery to the LLM, or what is logged per call are still not defined.
 
 These decisions are needed before implementing the SpecGeneration module, because the frontend polling contract and the failure paths depend on them.
 
