@@ -1,4 +1,4 @@
-# ADR-0009: Use trunk-based development with conventional commits
+# ADR-0008: Use trunk-based development with conventional commits
 
 Date: 2026-05-25
 Status: Accepted
