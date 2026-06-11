@@ -1,4 +1,4 @@
-# ADR-010: Use Object Storage for Images and Raw Context Artifacts
+# ADR-0011: Use Object Storage for Images and Raw Context Artifacts
 
 Date: 2026-06-02
 
