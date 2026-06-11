@@ -1,4 +1,4 @@
-# ADR-008: Use React + Vite Web App for Phase 1
+# ADR-0009: Use React + Vite Web App for Phase 1
 
 Date: 2026-06-02
 
