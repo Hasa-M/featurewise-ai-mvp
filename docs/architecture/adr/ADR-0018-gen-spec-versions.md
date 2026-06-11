@@ -1,4 +1,4 @@
-# ADR-019: Version Generated Specs
+# ADR-0018: Version Generated Specs
 
 Date: 2026-06-04
 
