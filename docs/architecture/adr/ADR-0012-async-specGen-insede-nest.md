@@ -1,4 +1,4 @@
-# ADR-011: Run Asynchronous Spec Generation Inside the NestJS Process in Phase 1
+# ADR-0012: Run Asynchronous Spec Generation Inside the NestJS Process in Phase 1
 
 Date: 2026-06-02
 
