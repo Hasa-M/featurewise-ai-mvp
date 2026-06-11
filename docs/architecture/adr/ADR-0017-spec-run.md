@@ -1,5 +1,7 @@
 # ADR-017: Snapshot Feature Context for Each Spec Run
 
+Date: 2026-06-11
+
 Status: accepted
 
 ## Context
