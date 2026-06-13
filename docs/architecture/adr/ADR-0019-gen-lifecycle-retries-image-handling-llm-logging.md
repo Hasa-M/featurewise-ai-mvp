@@ -91,7 +91,6 @@ remain in force. The following are added or changed.
 
 ### Preconditions (return 422 before a run is created)
 
-- `generation` on a Feature: only when `origin = brand_new` (ADR-0020).
 - `generation` on a FeatureUpdate: only with a usable parent baseline —
   non-empty parent ContextArtifact, or an upload on it, or a parent valid spec
   (ADR-0020).
