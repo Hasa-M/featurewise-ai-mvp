@@ -16,21 +16,18 @@ Users need to review and edit generated specs. The system also needs to preserve
 
 We add versioning to the generated spec, with the actual being set as last + 1, and the first as 1:
 
-Version is always 1 untile the user decide to manually create a new one, they are not automatically generated for now.
+Version is always 1 until the user decide to manually create a new one, they are not automatically generated for now.
 
-> **Superseded by ADR-0021.** This no longer holds. Versions are **sequential
-> per target**: every new `GeneratedSpec` — run-produced or manually created —
-> gets `version = last + 1` for its target (first is 1). There is no "always 1"
-> rule.
-
+> **Superseded by ADR-0021.** This no longer holds. Versions are
+> created automatically every time a GenSpec signed as validated
+> is edited.
 NOTE: For each feature, at most one generated spec can be marked as `valid`.
 Feature readiness remains on the `Feature`, not on the generated spec.
 
 > **Amended by ADR-0021.** "At most one valid spec" applies **per target**
 > (each Feature and each FeatureUpdate), not only per Feature. Marking a spec
-> valid also **freezes its content** (editable only while `valid = false`) and
-> **atomically clears** the `valid` flag on the previously valid spec of the
-> same target.
+> valid signal the **start of versioning** (every edit create a new version in the
+> background).
 
 ## Consequences
 
