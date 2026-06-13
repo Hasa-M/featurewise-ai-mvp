@@ -1,8 +1,8 @@
-# ADR-004: Support only new_feature and feature_update
+# ADR-0004: Support only new_feature and feature_update
 
-Date: 2026-05-26
+Date: 2026-06-13
 
-Status: acceppted
+Status: Status: superseded by ADR-0020
 
 ## Context
 

@@ -1,8 +1,8 @@
-# ADR-005: Define baseline strategy for feature updates
+# ADR-0005: Define baseline strategy for feature updates
 
-Date: 2026-06-04
+Date: 2026-06-13
 
-Status: accepted
+Status: superseded by ADR-0020
 
 ## Context
 

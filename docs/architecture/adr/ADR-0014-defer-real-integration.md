@@ -1,4 +1,4 @@
-# ADR-014: Defer Real Integrations, Worker, and Dedicated AI Service
+# ADR-0014: Defer Real Integrations, Worker, and Dedicated AI Service
 
 Date: 2026-06-02
 

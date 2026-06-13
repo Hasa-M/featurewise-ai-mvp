@@ -1,4 +1,4 @@
-# ADR-002: Use modular monolith instead of microservices
+# ADR-0002: Use modular monolith instead of microservices
 
 Date: 2026-05-26
 

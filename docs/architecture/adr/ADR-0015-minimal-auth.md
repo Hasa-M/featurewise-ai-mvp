@@ -1,4 +1,4 @@
-# ADR-015: Add Minimal Username/Password Authentication for Phase 1
+# ADR-0015: Add Minimal Username/Password Authentication for Phase 1
 
 Date: 2026-06-04
 

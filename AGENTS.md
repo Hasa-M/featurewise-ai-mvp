@@ -36,11 +36,19 @@ This is the most important rule in this file:
 - LLM: external provider called ONLY from the backend. The frontend never calls the LLM.
 ## Domain model (do not improvise on this)
  
-Organization → Project → Feature → SpecRun → GeneratedSpec (ADR-0003).
-- Feature types: only `new_feature` and `feature_update` (ADR-0004); intentType
-  `brand_new` | `update_existing` (ADR-0005).
-- Each Feature has exactly ONE editable ContextArtifact (ADR-0016).
-- Phase 1: one user, one organization, one project (ADR-0001, ADR-0015).
+- Organization → Project → Feature → (FeatureUpdate 0..N) → SpecRun → GeneratedSpec (ADR-0003, ADR-0020).
+- Feature.origin: brand_new | mapped_existing (ADR-0020). Feature has NO type column; ADR-0004/0005 are superseded.
+- FeatureUpdate = one increment inside a Feature. Exactly one nesting level. Own ContextArtifact, own runs and specs.
+- Each Feature AND each FeatureUpdate has exactly ONE editable ContextArtifact (ADR-0016).
+- SpecRun: featureId always set, featureUpdateId nullable (target). runKind: generation | consolidation (feature-target only).
+- Preconditions (else 422): generation on Feature requires origin=brand_new; generation on FeatureUpdate requires a usable
+ parent baseline (non-empty parent context, or uploads, or parent valid spec); consolidation requires >=1 validated,
+  not-yet-incorporated update spec.
+- At most one non-terminal run per TARGET → 409, enforced by partial unique indexes (ADR-0019/0020).
+- GeneratedSpec versions are sequential per target (last+1). A valid spec is FROZEN; edits require a new version.
+  Marking valid atomically un-validates the previous one. At most one valid spec per TARGET (ADR-0018/0021).
+- Feature alignment (aligned | updates_pending) is COMPUTED from incorporatedUpdates vs current valid update specs —
+  never stored, never auto-resolved by regeneration (ADR-0021).
 ## Hard invariants (violating these = wrong implementation)
  
 - Module boundaries: each NestJS module exposes a public API; other modules must not

@@ -1,8 +1,10 @@
-# ADR-003: Model core hierarchy as Organization → Project → Feature → SpecRun → GeneratedSpec
+# ADR-0003: Model core hierarchy as Organization → Project → Feature → SpecRun → GeneratedSpec
 
-Date: 2026-05-26
+Date: 2026-06-13
 
 Status: accepted
+
+Amended by: ADR-0020
 
 ## Context
 
@@ -18,9 +20,25 @@ The phase 1 core hierarchy will be:
 Organization
   → Project
     → Feature
-      → SpecRun
-        → GeneratedSpec
+        → SpecRun
+          → GeneratedSpec
 ```
+
+> **Amended by ADR-0020.** `FeatureUpdate` is inserted as a child of `Feature`
+> (0..N, exactly one nesting level), and `SpecRun`/`GeneratedSpec` become
+> target-polymorphic. Updated hierarchy:
+>
+> ```
+> Organization
+>   → Project
+>     → Feature                    (main product object)
+>       → FeatureUpdate (0..N)     (an increment inside a Feature)
+>
+> SpecRun → GeneratedSpec          target = a Feature OR one of its FeatureUpdates
+> ```
+>
+> `featureId` is always set on a run/spec (the scope); `featureUpdateId` is set
+> only when the target is an update.
 
 `Organization` and `Project` are lightweight containers.
 

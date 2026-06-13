@@ -1,8 +1,10 @@
-# ADR-017: Snapshot Feature Context for Each Spec Run
+# ADR-0017: Snapshot Feature Context for Each Spec Run
 
-Date: 2026-06-11
+Date: 2026-06-13
 
 Status: accepted
+
+Amended by: ADR-0020, ADR-0021
 
 ## Context
 
@@ -16,11 +18,22 @@ Each `SpecRun` is an immutable snapshot of the effective feature context used du
 
 Only the current `ContextArtifact` remains editable. Snapshots are historical records and are not editable by users.
 
-Uploaded files are stored under immutable S3 keys — uploads never overwrite an existing key — so snapshots reference keys and remain byte-stable without file duplication. 
+Uploaded files are stored under immutable S3 keys — uploads never overwrite an existing key — so snapshots reference keys and remain byte-stable without file duplication.
 
-Heavy external sources (e.g. codebases) are not copied; the snapshot stores a stable reference such as a commit, tag, or branch link. 
+Heavy external sources (e.g. codebases) are not copied; the snapshot stores a stable reference such as a commit, tag, or branch link.
 
 The ProjectContextSummary content is not snapshotted, only its inclusion flag.
+
+> **Amended by ADR-0020 and ADR-0021.** The snapshot also copies relevant
+> **spec contents**, not only context text:
+>
+> - update-target generation runs copy the **parent Feature's valid spec**, when one exists (ADR-0020);
+> - consolidation runs copy the **feature's valid spec** (if any) **and all pending validated update specs** (ADR-0021).
+>
+> Spec contents are **copied, not referenced**, for the same reason as context
+> text: a reference is not byte-stable. A spec's content can change while
+> `valid = false`, and a previously valid spec can later lose its valid flag
+> (ADR-0021), so only a copy keeps the snapshot reproducible.
 
 ## Consequences
 

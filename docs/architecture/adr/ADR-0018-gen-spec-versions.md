@@ -1,8 +1,10 @@
 # ADR-0018: Version Generated Specs
 
-Date: 2026-06-04
+Date: 2026-06-13
 
 Status: accepted
+
+Amended by: ADR-0021
 
 ## Context
 
@@ -16,8 +18,19 @@ We add versioning to the generated spec, with the actual being set as last + 1, 
 
 Version is always 1 untile the user decide to manually create a new one, they are not automatically generated for now.
 
-NOTE:   For each feature, at most one generated spec can be marked as `valid`.
-        Feature readiness remains on the `Feature`, not on the generated spec.
+> **Superseded by ADR-0021.** This no longer holds. Versions are **sequential
+> per target**: every new `GeneratedSpec` — run-produced or manually created —
+> gets `version = last + 1` for its target (first is 1). There is no "always 1"
+> rule.
+
+NOTE: For each feature, at most one generated spec can be marked as `valid`.
+Feature readiness remains on the `Feature`, not on the generated spec.
+
+> **Amended by ADR-0021.** "At most one valid spec" applies **per target**
+> (each Feature and each FeatureUpdate), not only per Feature. Marking a spec
+> valid also **freezes its content** (editable only while `valid = false`) and
+> **atomically clears** the `valid` flag on the previously valid spec of the
+> same target.
 
 ## Consequences
 

@@ -1,4 +1,4 @@
-# ADR-007: Implement Context Intake as backend module, not separate service in phase 1
+# ADR-0007: Implement Context Intake as backend module, not separate service in phase 1
 
 Date: 2026-05-26
 

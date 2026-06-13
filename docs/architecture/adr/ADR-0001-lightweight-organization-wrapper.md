@@ -1,4 +1,4 @@
-# ADR-001: Use lightweight Organization wrapper - single projected
+# ADR-0001: Use lightweight Organization wrapper - single projected
 
 Date: 2026-05-26
 

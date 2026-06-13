@@ -1,8 +1,10 @@
 # ADR-0019: Spec Generation Run Lifecycle, Retries, Image Handling, and LLM Call Logging
 
-Date: 2026-06-11
+Date: 2026-06-13
 
 Status: accepted
+
+Amended by: ADR-0020, ADR-0021
 
 ## Context
 
@@ -73,3 +75,62 @@ Quality checks are non-blocking: they produce warnings stored with the `Generate
 - Storing raw output only on failures limits database bloat, but "valid yet bad" outputs are not raw-logged; acceptable for phase 1.
 - The repair loop adds LLM cost on bad outputs, but converts the most common failure mode into a recoverable state.
 - The sweep prevents permanently stuck runs without introducing a queue or worker.
+
+## Amendments (ADR-0020, ADR-0021)
+
+The original lifecycle, retry, image-handling, and logging decisions above
+remain in force. The following are added or changed.
+
+### Run target and kind
+
+- `SpecRun` gains `featureUpdateId` (nullable): a run targets a Feature
+  (direct) or a FeatureUpdate. `featureId` is always set as the scope (ADR-0020).
+- `SpecRun` gains `runKind: generation | consolidation`. Consolidation runs are
+  feature-target only (DB CHECK) and absorb validated update specs into a new
+  feature-level spec version (ADR-0021).
+
+### Preconditions (return 422 before a run is created)
+
+- `generation` on a Feature: only when `origin = brand_new` (ADR-0020).
+- `generation` on a FeatureUpdate: only with a usable parent baseline —
+  non-empty parent ContextArtifact, or an upload on it, or a parent valid spec
+  (ADR-0020).
+- `consolidation` on a Feature: only when at least one validated update spec is
+  not yet incorporated by the feature's current valid spec (ADR-0021).
+
+### Concurrency
+
+- "At most one non-terminal run per feature" becomes "per **target**" (Feature
+  direct, and FeatureUpdate), enforced by **partial unique indexes** on
+  `spec_run` (see ERD). The pre-insert check is only a fast path; the index is
+  the race-safe source of the 409.
+
+### Prompt templates
+
+- A third versioned template, `feature-consolidation`, joins `new-feature` and
+  `feature-update` (ADR-0013/0021).
+
+### Stale-run sweep
+
+- The startup sweep also runs on a **periodic interval**, so a run orphaned by
+  an in-process crash is reaped without waiting for the next restart. Still no
+  queue or worker (ADR-0012 preserved).
+
+### Terminal-status guarantee
+
+- The async pipeline is wrapped in a top-level guard: any unhandled exception
+  writes `status = failed` (+ errorMessage). A run can never remain non-terminal
+  while the process is alive.
+
+### API additions
+
+- `POST /features/:id/spec-runs` accepts `{ runKind }` (default `generation`).
+- `POST /feature-updates/:id/spec-runs` (always `generation`).
+- `GET /features/:id/spec-runs/latest` and
+  `GET /feature-updates/:id/spec-runs/latest` — recovery endpoints so the
+  frontend can rediscover an active run after a reload.
+- `POST /generated-specs/:id/validate` — marks a spec valid: freezes its content
+  and atomically clears the previously valid spec of the same target (ADR-0021).
+- `GET /features/:id` includes computed
+  `alignment: { status: aligned | updates_pending, pendingUpdates[] }`
+  (ADR-0021); alignment is never stored.

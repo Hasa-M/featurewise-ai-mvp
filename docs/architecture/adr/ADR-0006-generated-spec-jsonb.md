@@ -1,4 +1,4 @@
-# ADR-006: Store GeneratedSpec as JSONB with schema version in MVP
+# ADR-0006: Store GeneratedSpec as JSONB with schema version in MVP
 
 Date: 2026-05-26
 
