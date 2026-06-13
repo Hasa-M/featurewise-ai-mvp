@@ -14,7 +14,7 @@ Users need to review and edit generated specs. The system also needs to preserve
 
 ## Decision
 
-We add versioning to the generated spec, with the actual being set as last + 1, and the first as 1:
+We add versioning to the generated spec, with the actual being set as last + 1, at the validation it is set as version 1:
 
 Version is always 1 until the user decide to manually create a new one, they are not automatically generated for now.
 
