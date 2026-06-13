@@ -21,21 +21,14 @@ consolidated spec gets.
 
 ## Decision
 
-### 1. Validity freeze
-
-A GeneratedSpec's `content` is editable only while `valid = false`. Marking a
-spec valid freezes its content and atomically clears the `valid` flag on the
-previously valid spec of the same target. Validated specs are therefore
-stable, immutable references — safe to copy into snapshots and to track by id.
-
-### 2. Sequential versions per target (amends ADR-0018)
+### 1. Sequential versions per target (amends ADR-0018)
 
 Every new GeneratedSpec — run-produced or manually created — gets
 `version = last + 1` for its target; the first is 1. `parentSpecId` records
 derivation; manually created versions copy `incorporatedUpdates` from their
 parent. There is no special "runs create version 1" rule anymore.
 
-### 3. Run kinds (amends ADR-0019)
+### 2. Run kinds (amends ADR-0019)
 
 `SpecRun.runKind = generation | consolidation`. Consolidation runs are
 feature-target only (DB CHECK).
@@ -54,13 +47,13 @@ feature-target only (DB CHECK).
 - A third prompt template, `feature-consolidation`, is versioned in the
   repository like the others (ADR-0013).
 
-### 4. Incorporation tracking
+### 3. Incorporation tracking
 
 Feature-target GeneratedSpecs store
 `incorporatedUpdates: [{ featureUpdateId, generatedSpecId, version }]` (JSONB).
 This is the only persisted record of what a feature spec has absorbed.
 
-### 5. Alignment is computed, never stored
+### 4. Alignment is computed, never stored
 
 A Feature is `updates_pending` when at least one non-deleted FeatureUpdate has
 a current valid spec whose id is not in the feature's current valid spec
@@ -68,7 +61,7 @@ a current valid spec whose id is not in the feature's current valid spec
 its own is also `updates_pending`). Otherwise `aligned`. The API computes this
 on feature reads and exposes it as a warning with the list of pending updates.
 
-### 6. Consolidation is user-triggered only
+### 5. Consolidation is user-triggered only
 
 Validating an update spec never starts a run automatically. Automatic
 regeneration would spend LLM cost on unreviewed drafts and contradict the
