@@ -46,10 +46,6 @@ set (the scope), `featureUpdateId` is set when the target is an update.
 
 Rules:
 
-- Direct generation runs on a Feature are allowed only when
-  `origin = brand_new`. A generation request on a `mapped_existing` Feature
-  without an update is rejected with `422`; the baseline alone is not a spec
-  subject. (Consolidation runs on the Feature are a separate kind — ADR-0021.)
 - FeatureUpdates can be created on any Feature regardless of origin
   (`brand_new` features receive updates after they ship). Creating the
   FeatureUpdate record and drafting its context is never blocked.
