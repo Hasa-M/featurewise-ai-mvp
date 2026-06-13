@@ -147,7 +147,7 @@ sequenceDiagram
             GEN->>DB: status = checking_quality
             GEN->>GEN: non-blocking quality checks -> warnings<br/>(e.g. thin baseline on an update run)
             GEN->>DB: status = persisting
-            GEN->>DB: insert GeneratedSpec (version = last+1 for target, valid=false,<br/>incorporatedUpdates when consolidation, schemaVersion, warnings)
+            GEN->>DB: insert GeneratedSpec (valid=false,<br/>incorporatedUpdates when consolidation, schemaVersion, warnings)
             GEN->>DB: status = completed
         else repair attempts exhausted
             GEN->>DB: status = failed (+ errorMessage, raw output stored in log)
@@ -167,13 +167,13 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["Operator marks an update spec valid"] --> B["Spec content frozen;<br/>previous valid spec of that update cleared"]
+    A["Operator marks an update spec valid"] --> B["Version is set to 1;<br/>previous valid spec of that updated as valid=false"]
     B --> C{"Is its specId inside the feature<br/>valid spec incorporatedUpdates?"}
     C -- "no, or no feature valid spec yet" --> D["Feature alignment = updates_pending<br/>warning shown on the Feature"]
     C -- "yes" --> H["Feature alignment = aligned"]
     D --> E["Operator starts a consolidation run<br/>runKind = consolidation"]
-    E --> F["Draft feature spec version N+1<br/>incorporatedUpdates recorded from the snapshot"]
-    F --> G["Operator reviews, edits, marks valid<br/>previous feature valid spec cleared"]
+    E --> F["Draft feature spec<br/>incorporatedUpdates recorded from the snapshot"]
+    F --> G["Operator reviews, edits, marks valid<br/>previous feature valid spec updated as valid=false"]
     G --> H
     H -. "an update gets a new valid spec later" .-> C
 ```
@@ -188,9 +188,8 @@ flowchart TD
   frozen at generation time. Alignment is computed live on every feature read,
   because it changes when updates are validated _after_ the spec was created.
   Do not store alignment.
-- The new `GeneratedSpec` is always a draft (`valid = false`) at
-  `version = last + 1` for its target. Marking it valid freezes the content
-  and atomically swaps the `valid` flag for that target.
+- The new `GeneratedSpec` is always a draft (`valid = false`). Marking it valid mark
+  it as version 1 and atomically swaps the `valid` flag for that target.
 - Quality checks never fail a run; an update run with a thin baseline that
   still passed the usable-baseline gate produces a warning, not a failure.
 - Raw LLM output is persisted in the log only for failed validation/repair
@@ -207,12 +206,11 @@ flowchart TD
 
 The operator hits "generate" on a Feature (with a runKind) or on a
 FeatureUpdate. The module resolves the target and checks the precondition for
-that run kind: missing target → 404; generation on a `mapped_existing`
-feature, unusable parent baseline, or consolidation with nothing pending →
-422; non-terminal run already on the target → 409. Otherwise ContextIntake
-builds the snapshot: copies the target's context text, records immutable S3
-keys and external refs, and adds the extra inputs per run kind — parent
-baseline plus parent valid spec for update runs; feature valid spec plus all
+that run kind: missing target → 404; unusable parent baseline, or consolidation 
+with nothing pending → 422; non-terminal run already on the target → 409. 
+Otherwise ContextIntake builds the snapshot: copies the target's context text, 
+records immutable S3 keys and external refs, and adds the extra inputs per run kind
+— parent baseline plus parent valid spec for update runs; feature valid spec plus all
 pending validated update specs for consolidation. The SpecRun is inserted with
 status `queued` (the partial unique index guarantees the one-active-run rule
 even under a race) and the API answers 202.
@@ -225,17 +223,16 @@ The pipeline runs inside a guard that converts any unexpected exception into
 selected by runKind + target, prompt assembled) → `calling_llm` (max 3
 transient attempts, one log row each) → `validating_output` → optional
 `repairing_output` (max 2) → `checking_quality` (warnings only) →
-`persisting` (GeneratedSpec at version last+1, valid=false, with
-incorporatedUpdates when consolidating) → `completed`; any exhausted branch →
-`failed`.
+`persisting` (valid=false, with incorporatedUpdates when consolidating) → 
+`completed`; any exhausted branch → `failed`.
 
 ### Closing the loop
 
-Validating an update spec freezes it and may flip the Feature to
+Validating an update spec mark it as v1 and may flip the Feature to
 `updates_pending` (computed by comparing spec ids against the feature valid
 spec's `incorporatedUpdates`). The operator runs a consolidation, reviews the
 draft, marks it valid — the Feature is `aligned` again until the next update
-is validated. Re-validating an update with a new version re-flags the Feature
+is validated. Changing an update with a new version re-flags the Feature
 automatically.
 
 ### Polling, recovery, safety net
