@@ -30,10 +30,7 @@ The ProjectContextSummary content is not snapshotted, only its inclusion flag.
 > - update-target generation runs copy the **parent Feature's valid spec**, when one exists (ADR-0020);
 > - consolidation runs copy the **feature's valid spec** (if any) **and all pending validated update specs** (ADR-0021).
 >
-> Spec contents are **copied, not referenced**, for the same reason as context
-> text: a reference is not byte-stable. A spec's content can change while
-> `valid = false`, and a previously valid spec can later lose its valid flag
-> (ADR-0021), so only a copy keeps the snapshot reproducible.
+> Spec contents are **referenced at the version used**
 
 ## Consequences
 
