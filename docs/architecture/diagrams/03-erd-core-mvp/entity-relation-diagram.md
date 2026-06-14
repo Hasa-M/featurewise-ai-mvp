@@ -4,12 +4,6 @@
 
 Canonical entity-relationship model for the phase 1 backend.
 
-This Mermaid file is the **source of truth** for the schema. The previous
-`erd-core-mvp.drawio` is removed and must not come back: drawio XML is not
-PR-reviewable and not safely editable by coding agents. Once migrations exist,
-the migrations become the operational truth and this document is kept in sync
-with them (AGENTS.md rule).
-
 Column names are camelCase here; the ORM maps them to snake_case in PostgreSQL.
 
 ## Diagram
