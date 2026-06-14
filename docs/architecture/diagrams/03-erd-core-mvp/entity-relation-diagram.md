@@ -2,11 +2,7 @@
 
 ## Purpose
 
-Canonical entity-relationship model for the phase 1 backend, aligned with:
-ADR-0003 (hierarchy), ADR-0006 (JSONB specs), ADR-0011 (object storage),
-ADR-0015 (minimal auth), ADR-0016 (context artifacts), ADR-0017 (snapshots),
-ADR-0018 (spec versions), ADR-0019 (run lifecycle), ADR-0020 (FeatureUpdate),
-ADR-0021 (consolidation and alignment).
+Canonical entity-relationship model for the phase 1 backend.
 
 This Mermaid file is the **source of truth** for the schema. The previous
 `erd-core-mvp.drawio` is removed and must not come back: drawio XML is not
