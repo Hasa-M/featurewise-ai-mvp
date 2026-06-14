@@ -204,10 +204,11 @@ CREATE UNIQUE INDEX one_valid_spec_per_update ON generated_spec (feature_update_
   when a Feature or FeatureUpdate is created — that is how the "exactly one"
   invariant holds from birth.
 - **Version assignment:** every new GeneratedSpec (run-produced or manual)
-  gets `version = last + 1` for its target; the unique index backs this up.
-- **Validity freeze (ADR-0021):** `content` is editable only while
-  `valid = false`. Marking a spec valid freezes it and atomically clears the
-  `valid` flag on the previously valid spec of the same target.
+  gets `version = 0` and gets `version = 1` after the first time setted to
+  `valid = true`.
+- **Validity (ADR-0021):** Marking a spec valid set version to last+1
+  it and atomically clears the `valid` flag on the previously valid spec of the
+  same target.
 - Manual (user-created) versions copy `incorporatedUpdates` from their
   `parentSpecId` spec.
 - A GeneratedSpec's `featureId`/`featureUpdateId` must equal its run's target
@@ -286,10 +287,6 @@ Field usage per run kind:
 | `featureValidSpec`     | null                 | parent's valid spec if any | feature's valid spec if any        |
 | `updatesToIncorporate` | null                 | null                       | all pending validated update specs |
 
-Per ADR-0017/0021: text and spec contents are **copied** (specs are editable
-while drafts, so id references would not be byte-stable), S3 keys are
-referenced (immutable), external sources are referenced not copied, and the
-ProjectContextSummary content is not snapshotted — only its inclusion flag.
 
 ## Open decisions still pending (tracked, not blockers for the ERD)
 
