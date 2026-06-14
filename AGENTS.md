@@ -45,7 +45,7 @@ This is the most important rule in this file:
  parent baseline (non-empty parent context, or uploads, or parent valid spec); consolidation requires >=1 validated,
   not-yet-incorporated update spec.
 - At most one non-terminal run per TARGET → 409, enforced by partial unique indexes (ADR-0019/0020).
-- GeneratedSpec versions are sequential per target (last+1). A valid spec is FROZEN; edits require a new version.
+- GeneratedSpec versions are sequential at every "validation" is equal to last+1 and first of the first validation is equal to 0.
   Marking valid atomically un-validates the previous one. At most one valid spec per TARGET (ADR-0018/0021).
 - Feature alignment (aligned | updates_pending) is COMPUTED from incorporatedUpdates vs current valid update specs —
   never stored, never auto-resolved by regeneration (ADR-0021).
@@ -62,7 +62,7 @@ This is the most important rule in this file:
   then failed. Log every LLM attempt (ADR-0019).
 - Prompt templates are versioned files in this repository. No DB prompt management.
   Generated JSON is runtime-validated against its schema version (ADR-0013).
-- A new GeneratedSpec is created as version 1 with `valid = false`. At most one valid
+- A new GeneratedSpec is created as version 0 with `valid = false`. At most one valid
   spec per feature. Marking valid is a user action, never automatic (ADR-0018 file).
 - Quality checks are non-blocking: warnings only, never a failed run (ADR-0019).
 - Passwords: Argon2id via a standard library. NEVER write custom hashing/salting (ADR-0015).
