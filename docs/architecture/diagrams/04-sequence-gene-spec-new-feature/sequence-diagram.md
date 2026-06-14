@@ -120,7 +120,7 @@ sequenceDiagram
     end
     GEN->>S3: fetch image artifacts by snapshot keys
     S3-->>GEN: image binaries
-    GEN->>GEN: downscale + base64 images, select template by runKind + target<br/>(new-feature | feature-update | feature-consolidation), assemble prompt (template vX)
+    GEN->>GEN: downscale + base64 images, select template by runKind + target<br/>(feature | feature-update | feature-consolidation), assemble prompt (template vX)
 
     GEN->>DB: status = calling_llm
     loop up to 3 attempts (transient errors only: timeout / 429 / 5xx)
