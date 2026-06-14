@@ -6,7 +6,7 @@ This diagram defines the behavior of the only complex flow in the MVP:
 asynchronous spec runs executed inside the NestJS process (ADR-0012), for the
 three run cases defined by ADR-0020/0021:
 
-- `generation` on a Feature with `origin = brand_new` (direct run);
+- `generation` on a Feature with `origin = brand_new or mapped_existing` (direct run);
 - `generation` on a FeatureUpdate (increment run, parent baseline included);
 - `consolidation` on a Feature (absorb validated update specs into a new
   feature-level spec version).
