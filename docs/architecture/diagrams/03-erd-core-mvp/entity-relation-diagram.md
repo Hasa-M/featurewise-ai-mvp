@@ -130,10 +130,10 @@ erDiagram
         uuid featureUpdateId FK "nullable - equals the run or parent target"
         uuid specRunId FK "nullable - set only when produced by a run"
         uuid parentSpecId FK "nullable self-reference - derivation lineage"
-        int version "sequential per target: last + 1, validation is 1 (ADR-0021)"
-        jsonb content "editable only while valid = false (ADR-0021)"
+        int version "last + 1, after validation is 1 (ADR-0021) - previously 0"
+        jsonb content
         text schemaVersion
-        boolean valid "default false; at most one per target; freezes content"
+        boolean valid "default false; at most one per target"
         jsonb warnings "generation-time quality checks (ADR-0019)"
         jsonb incorporatedUpdates "feature-target only - see shape below (ADR-0021)"
         timestamptz createdAt
