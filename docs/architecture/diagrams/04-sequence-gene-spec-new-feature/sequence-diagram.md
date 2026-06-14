@@ -6,7 +6,7 @@ This diagram defines the behavior of the only complex flow in the MVP:
 asynchronous spec runs executed inside the NestJS process (ADR-0012), for the
 three run cases defined by ADR-0020/0021:
 
-- `generation` on a Feature with `origin = brand_new or mapped_existing` (direct run);
+- `generation` on a Feature with `origin = brand_new` (direct run);
 - `generation` on a FeatureUpdate (increment run, parent baseline included);
 - `consolidation` on a Feature (absorb validated update specs into a new
   feature-level spec version).
@@ -22,7 +22,7 @@ intentionally not diagrammed.
 
 | runKind         | Target               | Allowed when (else 422)                                                                            | Snapshot contains                                                                  |
 | --------------- | -------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `generation`    | Feature              | `origin = brand_new or mapped_existing  `                                                          | feature context                                                                    |
+| `generation`    | Feature              | `origin = brand_new`                                                                                | feature context                                                                    |
 | `generation`    | FeatureUpdate        | usable parent baseline: non-empty parent ContextArtifact, or uploads on it, or a parent valid spec | update context + parent baseline + parent valid spec (if any)                      |
 | `consolidation` | Feature (any origin) | ≥ 1 validated feature update spec not yet incorporated                                             | feature context + feature valid spec (if any) + all pending validated update specs |
 
@@ -188,8 +188,9 @@ flowchart TD
   frozen at generation time. Alignment is computed live on every feature read,
   because it changes when updates are validated _after_ the spec was created.
   Do not store alignment.
-- The new `GeneratedSpec` is always a draft (`valid = false`). Marking it valid mark
-  it as version 1 and atomically swaps the `valid` flag for that target.
+- The new `GeneratedSpec` is always a draft (`version = 0`, `valid = false`).
+  Marking it valid assigns the next target-local validated version, starting at
+  version 1, and atomically swaps the `valid` flag for that target.
 - Quality checks never fail a run; an update run with a thin baseline that
   still passed the usable-baseline gate produces a warning, not a failure.
 - Raw LLM output is persisted in the log only for failed validation/repair

@@ -1,6 +1,6 @@
 # ADR-0021: Internal Spec Versioning, Consolidation Runs, and Computed Alignment
 
-Date: 2026-06-13
+Date: 2026-06-14
 
 Status: accepted
 
@@ -18,7 +18,19 @@ Versioning is internal to a GeneratedSpec and starts at validation.
 
 ## Decision
 
-### 1. Run kinds (amends ADR-0019)
+### 1. Version assignment (amends ADR-0018)
+
+Generated specs created by a run or by manual editing start as drafts with
+`version = 0` and `valid = false`.
+
+When the user marks a spec valid, the system assigns the next target-local
+validated version: `1` for the first validation, otherwise `last + 1`. The
+same transaction clears the previous valid spec for that target.
+
+Only validated versions (`version > 0`) must be unique per target. Drafts can
+repeat `version = 0`.
+
+### 2. Run kinds (amends ADR-0019)
 
 `SpecRun.runKind = generation | consolidation`. Consolidation runs are
 feature-target only (DB CHECK).
@@ -37,13 +49,13 @@ feature-target only (DB CHECK).
 - A third prompt template, `feature-consolidation`, is versioned in the
   repository like the others (ADR-0013).
 
-### 2. Incorporation tracking
+### 3. Incorporation tracking
 
 Feature-target GeneratedSpecs store
-`incorporatedUpdates: [{ featureUpdateId, generatedSpecId }]` (JSONB).
+`incorporatedUpdates: [{ featureUpdateId, generatedSpecId, version }]` (JSONB).
 This is the only persisted record of what a feature spec has absorbed.
 
-### 3. Alignment is computed, never stored
+### 4. Alignment is computed, never stored
 
 A Feature is `updates_pending` when at least one non-deleted FeatureUpdate has
 a current valid spec whose id is not in the feature's current valid spec
@@ -51,7 +63,7 @@ a current valid spec whose id is not in the feature's current valid spec
 its own is also `updates_pending`). Otherwise `aligned`. The API computes this
 on feature reads and exposes it as a warning with the list of pending updates.
 
-### 4. Consolidation is user-triggered only
+### 5. Consolidation is user-triggered only
 
 Validating an update spec never starts a run automatically. Automatic
 regeneration would spend LLM cost on unreviewed drafts and contradict the

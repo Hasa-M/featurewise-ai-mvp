@@ -1,6 +1,6 @@
 # ADR-0019: Spec Generation Run Lifecycle, Retries, Image Handling, and LLM Call Logging
 
-Date: 2026-06-13
+Date: 2026-06-14
 
 Status: accepted
 
@@ -16,7 +16,10 @@ These decisions are needed before implementing the SpecGeneration module, becaus
 
 ### Concurrency
 
-At most one non-terminal run per feature. A second start request is rejected with `409 Conflict`. The frontend also disables the trigger while a run is active.
+At most one non-terminal run per target. A target is either a direct Feature
+run or a FeatureUpdate run (ADR-0020). A second start request for the same
+target is rejected with `409 Conflict`. The frontend also disables the trigger
+while a run is active.
 
 ### Status lifecycle (granular)
 
@@ -67,7 +70,10 @@ One log row per LLM attempt:
 
 ### Quality checks and result persistence
 
-Quality checks are non-blocking: they produce warnings stored with the `GeneratedSpec`, never a failed run. The new `GeneratedSpec` is created as version 1 with `valid = false`; marking it valid is a separate user action (ADR-0018).
+Quality checks are non-blocking: they produce warnings stored with the
+`GeneratedSpec`, never a failed run. The new `GeneratedSpec` is created as a
+draft with `version = 0` and `valid = false`; marking it valid is a separate
+user action that assigns the next validated version (ADR-0018/0021).
 
 ## Consequences
 
@@ -91,6 +97,7 @@ remain in force. The following are added or changed.
 
 ### Preconditions (return 422 before a run is created)
 
+- `generation` on a Feature: only when `origin = brand_new` (ADR-0021).
 - `generation` on a FeatureUpdate: only with a usable parent baseline —
   non-empty parent ContextArtifact, or an upload on it, or a parent valid spec
   (ADR-0020).

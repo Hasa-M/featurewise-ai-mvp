@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-This folder contains architecture documentation for Featurwise MVP.
+This folder contains architecture documentation for Featurewise MVP.
 
 ## Architecture Decision Records
 
@@ -14,7 +14,7 @@ Current diagrams:
 
 - `01-c4-system-context`
 - `02-c4-container`
-- `03-erd-core-domain-model`
-- `04-sequence-generate-spec-new-feature`
+- `03-erd-core-mvp`
+- `04-sequence-gene-spec-new-feature`
 
 Additional sequence diagrams can be added later when specific flows become clear.

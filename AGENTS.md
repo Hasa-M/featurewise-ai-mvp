@@ -24,7 +24,7 @@ This is the most important rule in this file:
 5. If you are making a significant new architectural decision, propose a new ADR
    (same minimal style: Context / Decision / Consequences). Do not bury decisions in code.
 6. The spec generation flow is fully defined in
-   `docs/architecture/diagrams/04-sequence-generate-spec-new-feature/` and ADR-0019.
+   `docs/architecture/diagrams/04-sequence-gene-spec-new-feature/` and ADR-0019.
    Implement exactly that flow. Do not invent statuses, retries, or endpoints.
 ## Stack
  
@@ -45,7 +45,8 @@ This is the most important rule in this file:
  parent baseline (non-empty parent context, or uploads, or parent valid spec); consolidation requires >=1 validated,
   not-yet-incorporated update spec.
 - At most one non-terminal run per TARGET → 409, enforced by partial unique indexes (ADR-0019/0020).
-- GeneratedSpec versions are sequential at every "validation" is equal to last+1 and first of the first validation is equal to 0.
+- GeneratedSpec drafts are created with version 0 and `valid = false`. Versions become sequential only when specs are validated:
+  the first validation for a target assigns version 1, and later validations assign last+1.
   Marking valid atomically un-validates the previous one. At most one valid spec per TARGET (ADR-0018/0021).
 - Feature alignment (aligned | updates_pending) is COMPUTED from incorporatedUpdates vs current valid update specs —
   never stored, never auto-resolved by regeneration (ADR-0021).
@@ -53,7 +54,7 @@ This is the most important rule in this file:
  
 - Module boundaries: each NestJS module exposes a public API; other modules must not
   import its internals (ADR-0002). Keep generation extractable to a worker later.
-- At most ONE non-terminal SpecRun per feature; concurrent start → 409 (ADR-0019).
+- At most ONE non-terminal SpecRun per target; concurrent start → 409 (ADR-0019/0020).
 - SpecRun statuses are exactly: queued, preparing_context, calling_llm, validating_output,
   repairing_output, checking_quality, persisting, completed, failed (ADR-0019).
 - SpecRun snapshots are immutable. S3 object keys are NEVER overwritten; uploads always
@@ -63,7 +64,7 @@ This is the most important rule in this file:
 - Prompt templates are versioned files in this repository. No DB prompt management.
   Generated JSON is runtime-validated against its schema version (ADR-0013).
 - A new GeneratedSpec is created as version 0 with `valid = false`. At most one valid
-  spec per feature. Marking valid is a user action, never automatic (ADR-0018 file).
+  spec per target. Marking valid is a user action, never automatic (ADR-0018 file).
 - Quality checks are non-blocking: warnings only, never a failed run (ADR-0019).
 - Passwords: Argon2id via a standard library. NEVER write custom hashing/salting (ADR-0015).
 ## Phase 1 scope guards (do NOT build these, even if they seem useful)
@@ -82,8 +83,17 @@ Allowed types: feat, fix, docs, test, refactor, chore, build, ci, perf, style, r
  
 ## Commands
  
-The project is not scaffolded yet. After scaffolding, replace this section with the real
-commands (install, dev, test, lint, migrations). Until then, ask before assuming any command.
+Backend commands are run from `backend/`:
+
+- Install dependencies: `npm install`
+- Development server: `npm run start:dev`
+- Build: `npm run build`
+- Unit tests: `npm test`
+- End-to-end tests: `npm run test:e2e`
+- Lint: `npm run lint`
+
+No migration command exists yet. Prisma is the selected future ORM, but it is not wired
+in the first skeleton-only backend scaffold.
  
 ## General behavior
  

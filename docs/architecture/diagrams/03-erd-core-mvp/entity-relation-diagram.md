@@ -65,7 +65,7 @@ erDiagram
         text title
         text brief "short statement; deep context lives in the ContextArtifact"
         text origin "brand_new | mapped_existing (ADR-0020)"
-        text status "enum TBD - proposal: draft | in_review | ready | shipped"
+        text status "unresolved - do not include in first migration until decided"
         boolean includeInProjectContext "feeds ProjectContextSummary"
         uuid createdBy FK "User"
         timestamptz createdAt
@@ -78,7 +78,7 @@ erDiagram
         uuid featureId FK "parent - exactly one nesting level (ADR-0020)"
         text title
         text brief
-        text status "same enum as Feature"
+        text status "unresolved - do not include in first migration until decided"
         uuid createdBy FK "User"
         timestamptz createdAt
         timestamptz updatedAt
@@ -130,7 +130,7 @@ erDiagram
         uuid featureUpdateId FK "nullable - equals the run or parent target"
         uuid specRunId FK "nullable - set only when produced by a run"
         uuid parentSpecId FK "nullable self-reference - derivation lineage"
-        int version "last + 1, after validation is 1 (ADR-0021) - previously 0"
+        int version "drafts use 0; first validation is 1; later validations are last + 1"
         jsonb content
         text schemaVersion
         boolean valid "default false; at most one per target"
@@ -177,11 +177,12 @@ CREATE UNIQUE INDEX one_active_run_per_feature ON spec_run (feature_id)
 CREATE UNIQUE INDEX one_active_run_per_update ON spec_run (feature_update_id)
   WHERE feature_update_id IS NOT NULL AND status NOT IN ('completed','failed');
 
--- GeneratedSpec: sequential version per target (ADR-0021)
+-- GeneratedSpec: sequential validated versions per target (ADR-0021).
+-- Drafts use version = 0 and may repeat before validation.
 CREATE UNIQUE INDEX spec_version_per_feature ON generated_spec (feature_id, version)
-  WHERE feature_update_id IS NULL;
+  WHERE feature_update_id IS NULL AND version > 0;
 CREATE UNIQUE INDEX spec_version_per_update ON generated_spec (feature_update_id, version)
-  WHERE feature_update_id IS NOT NULL;
+  WHERE feature_update_id IS NOT NULL AND version > 0;
 
 -- GeneratedSpec: at most one valid spec per target (ADR-0018/0021)
 CREATE UNIQUE INDEX one_valid_spec_per_feature ON generated_spec (feature_id)
@@ -204,11 +205,11 @@ CREATE UNIQUE INDEX one_valid_spec_per_update ON generated_spec (feature_update_
   when a Feature or FeatureUpdate is created — that is how the "exactly one"
   invariant holds from birth.
 - **Version assignment:** every new GeneratedSpec (run-produced or manual)
-  gets `version = 0` and gets `version = 1` after the first time setted to
-  `valid = true`.
-- **Validity (ADR-0021):** Marking a spec valid set version to last+1
-  it and atomically clears the `valid` flag on the previously valid spec of the
-  same target.
+  starts as a draft with `version = 0` and `valid = false`.
+- **Validity (ADR-0021):** Marking a spec valid assigns the next target-local
+  validated version (`1` for the first validation, otherwise `last + 1`) and
+  atomically clears the `valid` flag on the previously valid spec of the same
+  target.
 - Manual (user-created) versions copy `incorporatedUpdates` from their
   `parentSpecId` spec.
 - A GeneratedSpec's `featureId`/`featureUpdateId` must equal its run's target
@@ -290,9 +291,8 @@ Field usage per run kind:
 
 ## Open decisions still pending (tracked, not blockers for the ERD)
 
-- `status` enum values for Feature/FeatureUpdate are a proposal
-  (`draft | in_review | ready | shipped`) — confirm or replace before the
-  first migration.
+- `status` enum values for Feature/FeatureUpdate are unresolved. Do not include
+  them in the first migration until the workflow states are explicitly decided.
 - ProjectContextSummary has a defined shape but **no write path yet**; its
   generation/update flow needs its own ADR before the entity is more than a
   manually edited text field.
