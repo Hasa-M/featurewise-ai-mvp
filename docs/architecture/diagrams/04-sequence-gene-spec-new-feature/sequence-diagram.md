@@ -22,7 +22,7 @@ intentionally not diagrammed.
 
 | runKind         | Target               | Allowed when (else 422)                                                                            | Snapshot contains                                                                  |
 | --------------- | -------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `generation`    | Feature              | `origin = brand_new | mapped_existing  `                                                           | feature context                                                                    |
+| `generation`    | Feature              | `origin = brand_new or mapped_existing  `                                                          | feature context                                                                    |
 | `generation`    | FeatureUpdate        | usable parent baseline: non-empty parent ContextArtifact, or uploads on it, or a parent valid spec | update context + parent baseline + parent valid spec (if any)                      |
 | `consolidation` | Feature (any origin) | ≥ 1 validated feature update spec not yet incorporated                                             | feature context + feature valid spec (if any) + all pending validated update specs |
 
