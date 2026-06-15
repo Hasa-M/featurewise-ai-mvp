@@ -16,7 +16,6 @@ This is the most important rule in this file:
 1. Before designing or implementing anything non-trivial, READ the relevant ADRs in
    `docs/architecture/adr/` and the diagrams in `docs/architecture/diagrams/`.
    Consider still they could be not perfect and with some errors or things to update/change.
-   In particular the 'docs/architecture/diagrams/03-erd-core-mvp' is with impreciso e con lacune. 
 3. When you have a doubt about structure, naming, flow, or scope: check the ADRs FIRST.
    Aske me considering them.
 4. If a requested change conflicts with an accepted ADR: STOP. Do not silently diverge.
