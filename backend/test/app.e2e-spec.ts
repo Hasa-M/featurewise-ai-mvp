@@ -1,17 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request, { Response } from 'supertest';
+import request, { Response, Test as SuperTestRequest } from 'supertest';
 import { App } from 'supertest/types';
 import { FeatureOrigin } from '@prisma/client';
+import { argon2id, hash } from 'argon2';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/database/prisma.service';
+
+const TEST_USERNAME = 'dev.operator';
+const TEST_PASSWORD = 'correct-test-password';
 
 interface CurrentUserResponse {
   readonly userId: string;
   readonly username: string;
   readonly organizationId: string;
   readonly projectId: string;
+}
+
+interface LoginResponse {
+  readonly accessToken: string;
+  readonly expiresInSeconds: number;
+  readonly tokenType: 'Bearer';
+  readonly user: CurrentUserResponse;
 }
 
 interface OrganizationRecord {
@@ -156,10 +167,14 @@ class InMemoryPrisma {
 
       return Promise.resolve(user);
     },
-    findUnique: ({ where }: { where: { username: string } }) => {
+    findUnique: ({ where }: { where: { id?: string; username?: string } }) => {
       const user =
-        this.users.find((candidate) => candidate.username === where.username) ??
-        null;
+        this.users.find(
+          (candidate) =>
+            (where.id !== undefined && candidate.id === where.id) ||
+            (where.username !== undefined &&
+              candidate.username === where.username),
+        ) ?? null;
 
       return Promise.resolve(
         user === null ? null : this.toUserWithWorkspace(user),
@@ -376,6 +391,43 @@ class InMemoryPrisma {
   }
 }
 
+async function seedWorkspace(
+  prisma: InMemoryPrisma,
+): Promise<CurrentUserResponse> {
+  const organization = await prisma.organization.create({
+    data: {
+      name: 'Featurewise Test Organization',
+    },
+  });
+  const user = await prisma.user.create({
+    data: {
+      organizationId: organization.id,
+      passwordHash: await hash(TEST_PASSWORD, { type: argon2id }),
+      username: TEST_USERNAME,
+    },
+  });
+  const project = await prisma.project.create({
+    data: {
+      name: 'Featurewise Test Project',
+      organizationId: organization.id,
+    },
+  });
+
+  return {
+    organizationId: organization.id,
+    projectId: project.id,
+    userId: user.id,
+    username: user.username,
+  };
+}
+
+function withAuth(
+  requestTest: SuperTestRequest,
+  authorizationHeader: string,
+): SuperTestRequest {
+  return requestTest.set('Authorization', authorizationHeader);
+}
+
 describe('Featurewise backend (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -386,14 +438,19 @@ describe('Featurewise backend (e2e)', () => {
     process.env.DATABASE_PASSWORD ??= 'featurewise_test_password';
     process.env.DATABASE_NAME ??= 'featurewise_test';
     process.env.DATABASE_SSL ??= 'false';
+    process.env.AUTH_TOKEN_SECRET = 'featurewise_test_auth_secret';
+    process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS = '3600';
   });
 
   beforeEach(async () => {
+    const prisma = new InMemoryPrisma();
+    await seedWorkspace(prisma);
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(PrismaService)
-      .useValue(new InMemoryPrisma())
+      .useValue(prisma)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -424,18 +481,56 @@ describe('Featurewise backend (e2e)', () => {
       });
   });
 
-  it('runs the temporary-auth workspace and feature CRUD flow', async () => {
-    const currentUserResponse = await request(app.getHttpServer())
-      .get('/auth/me')
-      .expect(200);
-    const currentUser = currentUserResponse.body as CurrentUserResponse;
+  it('runs the real-auth workspace and feature CRUD flow', async () => {
+    await request(app.getHttpServer()).get('/auth/me').expect(401);
 
     await request(app.getHttpServer())
-      .get('/organizations/00000000-0000-4000-8000-000000000099')
-      .expect(404);
+      .post('/auth/login')
+      .send({ username: TEST_USERNAME, password: 'wrong-password' })
+      .expect(401);
 
-    await request(app.getHttpServer())
-      .patch(`/organizations/${currentUser.organizationId}`)
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ username: TEST_USERNAME, password: TEST_PASSWORD })
+      .expect(200)
+      .expect((response: Response) => {
+        const body = response.body as LoginResponse;
+
+        expect(body).toMatchObject({
+          expiresInSeconds: 3600,
+          tokenType: 'Bearer',
+          user: {
+            username: TEST_USERNAME,
+          },
+        });
+        expect(typeof body.accessToken).toBe('string');
+      });
+    const login = loginResponse.body as LoginResponse;
+    const authorizationHeader = `${login.tokenType} ${login.accessToken}`;
+    const currentUser = login.user;
+
+    await withAuth(
+      request(app.getHttpServer()).get('/auth/me'),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body).toMatchObject(currentUser);
+      });
+
+    await withAuth(
+      request(app.getHttpServer()).get(
+        '/organizations/00000000-0000-4000-8000-000000000099',
+      ),
+      authorizationHeader,
+    ).expect(404);
+
+    await withAuth(
+      request(app.getHttpServer()).patch(
+        `/organizations/${currentUser.organizationId}`,
+      ),
+      authorizationHeader,
+    )
       .send({ name: 'Renamed organization' })
       .expect(200)
       .expect((response: Response) => {
@@ -445,8 +540,12 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .get(`/organizations/${currentUser.organizationId}/projects`)
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/organizations/${currentUser.organizationId}/projects`,
+      ),
+      authorizationHeader,
+    )
       .expect(200)
       .expect((response: Response) => {
         const projects = response.body as ReadonlyArray<{
@@ -459,10 +558,12 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .patch(
+    await withAuth(
+      request(app.getHttpServer()).patch(
         `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}`,
-      )
+      ),
+      authorizationHeader,
+    )
       .send({ name: 'Renamed project' })
       .expect(200)
       .expect((response: Response) => {
@@ -472,17 +573,21 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .post(
+    await withAuth(
+      request(app.getHttpServer()).post(
         `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
-      )
+      ),
+      authorizationHeader,
+    )
       .send({ title: 'Invalid origin feature', origin: 'unsupported' })
       .expect(400);
 
-    const createFeatureResponse = await request(app.getHttpServer())
-      .post(
+    const createFeatureResponse = await withAuth(
+      request(app.getHttpServer()).post(
         `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
-      )
+      ),
+      authorizationHeader,
+    )
       .send({
         title: 'New checkout',
         brief: 'Reduce friction in the checkout flow.',
@@ -492,10 +597,12 @@ describe('Featurewise backend (e2e)', () => {
       .expect(201);
     const feature = createFeatureResponse.body as { id: string };
 
-    await request(app.getHttpServer())
-      .get(
+    await withAuth(
+      request(app.getHttpServer()).get(
         `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
-      )
+      ),
+      authorizationHeader,
+    )
       .expect(200)
       .expect((response: Response) => {
         const features = response.body as ReadonlyArray<{
@@ -516,8 +623,10 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .get(`/features/${feature.id}`)
+    await withAuth(
+      request(app.getHttpServer()).get(`/features/${feature.id}`),
+      authorizationHeader,
+    )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
@@ -527,8 +636,10 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .get(`/features/${feature.id}/context`)
+    await withAuth(
+      request(app.getHttpServer()).get(`/features/${feature.id}/context`),
+      authorizationHeader,
+    )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
@@ -537,8 +648,10 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .patch(`/features/${feature.id}/context`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/features/${feature.id}/context`),
+      authorizationHeader,
+    )
       .send({ content: 'Screenshots and notes go here.' })
       .expect(200)
       .expect((response: Response) => {
@@ -548,8 +661,10 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .patch(`/features/${feature.id}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/features/${feature.id}`),
+      authorizationHeader,
+    )
       .send({ title: 'Updated checkout', includeInProjectContext: false })
       .expect(200)
       .expect((response: Response) => {
@@ -560,17 +675,21 @@ describe('Featurewise backend (e2e)', () => {
         });
       });
 
-    await request(app.getHttpServer())
-      .delete(`/features/${feature.id}`)
-      .expect(204);
-    await request(app.getHttpServer())
-      .get(`/features/${feature.id}`)
-      .expect(404);
+    await withAuth(
+      request(app.getHttpServer()).delete(`/features/${feature.id}`),
+      authorizationHeader,
+    ).expect(204);
+    await withAuth(
+      request(app.getHttpServer()).get(`/features/${feature.id}`),
+      authorizationHeader,
+    ).expect(404);
 
-    await request(app.getHttpServer())
-      .get(
+    await withAuth(
+      request(app.getHttpServer()).get(
         `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
-      )
+      ),
+      authorizationHeader,
+    )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toHaveLength(0);

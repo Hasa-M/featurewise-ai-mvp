@@ -8,29 +8,31 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
-import { FakeAuthService } from '../auth/fake-auth.service';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { CurrentUserContext } from '../auth/current-user-context';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { FeaturesService } from './features.service';
 
 @Controller()
+@UseGuards(AuthGuard)
 export class FeaturesController {
-  constructor(
-    private readonly fakeAuthService: FakeAuthService,
-    private readonly featuresService: FeaturesService,
-  ) {}
+  constructor(private readonly featuresService: FeaturesService) {}
 
   @Get('organizations/:organizationId/projects/:projectId/features')
   async listFeatures(
+    @CurrentUser() currentUser: CurrentUserContext,
     @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
     organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
   ) {
     return this.featuresService.listFeatures(
-      await this.fakeAuthService.getCurrentUser(),
+      currentUser,
       organizationId,
       projectId,
     );
@@ -38,6 +40,7 @@ export class FeaturesController {
 
   @Post('organizations/:organizationId/projects/:projectId/features')
   async createFeature(
+    @CurrentUser() currentUser: CurrentUserContext,
     @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
     organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
@@ -45,7 +48,7 @@ export class FeaturesController {
     @Body() dto: CreateFeatureDto,
   ) {
     return this.featuresService.createFeature(
-      await this.fakeAuthService.getCurrentUser(),
+      currentUser,
       organizationId,
       projectId,
       dto,
@@ -54,37 +57,30 @@ export class FeaturesController {
 
   @Get('features/:featureId')
   async getFeature(
+    @CurrentUser() currentUser: CurrentUserContext,
     @Param('featureId', new ParseUUIDPipe({ version: '4' }))
     featureId: string,
   ) {
-    return this.featuresService.getFeature(
-      await this.fakeAuthService.getCurrentUser(),
-      featureId,
-    );
+    return this.featuresService.getFeature(currentUser, featureId);
   }
 
   @Patch('features/:featureId')
   async updateFeature(
+    @CurrentUser() currentUser: CurrentUserContext,
     @Param('featureId', new ParseUUIDPipe({ version: '4' }))
     featureId: string,
     @Body() dto: UpdateFeatureDto,
   ) {
-    return this.featuresService.updateFeature(
-      await this.fakeAuthService.getCurrentUser(),
-      featureId,
-      dto,
-    );
+    return this.featuresService.updateFeature(currentUser, featureId, dto);
   }
 
   @Delete('features/:featureId')
   @HttpCode(204)
   async deleteFeature(
+    @CurrentUser() currentUser: CurrentUserContext,
     @Param('featureId', new ParseUUIDPipe({ version: '4' }))
     featureId: string,
   ): Promise<void> {
-    await this.featuresService.deleteFeature(
-      await this.fakeAuthService.getCurrentUser(),
-      featureId,
-    );
+    await this.featuresService.deleteFeature(currentUser, featureId);
   }
 }

@@ -1,13 +1,31 @@
-import { Controller, Get } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
-import { FakeAuthService } from './fake-auth.service';
+import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
+import { CurrentUser } from './current-user.decorator';
+import type { CurrentUserContext } from './current-user-context';
+import { LoginRequestDto } from './dto/login-request.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly fakeAuthService: FakeAuthService) {}
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('login')
+  @HttpCode(200)
+  login(@Body() dto: LoginRequestDto) {
+    return this.authService.login(dto);
+  }
 
   @Get('me')
-  getCurrentUser() {
-    return this.fakeAuthService.getCurrentUser();
+  @UseGuards(AuthGuard)
+  getCurrentUser(@CurrentUser() currentUser: CurrentUserContext) {
+    return currentUser;
   }
 }
