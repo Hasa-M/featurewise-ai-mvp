@@ -23,36 +23,23 @@ import { FeaturesService } from './features.service';
 export class FeaturesController {
   constructor(private readonly featuresService: FeaturesService) {}
 
-  @Get('organizations/:organizationId/projects/:projectId/features')
+  @Get('projects/:projectId/features')
   async listFeatures(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
   ) {
-    return this.featuresService.listFeatures(
-      currentUser,
-      organizationId,
-      projectId,
-    );
+    return this.featuresService.listFeatures(currentUser, projectId);
   }
 
-  @Post('organizations/:organizationId/projects/:projectId/features')
+  @Post('projects/:projectId/features')
   async createFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
     @Body() dto: CreateFeatureDto,
   ) {
-    return this.featuresService.createFeature(
-      currentUser,
-      organizationId,
-      projectId,
-      dto,
-    );
+    return this.featuresService.createFeature(currentUser, projectId, dto);
   }
 
   @Get('features/:featureId')

@@ -13,7 +13,7 @@ export class WorkspaceService {
     currentUser: CurrentUserContext,
     organizationId: string,
   ) {
-    this.assertOrganizationScope(currentUser, organizationId);
+    this.assertOrganizationVisible(currentUser, organizationId);
 
     const organization = await this.prismaService.organization.findUnique({
       where: { id: organizationId },
@@ -42,7 +42,7 @@ export class WorkspaceService {
   }
 
   async listProjects(currentUser: CurrentUserContext, organizationId: string) {
-    this.assertOrganizationScope(currentUser, organizationId);
+    this.assertOrganizationVisible(currentUser, organizationId);
 
     return this.prismaService.project.findMany({
       where: {
@@ -54,17 +54,12 @@ export class WorkspaceService {
     });
   }
 
-  async getProject(
-    currentUser: CurrentUserContext,
-    organizationId: string,
-    projectId: string,
-  ) {
-    this.assertProjectScope(currentUser, organizationId, projectId);
+  async getProject(currentUser: CurrentUserContext, projectId: string) {
+    this.assertProjectVisible(currentUser, projectId);
 
-    const project = await this.prismaService.project.findFirst({
+    const project = await this.prismaService.project.findUnique({
       where: {
         id: projectId,
-        organizationId,
       },
     });
 
@@ -77,11 +72,10 @@ export class WorkspaceService {
 
   async updateProject(
     currentUser: CurrentUserContext,
-    organizationId: string,
     projectId: string,
     dto: UpdateProjectDto,
   ) {
-    await this.getProject(currentUser, organizationId, projectId);
+    await this.getProject(currentUser, projectId);
 
     return this.prismaService.project.update({
       where: {
@@ -93,7 +87,7 @@ export class WorkspaceService {
     });
   }
 
-  private assertOrganizationScope(
+  private assertOrganizationVisible(
     currentUser: CurrentUserContext,
     organizationId: string,
   ): void {
@@ -102,13 +96,10 @@ export class WorkspaceService {
     }
   }
 
-  private assertProjectScope(
+  private assertProjectVisible(
     currentUser: CurrentUserContext,
-    organizationId: string,
     projectId: string,
   ): void {
-    this.assertOrganizationScope(currentUser, organizationId);
-
     if (currentUser.projectId !== projectId) {
       throw new NotFoundException('Project not found');
     }

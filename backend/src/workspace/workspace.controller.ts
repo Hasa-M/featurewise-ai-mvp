@@ -15,12 +15,12 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { WorkspaceService } from './workspace.service';
 
-@Controller('organizations')
+@Controller()
 @UseGuards(AuthGuard)
 export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
-  @Get(':organizationId')
+  @Get('organizations/:organizationId')
   async getOrganization(
     @CurrentUser() currentUser: CurrentUserContext,
     @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
@@ -29,7 +29,7 @@ export class WorkspaceController {
     return this.workspaceService.getOrganization(currentUser, organizationId);
   }
 
-  @Patch(':organizationId')
+  @Patch('organizations/:organizationId')
   async updateOrganization(
     @CurrentUser() currentUser: CurrentUserContext,
     @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
@@ -43,7 +43,7 @@ export class WorkspaceController {
     );
   }
 
-  @Get(':organizationId/projects')
+  @Get('organizations/:organizationId/projects')
   async listProjects(
     @CurrentUser() currentUser: CurrentUserContext,
     @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
@@ -52,35 +52,22 @@ export class WorkspaceController {
     return this.workspaceService.listProjects(currentUser, organizationId);
   }
 
-  @Get(':organizationId/projects/:projectId')
+  @Get('projects/:projectId')
   async getProject(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
   ) {
-    return this.workspaceService.getProject(
-      currentUser,
-      organizationId,
-      projectId,
-    );
+    return this.workspaceService.getProject(currentUser, projectId);
   }
 
-  @Patch(':organizationId/projects/:projectId')
+  @Patch('projects/:projectId')
   async updateProject(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
     @Body() dto: UpdateProjectDto,
   ) {
-    return this.workspaceService.updateProject(
-      currentUser,
-      organizationId,
-      projectId,
-      dto,
-    );
+    return this.workspaceService.updateProject(currentUser, projectId, dto);
   }
 }

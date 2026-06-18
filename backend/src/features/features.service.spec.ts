@@ -28,9 +28,6 @@ const featureRecord = {
 function createPrismaMock(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     $transaction: jest.fn(),
-    project: {
-      findFirst: jest.fn().mockResolvedValue({ id: currentUser.projectId }),
-    },
     feature: {
       create: jest.fn().mockResolvedValue(featureRecord),
       findFirst: jest.fn().mockResolvedValue(featureRecord),
@@ -85,16 +82,11 @@ describe('FeaturesService', () => {
     const service = new FeaturesService(prismaMock as unknown as PrismaService);
 
     await expect(
-      service.createFeature(
-        currentUser,
-        currentUser.organizationId,
-        currentUser.projectId,
-        {
-          title: '  New capability  ',
-          brief: '  Useful thing  ',
-          origin: FeatureOrigin.brand_new,
-        },
-      ),
+      service.createFeature(currentUser, currentUser.projectId, {
+        title: '  New capability  ',
+        brief: '  Useful thing  ',
+        origin: FeatureOrigin.brand_new,
+      }),
     ).resolves.toMatchObject({
       title: 'Feature',
       alignment: {
@@ -124,6 +116,56 @@ describe('FeaturesService', () => {
     });
   });
 
+  it('lists features for a visible project', async () => {
+    const prismaMock = createPrismaMock();
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.listFeatures(currentUser, currentUser.projectId),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: featureRecord.id,
+        projectId: currentUser.projectId,
+      }),
+    ]);
+    expect(prismaMock.feature.findMany).toHaveBeenCalledWith({
+      where: {
+        projectId: currentUser.projectId,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  });
+
+  it('returns 404 when listing features for a project outside the current user visibility', async () => {
+    const prismaMock = createPrismaMock();
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.listFeatures(currentUser, '00000000-0000-4000-8000-000000000099'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prismaMock.feature.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when creating a feature for a project outside the current user visibility', async () => {
+    const prismaMock = createPrismaMock();
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.createFeature(
+        currentUser,
+        '00000000-0000-4000-8000-000000000099',
+        {
+          title: 'New capability',
+          origin: FeatureOrigin.brand_new,
+        },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it('blocks soft delete while the feature has a non-terminal spec run', async () => {
     const prismaMock = createPrismaMock({
       specRun: {
@@ -141,7 +183,7 @@ describe('FeaturesService', () => {
     expect(prismaMock.feature.update).not.toHaveBeenCalled();
   });
 
-  it('returns 404 for features outside the current project scope', async () => {
+  it('returns 404 for features outside the visible project', async () => {
     const prismaMock = createPrismaMock({
       feature: {
         ...createPrismaMock().feature,
@@ -153,5 +195,56 @@ describe('FeaturesService', () => {
     await expect(
       service.getFeature(currentUser, featureRecord.id),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('scopes feature reads by visible project id', async () => {
+    const prismaMock = createPrismaMock();
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.getFeature(currentUser, featureRecord.id),
+    ).resolves.toMatchObject({
+      id: featureRecord.id,
+    });
+    expect(prismaMock.feature.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: featureRecord.id,
+        deletedAt: null,
+        projectId: currentUser.projectId,
+      },
+    });
+  });
+
+  it('does not update a feature outside the visible project', async () => {
+    const prismaMock = createPrismaMock({
+      feature: {
+        ...createPrismaMock().feature,
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    });
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.updateFeature(currentUser, featureRecord.id, {
+        title: 'Updated',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prismaMock.feature.update).not.toHaveBeenCalled();
+  });
+
+  it('does not delete a feature outside the visible project', async () => {
+    const prismaMock = createPrismaMock({
+      feature: {
+        ...createPrismaMock().feature,
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    });
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.deleteFeature(currentUser, featureRecord.id),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prismaMock.specRun.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.feature.update).not.toHaveBeenCalled();
   });
 });

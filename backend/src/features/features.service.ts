@@ -38,12 +38,8 @@ export interface FeatureAlignment {
 export class FeaturesService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async listFeatures(
-    currentUser: CurrentUserContext,
-    organizationId: string,
-    projectId: string,
-  ) {
-    await this.ensureProjectScope(currentUser, organizationId, projectId);
+  async listFeatures(currentUser: CurrentUserContext, projectId: string) {
+    this.assertProjectVisible(currentUser, projectId);
 
     const features = await this.prismaService.feature.findMany({
       where: {
@@ -62,11 +58,10 @@ export class FeaturesService {
 
   async createFeature(
     currentUser: CurrentUserContext,
-    organizationId: string,
     projectId: string,
     dto: CreateFeatureDto,
   ) {
-    await this.ensureProjectScope(currentUser, organizationId, projectId);
+    this.assertProjectVisible(currentUser, projectId);
 
     const feature = await this.prismaService.$transaction((transaction) =>
       transaction.feature.create({
@@ -166,11 +161,8 @@ export class FeaturesService {
     const feature = await this.prismaService.feature.findFirst({
       where: {
         id: featureId,
-        projectId: currentUser.projectId,
         deletedAt: null,
-        project: {
-          organizationId: currentUser.organizationId,
-        },
+        ...this.visibleFeatureScope(currentUser),
       },
     });
 
@@ -181,31 +173,19 @@ export class FeaturesService {
     return feature;
   }
 
-  private async ensureProjectScope(
+  private assertProjectVisible(
     currentUser: CurrentUserContext,
-    organizationId: string,
     projectId: string,
-  ): Promise<void> {
-    if (
-      currentUser.organizationId !== organizationId ||
-      currentUser.projectId !== projectId
-    ) {
+  ): void {
+    if (currentUser.projectId !== projectId) {
       throw new NotFoundException('Project not found');
     }
+  }
 
-    const project = await this.prismaService.project.findFirst({
-      where: {
-        id: projectId,
-        organizationId,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (project === null) {
-      throw new NotFoundException('Project not found');
-    }
+  private visibleFeatureScope(currentUser: CurrentUserContext) {
+    return {
+      projectId: currentUser.projectId,
+    };
   }
 
   private async toFeatureResponse(feature: FeatureRecord) {
