@@ -1,0 +1,22 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--surface-canvas);
+}
+
+.content {
+  display: grid;
+  max-width: 28rem;
+  justify-items: start;
+  gap: var(--space-4);
+}
+
+.content h1 {
+  font-size: var(--text-3xl);
+}
+
+.content > p:not(:first-child) {
+  color: var(--text-muted);
+}

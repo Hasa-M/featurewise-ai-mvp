@@ -1,0 +1,131 @@
+:root {
+  --cobalt-50: oklch(0.976 0.018 252);
+  --cobalt-100: oklch(0.94 0.05 252);
+  --cobalt-200: oklch(0.885 0.098 253);
+  --cobalt-300: oklch(0.793 0.155 254);
+  --cobalt-400: oklch(0.682 0.212 255);
+  --cobalt-500: oklch(0.598 0.252 256);
+  --cobalt-600: oklch(0.542 0.265 257);
+  --cobalt-700: oklch(0.478 0.242 258);
+  --cobalt-800: oklch(0.405 0.19 259);
+  --cobalt-900: oklch(0.34 0.14 260);
+  --cobalt-950: oklch(0.258 0.09 261);
+
+  --amber-50: oklch(0.985 0.02 92);
+  --amber-100: oklch(0.964 0.048 91);
+  --amber-200: oklch(0.928 0.092 90);
+  --amber-300: oklch(0.884 0.132 88);
+  --amber-400: oklch(0.84 0.156 86);
+  --amber-500: oklch(0.8 0.162 84);
+  --amber-600: oklch(0.728 0.158 82);
+  --amber-700: oklch(0.624 0.142 80);
+  --amber-800: oklch(0.52 0.112 79);
+  --amber-900: oklch(0.446 0.092 79);
+
+  --slate-0: #ffffff;
+  --slate-25: oklch(0.992 0.003 264);
+  --slate-50: oklch(0.986 0.0028 264);
+  --slate-100: oklch(0.97 0.0042 264);
+  --slate-150: oklch(0.953 0.0058 264);
+  --slate-200: oklch(0.927 0.0072 264);
+  --slate-300: oklch(0.881 0.0092 264);
+  --slate-400: oklch(0.707 0.0135 263);
+  --slate-500: oklch(0.554 0.0155 263);
+  --slate-600: oklch(0.444 0.0155 262);
+  --slate-700: oklch(0.371 0.0145 262);
+  --slate-800: oklch(0.27 0.0135 262);
+  --slate-900: oklch(0.206 0.0125 263);
+  --slate-950: oklch(0.158 0.011 263);
+
+  --green-50: oklch(0.972 0.024 158);
+  --green-100: oklch(0.945 0.05 159);
+  --green-200: oklch(0.898 0.09 158);
+  --green-500: oklch(0.7 0.15 157);
+  --green-600: oklch(0.628 0.14 156);
+  --green-700: oklch(0.535 0.118 155);
+  --green-800: oklch(0.44 0.095 155);
+
+  --red-50: oklch(0.971 0.014 18);
+  --red-100: oklch(0.94 0.034 18);
+  --red-200: oklch(0.892 0.064 19);
+  --red-500: oklch(0.637 0.214 22);
+  --red-600: oklch(0.58 0.214 23);
+  --red-700: oklch(0.51 0.19 24);
+  --red-800: oklch(0.44 0.158 25);
+
+  --brand: var(--cobalt-600);
+  --brand-hover: var(--cobalt-700);
+  --brand-active: var(--cobalt-800);
+  --brand-subtle: var(--cobalt-50);
+  --brand-subtle-hover: var(--cobalt-100);
+  --brand-border: var(--cobalt-200);
+  --brand-text: var(--cobalt-700);
+  --on-brand: #ffffff;
+
+  --accent: var(--amber-400);
+  --accent-strong: var(--amber-500);
+  --accent-hover: var(--amber-500);
+  --accent-subtle: var(--amber-50);
+  --accent-border: var(--amber-200);
+  --accent-text: var(--amber-900);
+  --on-accent: var(--slate-950);
+
+  --surface-page: var(--slate-0);
+  --surface-canvas: var(--slate-25);
+  --surface-card: var(--slate-0);
+  --surface-sunken: var(--slate-100);
+  --surface-raised: var(--slate-0);
+  --surface-inset: var(--slate-100);
+  --surface-hover: var(--slate-50);
+  --surface-active: var(--slate-100);
+  --surface-inverse: var(--slate-900);
+  --surface-inverse-raised: var(--slate-800);
+  --surface-overlay: color-mix(
+    in oklch,
+    var(--slate-950) 48%,
+    transparent
+  );
+  --surface-tint: color-mix(
+    in oklch,
+    var(--cobalt-500) 2.5%,
+    var(--slate-0)
+  );
+
+  --text-strong: var(--slate-900);
+  --text-body: var(--slate-800);
+  --text-muted: var(--slate-500);
+  --text-subtle: var(--slate-400);
+  --text-on-inverse: var(--slate-50);
+  --text-link: var(--cobalt-600);
+
+  --border-subtle: var(--slate-200);
+  --border-default: var(--slate-300);
+  --border-strong: var(--slate-400);
+  --divider: var(--slate-150);
+  --ring: var(--cobalt-500);
+
+  --status-ready-fg: var(--green-700);
+  --status-ready-bg: var(--green-50);
+  --status-ready-border: var(--green-200);
+  --status-ready-solid: var(--green-600);
+
+  --status-attention-fg: var(--amber-800);
+  --status-attention-bg: var(--amber-50);
+  --status-attention-border: var(--amber-200);
+  --status-attention-solid: var(--amber-500);
+
+  --status-blocked-fg: var(--red-700);
+  --status-blocked-bg: var(--red-50);
+  --status-blocked-border: var(--red-200);
+  --status-blocked-solid: var(--red-600);
+
+  --status-info-fg: var(--cobalt-700);
+  --status-info-bg: var(--cobalt-50);
+  --status-info-border: var(--cobalt-200);
+  --status-info-solid: var(--cobalt-600);
+
+  --status-draft-fg: var(--slate-600);
+  --status-draft-bg: var(--slate-100);
+  --status-draft-border: var(--slate-300);
+  --status-draft-solid: var(--slate-500);
+}

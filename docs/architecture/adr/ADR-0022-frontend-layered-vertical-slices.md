@@ -1,0 +1,40 @@
+# ADR-0022: Organize the Frontend as Layered Vertical Slices
+
+Date: 2026-07-17
+
+Status: accepted
+
+## Context
+
+The phase 1 frontend must remain understandable for a solo developer while growing across authentication, workspace, feature, context, generation, and spec-review workflows.
+
+A single application-wide collection of components, API calls, and types would make ownership unclear. Copying environment, token, or provider setup into Storybook would also allow isolated components to behave differently from the application.
+
+## Decision
+
+Organize frontend code into `app`, `pages`, `features`, and `shared` layers. Dependencies flow only in that direction:
+
+`app -> pages -> features -> shared`
+
+Pages and features are named slices. A slice may contain these segments when needed:
+
+- `api`: endpoint functions and wire DTOs;
+- `model`: frontend models, mappings, hooks, and state;
+- `ui`: React components and CSS Modules;
+- `lib`: private pure utilities;
+- `index.ts`: the slice public API.
+
+The generic HTTP transport lives in `shared/api`. Feature UI does not call it directly: data flows from UI through the feature model and API boundary. Backend DTOs remain in the API segment and are mapped before becoming UI contracts.
+
+Reusable components live in `shared/ui`. Use named Lucide React imports for icons. Colocate Component Story Format stories with reusable components.
+
+Use Storybook with the React/Vite framework as the component workbench. Token foundation stories live with the global styles. Storybook imports the same global CSS entry point and uses the same Vite aliases and CSS Modules configuration as the application. Do not create Storybook-only tokens, themes, or provider implementations.
+
+## Consequences
+
+- Product capabilities have explicit ownership and a small public surface.
+- REST response shapes do not leak into visual components.
+- Shared infrastructure cannot depend on product-specific code.
+- Components and design tokens can be inspected independently without creating a second frontend environment.
+- The folder vocabulary and mapping layer add some ceremony; unused slice segments must not be created.
+- Import boundaries are initially enforced through review and documentation. Automated boundary linting can be added if violations become recurring.

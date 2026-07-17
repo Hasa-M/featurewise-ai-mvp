@@ -1,0 +1,51 @@
+:root {
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --radius-xs: 4px;
+  --radius-sm: 7px;
+  --radius-md: 10px;
+  --radius-lg: 15px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --radius-surface: var(--radius-xl);
+  --radius-pill: var(--radius-full);
+
+  --control-h-sm: 1.75rem;
+  --control-h-md: 2.25rem;
+  --control-h-lg: 2.75rem;
+
+  --sidebar-w: 260px;
+  --sidebar-w-collapsed: 60px;
+  --topbar-h: 56px;
+  --content-max: 1200px;
+  --doc-measure: 68ch;
+  --container-pad: var(--space-6);
+
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 400;
+  --z-overlay: 900;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --z-tooltip: 1200;
+}

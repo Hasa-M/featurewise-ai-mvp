@@ -1,0 +1,133 @@
+.page {
+  display: grid;
+  gap: var(--space-8);
+  min-height: 100vh;
+  padding: var(--space-8);
+  color: var(--text-body);
+  background: var(--surface-canvas);
+}
+
+.heading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.heading h1 {
+  font-size: var(--type-h1-size);
+}
+
+.heading p,
+.tokenName {
+  color: var(--text-muted);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.section h2 {
+  font-size: var(--type-h2-size);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.swatch,
+.sample {
+  overflow: hidden;
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+}
+
+.swatchColor {
+  height: 5rem;
+  border-bottom: var(--border-w) solid var(--border-subtle);
+}
+
+.tokenName {
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  overflow-wrap: anywhere;
+}
+
+.typeList,
+.scaleList,
+.shadowList {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.typeRow,
+.scaleRow,
+.shadowRow {
+  display: grid;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+}
+
+.typeRow {
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+}
+
+.scaleRow {
+  grid-template-columns: 8rem 1fr;
+}
+
+.scaleBar {
+  height: var(--space-4);
+  width: var(--token-width);
+  min-width: var(--space-px);
+  background: var(--brand);
+}
+
+.shadowRow {
+  min-height: 7rem;
+  grid-template-columns: 8rem 1fr;
+  box-shadow: var(--token-shadow);
+}
+
+.iconGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-3);
+}
+
+.iconItem {
+  display: grid;
+  min-height: 7rem;
+  place-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--brand);
+  background: var(--surface-card);
+}
+
+.iconItem span {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+@media (max-width: 40rem) {
+  .page {
+    padding: var(--space-4);
+  }
+
+  .typeRow,
+  .scaleRow,
+  .shadowRow {
+    grid-template-columns: 1fr;
+  }
+}

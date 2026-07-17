@@ -1,0 +1,70 @@
+:root {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', roboto, helvetica, arial, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono',
+    'JetBrains Mono', menlo, consolas, monospace;
+  --font-display: var(--font-sans);
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.375rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  --leading-none: 1;
+  --leading-tight: 1.18;
+  --leading-snug: 1.32;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tighter: 0;
+  --tracking-tight: 0;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.06em;
+  --tracking-caps: 0.08em;
+
+  --type-display-size: var(--text-5xl);
+  --type-display-weight: var(--weight-semibold);
+  --type-display-leading: var(--leading-tight);
+  --type-display-tracking: var(--tracking-tighter);
+
+  --type-h1-size: var(--text-2xl);
+  --type-h1-weight: var(--weight-semibold);
+  --type-h1-tracking: var(--tracking-tight);
+
+  --type-h2-size: var(--text-xl);
+  --type-h2-weight: var(--weight-semibold);
+  --type-h2-tracking: var(--tracking-tight);
+
+  --type-h3-size: var(--text-lg);
+  --type-h3-weight: var(--weight-semibold);
+
+  --type-body-size: var(--text-base);
+  --type-body-leading: var(--leading-normal);
+
+  --type-prose-size: var(--text-md);
+  --type-prose-leading: var(--leading-relaxed);
+
+  --type-label-size: var(--text-sm);
+  --type-label-weight: var(--weight-medium);
+
+  --type-caption-size: var(--text-xs);
+  --type-caption-weight: var(--weight-regular);
+
+  --type-overline-size: var(--text-2xs);
+  --type-overline-weight: var(--weight-medium);
+  --type-overline-tracking: var(--tracking-caps);
+}
