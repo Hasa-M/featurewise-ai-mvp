@@ -18,9 +18,9 @@ describe('TextInput', () => {
   });
 
   it.each([
-    ['integer', 'e.g. Enter an integer', '1'],
-    ['decimal', 'e.g. Enter a decimal value', 'any'],
-    ['percentage', 'e.g. Enter a percentage', 'any'],
+    ['integer', 'Enter an integer', '1'],
+    ['decimal', 'Enter a decimal value', 'any'],
+    ['percentage', 'Enter a percentage', 'any'],
   ] as const)('configures the %s value type', (valueType, placeholder, step) => {
     render(<TextInput aria-label="Value" valueType={valueType} />);
 
@@ -114,7 +114,7 @@ describe('TextInput', () => {
     const showButton = screen.getByRole('button', { name: 'Show password' });
 
     expect(input).toHaveAttribute('type', 'password');
-    expect(input).toHaveAttribute('placeholder', 'e.g. Enter your password');
+    expect(input).toHaveAttribute('placeholder', 'Enter your password');
     expect(showButton).toHaveAttribute('aria-controls', input.id);
     expect(showButton).toHaveAttribute('aria-pressed', 'false');
 
