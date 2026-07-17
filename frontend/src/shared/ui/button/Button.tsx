@@ -3,13 +3,20 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'danger';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
+  isIcon?: boolean;
+  leadingIcon?: ReactNode;
   loading?: boolean;
   size?: ButtonSize;
+  trailingIcon?: ReactNode;
   variant?: ButtonVariant;
 }
 
@@ -17,8 +24,11 @@ export function Button({
   children,
   className,
   disabled,
+  isIcon = false,
+  leadingIcon,
   loading = false,
   size = 'medium',
+  trailingIcon,
   type = 'button',
   variant = 'primary',
   ...props
@@ -27,6 +37,7 @@ export function Button({
     styles.button,
     styles[variant],
     styles[size],
+    isIcon && styles.isIcon,
     className,
   ]
     .filter(Boolean)
@@ -46,8 +57,17 @@ export function Button({
           size={16}
           aria-hidden="true"
         />
+      ) : leadingIcon ? (
+        <span className={styles.iconSlot} aria-hidden="true">
+          {leadingIcon}
+        </span>
       ) : null}
       <span>{children}</span>
+      {!loading && trailingIcon ? (
+        <span className={styles.iconSlot} aria-hidden="true">
+          {trailingIcon}
+        </span>
+      ) : null}
     </button>
   );
 }

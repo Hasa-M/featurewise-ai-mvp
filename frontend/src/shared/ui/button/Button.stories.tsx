@@ -34,23 +34,24 @@ export const Danger: Story = {
 
 export const WithLeadingIcon: Story = {
   args: {
-    children: (
-      <>
-        <Plus size={16} aria-hidden="true" />
-        Create feature
-      </>
-    ),
+    children: 'Create feature',
+    leadingIcon: <Plus size={16} />,
   },
 };
 
 export const WithTrailingIcon: Story = {
   args: {
-    children: (
-      <>
-        Continue
-        <ArrowRight size={16} aria-hidden="true" />
-      </>
-    ),
+    children: 'Continue',
+    trailingIcon: <ArrowRight size={16} />,
+  },
+};
+
+export const IconOnly: Story = {
+  args: {
+    'aria-label': 'Create feature',
+    children: <Plus size={18} aria-hidden="true" />,
+    isIcon: true,
+    title: 'Create feature',
   },
 };
 

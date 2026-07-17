@@ -51,6 +51,21 @@
   font-size: var(--text-base);
 }
 
+.isIcon {
+  width: var(--control-h-md);
+  padding: 0;
+}
+
+.isIcon.small {
+  width: var(--control-h-sm);
+  padding: 0;
+}
+
+.isIcon.large {
+  width: var(--control-h-lg);
+  padding: 0;
+}
+
 .primary {
   color: var(--on-brand);
   background: var(--brand);
@@ -96,6 +111,11 @@
 .spinner {
   flex: 0 0 auto;
   animation: spin var(--duration-slow) linear infinite;
+}
+
+.iconSlot {
+  display: inline-flex;
+  flex: 0 0 auto;
 }
 
 @keyframes spin {
