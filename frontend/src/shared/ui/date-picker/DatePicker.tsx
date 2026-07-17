@@ -381,7 +381,6 @@ export function DatePicker(props: DatePickerProps) {
           aria-invalid={errorMessage ? true : undefined}
           aria-label={label || ariaLabelledBy ? undefined : ariaLabel}
           aria-labelledby={triggerLabelledBy || undefined}
-          aria-required={required || undefined}
           className={styles.control}
           data-error={errorMessage ? 'true' : undefined}
           data-open={isOpen ? 'true' : undefined}

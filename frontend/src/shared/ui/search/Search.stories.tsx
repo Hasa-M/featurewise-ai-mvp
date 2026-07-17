@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 
 import { Search } from './Search';
 
@@ -23,7 +24,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ canvas, userEvent }) => {
+    const searchbox = canvas.getByRole('searchbox', { name: 'Search features' });
+
+    await userEvent.type(searchbox, 'readiness');
+
+    await expect(searchbox).toHaveValue('readiness');
+  },
+};
 
 export const WithClear: Story = {
   args: { onClear: () => undefined, readOnly: true, value: 'readiness' },

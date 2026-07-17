@@ -103,6 +103,8 @@ export function RichText({
   const [characterCount, setCharacterCount] = useState(defaultValue.length);
   const fieldId = id ?? generatedId;
   const labelId = label ? `${fieldId}-label` : undefined;
+  const requiredId = required ? `${fieldId}-required` : undefined;
+  const labelledBy = [labelId, requiredId].filter(Boolean).join(' ');
   const helperId = helperText ? `${fieldId}-helper` : undefined;
   const errorId = errorMessage ? `${fieldId}-error` : undefined;
   const describedBy = [helperId, errorId].filter(Boolean).join(' ');
@@ -158,7 +160,11 @@ export function RichText({
           <span className={styles.label} id={labelId}>
             {label}
           </span>
-          {required ? <span className={styles.required}>Required</span> : null}
+          {required ? (
+            <span className={styles.required} id={requiredId}>
+              Required
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -167,9 +173,7 @@ export function RichText({
         aria-disabled={disabled || undefined}
         aria-invalid={errorMessage ? true : undefined}
         aria-label={label ? undefined : ariaLabel}
-        aria-labelledby={labelId}
-        aria-readonly={isReadOnly || undefined}
-        aria-required={required || undefined}
+        aria-labelledby={labelledBy || undefined}
         className={styles.editorFrame}
         id={fieldId}
         role="group"

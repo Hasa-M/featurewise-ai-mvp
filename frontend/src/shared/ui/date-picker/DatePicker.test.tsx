@@ -196,7 +196,7 @@ describe('DatePicker', () => {
     );
 
     const control = screen.getByRole('button', { name: 'Target date' });
-    expect(control).toHaveAttribute('aria-required', 'true');
+    expect(screen.getByText('Required')).toBeVisible();
     expect(control).toHaveAttribute('aria-invalid', 'true');
     expect(control).toHaveAccessibleDescription(
       'Use the expected completion date. Select a target date.',

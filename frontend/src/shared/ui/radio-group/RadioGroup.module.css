@@ -178,7 +178,7 @@
 }
 
 .cardDescription {
-  color: var(--text-muted);
+  color: var(--text-body);
   font-size: var(--type-caption-size);
   font-weight: var(--weight-regular);
   line-height: var(--leading-normal);
