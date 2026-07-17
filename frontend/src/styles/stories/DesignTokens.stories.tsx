@@ -44,6 +44,8 @@ const colorGroups = {
     '--status-ready-solid',
     '--status-attention-solid',
     '--status-blocked-solid',
+    '--status-blocked-hover',
+    '--on-danger',
     '--status-info-solid',
     '--status-draft-solid',
   ],

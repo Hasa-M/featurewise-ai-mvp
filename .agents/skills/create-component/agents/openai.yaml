@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create component"
+  short_description: "Build Featurewise design-system components"
+  default_prompt: "Use $create-component to implement a new Featurewise design-system component with Storybook stories and tests."

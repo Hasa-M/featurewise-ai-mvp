@@ -100,12 +100,12 @@
 }
 
 .danger {
-  color: #ffffff;
+  color: var(--on-danger);
   background: var(--status-blocked-solid);
 }
 
 .danger:hover:not(:disabled) {
-  background: var(--red-700);
+  background: var(--status-blocked-hover);
 }
 
 .spinner {

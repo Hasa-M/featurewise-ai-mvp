@@ -3,22 +3,34 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 import styles from './Button.module.css';
 
-export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'ghost'
-  | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  children: ReactNode;
-  isIcon?: boolean;
-  leadingIcon?: ReactNode;
+type ButtonBaseProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'children'
+> & {
   loading?: boolean;
   size?: ButtonSize;
-  trailingIcon?: ReactNode;
   variant?: ButtonVariant;
-}
+};
+
+type StandardButtonProps = ButtonBaseProps & {
+  children: ReactNode;
+  isIcon?: false;
+  leadingIcon?: ReactNode;
+  trailingIcon?: ReactNode;
+};
+
+type IconButtonProps = ButtonBaseProps & {
+  'aria-label': string;
+  children: ReactNode;
+  isIcon: true;
+  leadingIcon?: never;
+  trailingIcon?: never;
+};
+
+export type ButtonProps = StandardButtonProps | IconButtonProps;
 
 export function Button({
   children,
@@ -55,6 +67,7 @@ export function Button({
         <LoaderCircle
           className={styles.spinner}
           size={16}
+          strokeWidth={1.75}
           aria-hidden="true"
         />
       ) : leadingIcon ? (

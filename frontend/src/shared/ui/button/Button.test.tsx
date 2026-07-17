@@ -45,7 +45,7 @@ describe('Button', () => {
         title="Create feature"
         variant="secondary"
       >
-        <Plus size={18} aria-hidden="true" />
+        <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
       </Button>,
     );
 

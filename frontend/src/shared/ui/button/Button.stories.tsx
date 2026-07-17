@@ -3,13 +3,82 @@ import { ArrowRight, Plus } from 'lucide-react';
 
 import { Button } from './Button';
 
+const leadingIconOptions = {
+  none: undefined,
+  plus: <Plus size={16} strokeWidth={1.75} />,
+} as const;
+
+const trailingIconOptions = {
+  none: undefined,
+  arrowRight: <ArrowRight size={16} strokeWidth={1.75} />,
+} as const;
+
 const meta = {
   title: 'Shared/Button',
   component: Button,
   args: {
     children: 'Create feature',
   },
+  argTypes: {
+    'aria-label': {
+      control: 'text',
+      description: 'Required for icon-only buttons.',
+    },
+    children: {
+      control: 'text',
+      description: 'Visible button label. Use the Icon only story for icon children.',
+    },
+    disabled: { control: 'boolean' },
+    isIcon: {
+      control: 'boolean',
+      description: 'Use with an icon child and aria-label.',
+    },
+    leadingIcon: {
+      control: 'select',
+      description: 'Decorative icon before the label.',
+      mapping: leadingIconOptions,
+      options: Object.keys(leadingIconOptions),
+    },
+    loading: { control: 'boolean' },
+    size: {
+      control: 'select',
+      options: ['small', 'medium', 'large'],
+    },
+    title: {
+      control: 'text',
+      description: 'Tooltip text for icon-only buttons.',
+    },
+    trailingIcon: {
+      control: 'select',
+      description: 'Decorative icon after the label.',
+      mapping: trailingIconOptions,
+      options: Object.keys(trailingIconOptions),
+    },
+    type: {
+      control: 'select',
+      options: ['button', 'submit', 'reset'],
+    },
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary', 'ghost', 'danger'],
+    },
+  },
   parameters: {
+    controls: {
+      include: [
+        'children',
+        'variant',
+        'size',
+        'leadingIcon',
+        'trailingIcon',
+        'isIcon',
+        'aria-label',
+        'title',
+        'loading',
+        'disabled',
+        'type',
+      ],
+    },
     layout: 'centered',
   },
   tags: ['autodocs'],
@@ -35,21 +104,21 @@ export const Danger: Story = {
 export const WithLeadingIcon: Story = {
   args: {
     children: 'Create feature',
-    leadingIcon: <Plus size={16} />,
+    leadingIcon: <Plus size={16} strokeWidth={1.75} />,
   },
 };
 
 export const WithTrailingIcon: Story = {
   args: {
     children: 'Continue',
-    trailingIcon: <ArrowRight size={16} />,
+    trailingIcon: <ArrowRight size={16} strokeWidth={1.75} />,
   },
 };
 
 export const IconOnly: Story = {
   args: {
     'aria-label': 'Create feature',
-    children: <Plus size={18} aria-hidden="true" />,
+    children: <Plus size={18} strokeWidth={1.75} aria-hidden="true" />,
     isIcon: true,
     title: 'Create feature',
   },
@@ -61,6 +130,10 @@ export const Loading: Story = {
 
 export const Disabled: Story = {
   args: { disabled: true },
+};
+
+export const Small: Story = {
+  args: { size: 'small' },
 };
 
 export const Large: Story = {

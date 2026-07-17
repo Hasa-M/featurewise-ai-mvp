@@ -118,6 +118,8 @@
   --status-blocked-bg: var(--red-50);
   --status-blocked-border: var(--red-200);
   --status-blocked-solid: var(--red-600);
+  --status-blocked-hover: var(--red-700);
+  --on-danger: var(--slate-0);
 
   --status-info-fg: var(--cobalt-700);
   --status-info-bg: var(--cobalt-50);
