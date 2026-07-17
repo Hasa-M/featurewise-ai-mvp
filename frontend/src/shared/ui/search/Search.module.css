@@ -1,0 +1,80 @@
+.control {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-h-md);
+  padding: 0 var(--space-3) 0 var(--space-8);
+  border: var(--border-w) solid var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--text-body);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-inset);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  transition: var(--transition-control);
+}
+
+.input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--text-subtle);
+  opacity: 1;
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.input:focus-visible {
+  border-color: var(--ring);
+  box-shadow: var(--focus-ring);
+}
+
+.input:disabled {
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.withClear {
+  padding-right: var(--control-h-md);
+}
+
+.clear {
+  position: absolute;
+  right: var(--space-1);
+  display: inline-flex;
+  width: calc(var(--control-h-md) - var(--space-2));
+  height: calc(var(--control-h-md) - var(--space-2));
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+
+.clear:hover:not(:disabled) {
+  color: var(--text-strong);
+  background: var(--surface-hover);
+}
