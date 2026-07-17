@@ -1,0 +1,103 @@
+.root {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.track {
+  position: relative;
+  display: inline-flex;
+  width: var(--control-h-md);
+  height: var(--space-5);
+  flex: 0 0 auto;
+  align-items: center;
+  padding: var(--space-0-5);
+  border: var(--border-w) solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-inset);
+  transition: var(--transition-control);
+}
+
+.thumb {
+  width: calc(
+    var(--space-5) - var(--space-1) - var(--border-w) - var(--border-w)
+  );
+  height: calc(
+    var(--space-5) - var(--space-1) - var(--border-w) - var(--border-w)
+  );
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.root:hover:not([data-disabled]) .track {
+  border-color: var(--border-strong);
+}
+
+.input:focus-visible + .track {
+  border-color: var(--ring);
+  box-shadow: var(--focus-ring);
+}
+
+.input:active:not(:disabled) + .track .thumb {
+  transform: scale(0.9);
+}
+
+.input:checked + .track {
+  border-color: var(--brand);
+  background: var(--brand);
+  box-shadow: none;
+}
+
+.input:checked + .track .thumb {
+  transform: translateX(calc(var(--control-h-md) - var(--space-5)));
+}
+
+.input:checked:active:not(:disabled) + .track .thumb {
+  transform: translateX(calc(var(--control-h-md) - var(--space-5)))
+    scale(0.9);
+}
+
+.content {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-0-5);
+}
+
+.label {
+  color: var(--text-strong);
+  font-size: var(--type-label-size);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+}
+
+.root[data-label-weight='medium'] .label {
+  font-weight: var(--weight-medium);
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  line-height: var(--leading-normal);
+}
+
+.root[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
