@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 import { useState } from 'react';
 
 import { Select } from './Select';
@@ -63,6 +64,15 @@ export const Single: Story = {
     options: readinessOptions,
   },
   render: (args) => <ControlledSingle {...args} />,
+  play: async ({ canvas, userEvent }) => {
+    const control = canvas.getByRole('combobox', { name: 'Readiness' });
+
+    await userEvent.click(control);
+    await userEvent.click(canvas.getByRole('option', { name: 'Ready' }));
+
+    await expect(control).toHaveTextContent('Ready');
+    await expect(control).toHaveAttribute('aria-expanded', 'false');
+  },
 };
 
 export const MultipleWithSearch: MultipleStory = {
@@ -74,6 +84,22 @@ export const MultipleWithSearch: MultipleStory = {
     value: [],
   },
   render: (args) => <ControlledMultiple {...args} />,
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(
+      canvas.getByRole('combobox', { name: 'Context artifacts' }),
+    );
+    await userEvent.type(
+      canvas.getByRole('searchbox', { name: 'Search Context artifacts' }),
+      '14',
+    );
+    await userEvent.click(
+      canvas.getByRole('option', { name: 'Context artifact 14' }),
+    );
+
+    await expect(
+      canvas.getByRole('button', { name: 'Remove Context artifact 14' }),
+    ).toBeVisible();
+  },
 };
 
 export const WithoutTitle: Story = {

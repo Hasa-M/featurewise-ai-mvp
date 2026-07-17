@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 import { useState } from 'react';
 
 import { DatePicker } from './DatePicker';
@@ -40,6 +41,17 @@ export const Single: SingleStory = {
     onChange: () => undefined,
   },
   render: (args) => <ControlledSingle {...args} />,
+  play: async ({ canvas, userEvent }) => {
+    const control = canvas.getByRole('button', { name: 'Target date' });
+
+    await userEvent.click(control);
+    await userEvent.click(
+      canvas.getByRole('button', { name: 'Friday, 17 July 2026' }),
+    );
+
+    await expect(control).toHaveTextContent('17 Jul 2026');
+    await expect(canvas.queryByRole('dialog')).not.toBeInTheDocument();
+  },
 };
 
 export const LongDistanceNavigation: SingleStory = {
