@@ -1,0 +1,19 @@
+.logo {
+  display: block;
+  width: auto;
+  flex: 0 0 auto;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.small {
+  height: var(--space-6);
+}
+
+.medium {
+  height: var(--space-8);
+}
+
+.large {
+  height: var(--space-10);
+}

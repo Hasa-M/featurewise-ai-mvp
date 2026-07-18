@@ -1,0 +1,120 @@
+.menu {
+  display: grid;
+  width: 16rem;
+  min-width: 12rem;
+  max-width: min(20rem, calc(100vw - var(--space-4)));
+  padding: var(--space-1);
+  overflow: hidden auto;
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-body);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.section {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.sectionTitle {
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-overline-size);
+  font-weight: var(--type-overline-weight);
+  letter-spacing: var(--type-overline-tracking);
+  line-height: var(--leading-snug);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sectionItems {
+  display: grid;
+  gap: var(--space-0-5);
+}
+
+.item {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-h-md);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-control);
+}
+
+.item:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.item:active:not(:disabled) {
+  background: var(--surface-active);
+}
+
+.item:focus-visible {
+  position: relative;
+  z-index: var(--z-base);
+  box-shadow: var(--focus-ring);
+}
+
+.item:disabled {
+  color: var(--text-subtle);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.itemLabel {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconSlot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.iconSlot > svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.75;
+}
+
+.danger {
+  color: var(--status-blocked-fg);
+}
+
+.danger .iconSlot {
+  color: currentColor;
+}
+
+.danger:hover:not(:disabled),
+.danger:active:not(:disabled) {
+  color: var(--on-danger);
+  background: var(--status-blocked-solid);
+}
+
+.divider {
+  height: var(--border-w);
+  margin: var(--space-1) var(--space-2);
+  background: var(--divider);
+}

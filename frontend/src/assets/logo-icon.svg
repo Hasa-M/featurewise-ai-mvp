@@ -1,0 +1,6 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Featurewise">
+  <rect x="1.5" y="1.5" width="29" height="29" rx="9" fill="#2F5BF6"></rect>
+  <path d="M10 13.2h12" stroke="#fff" stroke-width="3.3" stroke-linecap="round"></path>
+  <path d="M10 19.4h7.5" stroke="#9CB2FF" stroke-width="3.3" stroke-linecap="round"></path>
+  <path d="M19.8 20.4l2.4 2.4 4.2-4.4" stroke="#F4B233" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" transform="translate(-2.2 -1.2)"></path>
+</svg>
