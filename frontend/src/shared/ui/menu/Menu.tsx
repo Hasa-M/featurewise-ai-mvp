@@ -175,16 +175,20 @@ export type MenuItemProps = Omit<
 > & {
   children: ReactNode;
   leadingIcon?: ReactNode;
+  selected?: boolean;
   trailingIcon?: ReactNode;
   variant?: MenuItemVariant;
 };
 
 export function MenuItem({
+  'aria-current': ariaCurrent,
   children,
   className,
   id: providedId,
   leadingIcon,
   onFocus,
+  selected = false,
+  tabIndex,
   trailingIcon,
   type = 'button',
   variant = 'default',
@@ -202,16 +206,18 @@ export function MenuItem({
   return (
     <button
       {...props}
+      aria-current={selected ? 'page' : ariaCurrent}
       className={[styles.item, styles[variant], className]
         .filter(Boolean)
         .join(' ')}
+      data-selected={selected ? 'true' : undefined}
       id={id}
       onFocus={(event) => {
         setActiveItemId?.(id);
         onFocus?.(event);
       }}
-      role="menuitem"
-      tabIndex={activeItemId === id ? 0 : -1}
+      role={context ? 'menuitem' : undefined}
+      tabIndex={context ? (activeItemId === id ? 0 : -1) : tabIndex}
       type={type}
     >
       {leadingIcon ? (
@@ -240,6 +246,3 @@ export function MenuDivider({ className, ...props }: MenuDividerProps) {
     />
   );
 }
-
-
-

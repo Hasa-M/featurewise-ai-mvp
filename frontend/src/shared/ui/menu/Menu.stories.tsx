@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+﻿import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ChevronRight, Copy, FileDown, Pencil, Trash2 } from 'lucide-react';
 import { expect } from 'storybook/test';
 
@@ -22,7 +22,7 @@ export const Default: Story = {
     children: (
       <>
         <MenuSection title="Feature">
-          <MenuItem leadingIcon={<Pencil size={16} strokeWidth={1.75} />}>
+          <MenuItem leadingIcon={<Pencil size={16} strokeWidth={1.75} />} selected>
             Edit feature
           </MenuItem>
           <MenuItem

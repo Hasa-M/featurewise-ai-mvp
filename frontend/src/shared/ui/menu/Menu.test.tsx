@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+﻿import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
@@ -94,5 +94,24 @@ describe('Menu', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Export spec' }),
     ).toHaveAccessibleName('Export spec');
+  });
+  it('behaves as a normal button outside a MenuWrapper', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(<MenuItem onClick={onClick}>Features</MenuItem>);
+
+    const item = screen.getByRole('button', { name: 'Features' });
+    expect(item).toHaveProperty('tabIndex', 0);
+    await user.click(item);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it('communicates the selected state accessibly', () => {
+    render(<MenuItem selected>Features</MenuItem>);
+
+    expect(screen.getByRole('button', { name: 'Features' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 });
