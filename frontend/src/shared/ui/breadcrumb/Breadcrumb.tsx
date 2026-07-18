@@ -5,13 +5,16 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { MenuWrapper } from '../menu';
 import styles from './Breadcrumb.module.css';
 
+/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export type BreadcrumbItem = {
   href?: string;
   label: string;
 };
 
+/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export type BreadcrumbItems = readonly [BreadcrumbItem, ...BreadcrumbItem[]];
 
+/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export type BreadcrumbProps = Omit<
   HTMLAttributes<HTMLElement>,
   'children'
@@ -32,6 +35,7 @@ function BreadcrumbLabel({ item }: { item: BreadcrumbItem }) {
   return <span className={styles.ancestorLabel}>{item.label}</span>;
 }
 
+/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export function Breadcrumb({
   'aria-label': ariaLabel = 'Breadcrumb',
   className,

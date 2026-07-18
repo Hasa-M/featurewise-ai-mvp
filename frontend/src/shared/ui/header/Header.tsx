@@ -1,26 +1,28 @@
-import { UserRound } from 'lucide-react';
-import type { HTMLAttributes, MouseEventHandler } from 'react';
+import { PanelLeftClose } from 'lucide-react';
+import type { HTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 
-import { Breadcrumb, type BreadcrumbItems } from '../breadcrumb';
 import { Button } from '../button';
+import { DropdownCard, type DropdownCardProps } from '../dropdown-card';
 import { Logo } from '../logo';
 import styles from './Header.module.css';
 
 export type HeaderProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
-  breadcrumbItems: BreadcrumbItems;
+  dropdownCardProps: DropdownCardProps;
   homeHref: string;
   homeLabel?: string;
-  onUserClick?: MouseEventHandler<HTMLButtonElement>;
-  userLabel?: string;
+  onSidebarToggle?: MouseEventHandler<HTMLButtonElement>;
+  sidebarToggleLabel?: string;
+  userControl: ReactNode;
 };
 
 export function Header({
-  breadcrumbItems,
   className,
+  dropdownCardProps,
   homeHref,
   homeLabel = 'Featurewise home',
-  onUserClick,
-  userLabel = 'Open user settings',
+  onSidebarToggle,
+  sidebarToggleLabel = 'Toggle sidebar',
+  userControl,
   ...props
 }: HeaderProps) {
   return (
@@ -29,22 +31,30 @@ export function Header({
       className={[styles.header, className].filter(Boolean).join(' ')}
     >
       <div className={styles.inner}>
-        <Breadcrumb className={styles.breadcrumb} items={breadcrumbItems} />
-        <div className={styles.actions}>
-          <a aria-label={homeLabel} className={styles.homeLink} href={homeHref}>
-            <Logo alt="" size="small" tone="inverse" />
-          </a>
+        <div className={styles.start}>
           <Button
-            aria-label={userLabel}
-            className={styles.userButton}
+            aria-label={sidebarToggleLabel}
+            className={styles.sidebarButton}
             isIcon
-            onClick={onUserClick}
+            onClick={onSidebarToggle}
             size="small"
-            title={userLabel}
+            title={sidebarToggleLabel}
             variant="ghost"
           >
-            <UserRound size={17} strokeWidth={1.75} aria-hidden="true" />
+            <PanelLeftClose
+              aria-hidden="true"
+              size={17}
+              strokeWidth={1.75}
+            />
           </Button>
+          <DropdownCard {...dropdownCardProps} />
+        </div>
+        <div aria-hidden="true" className={styles.navigationSlot} />
+        <div className={styles.actions}>
+          <a aria-label={homeLabel} className={styles.homeLink} href={homeHref}>
+            <Logo alt="" size="small" />
+          </a>
+          {userControl}
         </div>
       </div>
     </header>

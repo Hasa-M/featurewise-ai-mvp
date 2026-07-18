@@ -15,6 +15,7 @@ export interface SignInCredentials {
 }
 
 export interface AuthContextValue {
+  readonly accessToken: string | null;
   readonly status: AuthStatus;
   readonly user: AuthUser | null;
   signIn(credentials: SignInCredentials): Promise<void>;

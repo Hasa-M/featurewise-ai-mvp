@@ -93,6 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
+      accessToken,
       status,
       user,
       async signIn(credentials: SignInCredentials) {
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setStatus('anonymous');
       },
     }),
-    [status, user],
+    [accessToken, status, user],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

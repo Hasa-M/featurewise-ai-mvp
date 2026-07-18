@@ -14,6 +14,13 @@ const currentUser = {
   username: 'marco',
 };
 
+const organization = {
+  createdAt: '2026-07-18T10:00:00.000Z',
+  id: currentUser.organizationId,
+  name: 'Northstar Labs',
+  updatedAt: '2026-07-18T10:00:00.000Z',
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
@@ -73,14 +80,17 @@ describe('application routes', () => {
 
   it('signs in, persists the token, and logs out', async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        accessToken: 'access-token',
-        expiresInSeconds: 43_200,
-        tokenType: 'Bearer',
-        user: currentUser,
-      }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          accessToken: 'access-token',
+          expiresInSeconds: 43_200,
+          tokenType: 'Bearer',
+          user: currentUser,
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse(organization));
     vi.stubGlobal('fetch', fetchMock);
     renderRoute('/login');
 
@@ -99,7 +109,9 @@ describe('application routes', () => {
       expect.objectContaining({ method: 'POST' }),
     );
 
-    await user.click(screen.getByRole('button', { name: 'Log out' }));
+    await user.click(screen.getByRole('button', { name: 'Open user menu' }));
+    expect(screen.getByText('marco')).toBeVisible();
+    await user.click(screen.getByRole('menuitem', { name: 'Log out' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Sign in' }),
@@ -137,7 +149,10 @@ describe('application routes', () => {
 
   it('restores a stored session through the current-user endpoint', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(currentUser));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(currentUser))
+      .mockResolvedValueOnce(jsonResponse(organization));
     vi.stubGlobal('fetch', fetchMock);
     renderRoute('/');
 
@@ -153,5 +168,66 @@ describe('application routes', () => {
     expect(new Headers(requestOptions.headers).get('Authorization')).toBe(
       'Bearer stored-token',
     );
+  });
+
+  it('updates the organization name from the header dropdown', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const updatedOrganization = {
+      ...organization,
+      name: 'Renamed workspace',
+      updatedAt: '2026-07-18T11:00:00.000Z',
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(currentUser))
+      .mockResolvedValueOnce(jsonResponse(organization))
+      .mockResolvedValueOnce(jsonResponse(updatedOrganization));
+    vi.stubGlobal('fetch', fetchMock);
+    renderRoute('/');
+    const user = userEvent.setup();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Northstar Labs' }),
+    );
+    const nameInput = screen.getByLabelText('Organization name');
+    await user.clear(nameInput);
+    await user.type(nameInput, '  Renamed workspace  ');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Renamed workspace' }),
+    ).toBeVisible();
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/organizations/organization-1',
+      expect.objectContaining({
+        body: JSON.stringify({ name: 'Renamed workspace' }),
+        method: 'PATCH',
+      }),
+    );
+  });
+
+  it('retries organization loading after a recoverable failure', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(currentUser))
+      .mockResolvedValueOnce(
+        jsonResponse({ message: 'Temporarily unavailable' }, 503),
+      )
+      .mockResolvedValueOnce(jsonResponse(organization));
+    vi.stubGlobal('fetch', fetchMock);
+    renderRoute('/');
+    const user = userEvent.setup();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Workspace unavailable' }),
+    ).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'No project selected' }),
+    ).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

@@ -70,14 +70,6 @@ Use CSS Modules for component styles and semantic CSS variables for product deci
 
 Reusable UI components colocate `Component.tsx`, `Component.module.css`, `Component.test.tsx`, and `Component.stories.tsx`.
 
-### Global layout components
-
-Standard reusable controls stay neutral, plain, and content-first. Persistent global layout components may use stronger brand-primary surfaces to give the application frame a distinct Featurewise identity. Use the amber accent only as a restrained structural detail, such as an edge, divider, or active-layout marker. It must not become a competing surface or imply a readiness status.
-
-Layout components use the same typography, spacing, focus, motion, accessibility, and semantic-token foundation as ordinary controls; they are not a separate theme. Keep domain-neutral layout building blocks in `shared/ui` and route data or shell orchestration in higher layers. Place their stories under `Layout/*`; ordinary reusable controls remain under `Shared/*`.
-
-Do not carry the stronger layout treatment into content cards or form controls without a separate design decision. Avoid gradients, decorative glows, and large accent-colored surfaces.
-
 ## Icons
 
 Import Lucide icons by name:

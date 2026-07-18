@@ -11,7 +11,7 @@ const defaultItems = [
 ] satisfies BreadcrumbItems;
 
 const meta = {
-  title: 'Layout/Breadcrumb',
+  title: 'Deprecated/Breadcrumb',
   component: Breadcrumb,
   args: { items: defaultItems },
   decorators: [

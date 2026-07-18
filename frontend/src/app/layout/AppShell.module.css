@@ -1,0 +1,121 @@
+.shell {
+  min-height: 100vh;
+  background: var(--surface-canvas);
+}
+
+.organizationMark {
+  display: inline-flex;
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  color: var(--on-brand);
+  background: var(--brand);
+}
+
+.organizationPanel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.organizationHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.organizationHeading h2 {
+  font-size: var(--type-h3-size);
+}
+
+.organizationHeading p {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+  line-height: var(--leading-normal);
+}
+
+.organizationActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.userMenuRoot {
+  position: relative;
+  display: flex;
+}
+
+.userButton {
+  color: var(--brand-text);
+  background: var(--brand-subtle-hover);
+}
+
+.userButton:hover:not(:disabled) {
+  color: var(--brand-text);
+  background: var(--brand-border);
+}
+
+.userButton:active:not(:disabled) {
+  background: var(--brand-subtle-hover);
+}
+
+.userMenuPanel {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + var(--space-2));
+  right: 0;
+}
+
+.statusPage {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--surface-canvas);
+}
+
+.loadingStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.statusCard {
+  display: grid;
+  width: min(100%, 28rem);
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  color: var(--text-body);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.statusCard > svg {
+  color: var(--brand);
+}
+
+.statusCard h1 {
+  font-size: var(--type-h2-size);
+}
+
+.statusCard p {
+  color: var(--text-muted);
+}
+
+.spinner {
+  animation: spin var(--duration-slow) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

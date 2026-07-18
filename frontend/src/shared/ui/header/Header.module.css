@@ -1,10 +1,8 @@
 .header {
   width: 100%;
   height: var(--topbar-h);
-  border-top: var(--border-w-thick) solid var(--accent);
-  color: var(--text-on-inverse);
-  background: var(--surface-brand-strong);
-  box-shadow: var(--shadow-xs);
+  color: var(--text-body);
+  background: var(--brand-subtle);
 }
 
 .inner {
@@ -13,12 +11,19 @@
   height: 100%;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-6);
-  padding: 0 var(--container-pad);
+  gap: var(--space-4);
+  padding: 0 var(--space-2);
 }
 
-.breadcrumb {
+.start {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navigationSlot {
   min-width: 0;
   flex: 1;
 }
@@ -27,48 +32,54 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .homeLink {
   display: inline-flex;
+  width: fit-content;
+  min-height: var(--control-h-sm);
   flex: 0 0 auto;
   align-items: center;
-  padding: var(--space-1);
+  justify-content: center;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-control);
+  color: var(--brand-text);
+  background: var(--brand-subtle-hover);
   transition: var(--transition-control);
 }
 
 .homeLink:hover {
-  background: color-mix(in oklch, var(--text-on-inverse) 10%, transparent);
+  background: var(--brand-border);
+  text-decoration: none;
 }
 
 .homeLink:active {
-  background: color-mix(in oklch, var(--text-on-inverse) 16%, transparent);
+  background: var(--brand-subtle-hover);
 }
 
 .homeLink:focus-visible {
   box-shadow: var(--focus-ring-offset);
 }
 
-.userButton {
-  color: var(--text-on-inverse);
-  border-color: color-mix(in oklch, var(--text-on-inverse) 16%, transparent);
-  background: color-mix(in oklch, var(--text-on-inverse) 8%, transparent);
+.sidebarButton {
+  flex: 0 0 auto;
+  color: var(--brand-text);
+  background: var(--brand-subtle-hover);
 }
 
-.userButton:hover:not(:disabled) {
-  color: var(--text-on-inverse);
-  background: color-mix(in oklch, var(--text-on-inverse) 16%, transparent);
+.sidebarButton:hover:not(:disabled) {
+  color: var(--brand-text);
+  background: var(--brand-border);
 }
 
-.userButton:active:not(:disabled) {
-  background: color-mix(in oklch, var(--text-on-inverse) 22%, transparent);
+.sidebarButton:active:not(:disabled) {
+  background: var(--brand-subtle-hover);
 }
 
 @media (max-width: 40rem) {
   .inner {
     gap: var(--space-3);
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-1);
   }
 }

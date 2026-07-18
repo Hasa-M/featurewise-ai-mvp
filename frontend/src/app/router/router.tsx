@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 
+import { AppShell } from '@/app/layout';
 import { AnonymousRoute, AuthenticatedRoute } from '@/features/auth';
 import { HomePage } from '@/pages/home';
 import { LoginPage } from '@/pages/login';
@@ -19,12 +20,17 @@ export const routes: RouteObject[] = [
     element: <AuthenticatedRoute />,
     children: [
       {
-        path: '/',
-        element: <HomePage />,
-      },
-      {
-        path: '*',
-        element: <NotFoundPage />,
+        element: <AppShell />,
+        children: [
+          {
+            path: '/',
+            element: <HomePage />,
+          },
+          {
+            path: '*',
+            element: <NotFoundPage />,
+          },
+        ],
       },
     ],
   },
