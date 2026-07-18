@@ -1,0 +1,67 @@
+.page {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: var(--space-6);
+  background:
+    radial-gradient(
+      circle at 12% 6%,
+      color-mix(in oklch, var(--cobalt-100) 58%, transparent),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 96% 92%,
+      color-mix(in oklch, var(--cobalt-100) 48%, transparent),
+      transparent 42%
+    ),
+    var(--surface-canvas);
+}
+
+.card {
+  width: min(100%, 26rem);
+  padding: var(--space-10);
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+}
+
+.logo {
+  height: var(--space-6);
+}
+
+.intro {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-8);
+}
+
+.intro h1 {
+  font-size: var(--type-h1-size);
+}
+
+.intro p {
+  color: var(--text-muted);
+}
+
+.form {
+  margin-top: var(--space-8);
+}
+
+.footer {
+  margin-top: var(--space-5);
+  color: var(--text-subtle);
+  font-size: var(--type-caption-size);
+}
+
+@media (max-width: 30rem) {
+  .page {
+    align-items: start;
+    padding: var(--space-4);
+  }
+
+  .card {
+    margin-top: var(--space-8);
+    padding: var(--space-8) var(--space-6);
+  }
+}

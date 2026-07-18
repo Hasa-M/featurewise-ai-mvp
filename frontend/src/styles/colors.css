@@ -78,6 +78,7 @@
   --surface-inset: var(--slate-100);
   --surface-hover: var(--slate-50);
   --surface-active: var(--slate-100);
+  --surface-brand-strong: var(--cobalt-800);
   --surface-inverse: var(--slate-900);
   --surface-inverse-raised: var(--slate-800);
   --surface-overlay: color-mix(

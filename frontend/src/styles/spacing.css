@@ -36,7 +36,7 @@
 
   --sidebar-w: 260px;
   --sidebar-w-collapsed: 60px;
-  --topbar-h: 56px;
+  --topbar-h: 42px;
   --content-max: 1200px;
   --doc-measure: 68ch;
   --container-pad: var(--space-6);

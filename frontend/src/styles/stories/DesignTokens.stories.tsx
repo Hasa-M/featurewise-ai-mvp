@@ -54,6 +54,7 @@ const colorGroups = {
     '--surface-canvas',
     '--surface-card',
     '--surface-sunken',
+    '--surface-brand-strong',
     '--surface-inverse',
   ],
 } as const;

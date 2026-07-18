@@ -1,0 +1,24 @@
+import { createContext } from 'react';
+
+export interface AuthUser {
+  readonly userId: string;
+  readonly username: string;
+  readonly organizationId: string;
+  readonly projectId: string;
+}
+
+export type AuthStatus = 'initializing' | 'authenticated' | 'anonymous';
+
+export interface SignInCredentials {
+  readonly username: string;
+  readonly password: string;
+}
+
+export interface AuthContextValue {
+  readonly status: AuthStatus;
+  readonly user: AuthUser | null;
+  signIn(credentials: SignInCredentials): Promise<void>;
+  signOut(): void;
+}
+
+export const AuthContext = createContext<AuthContextValue | null>(null);

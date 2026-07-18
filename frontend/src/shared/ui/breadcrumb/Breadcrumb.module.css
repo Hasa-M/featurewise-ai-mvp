@@ -1,0 +1,181 @@
+.breadcrumb {
+  min-width: 0;
+  color: var(--text-on-inverse);
+  container-type: inline-size;
+}
+
+.list {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.item,
+.pathSegment,
+.compactOnly {
+  min-width: 0;
+  align-items: center;
+}
+
+.item,
+.pathSegment {
+  display: flex;
+}
+
+.pathSegment {
+  gap: var(--space-1);
+}
+
+.currentSegment {
+  flex: 0 1 auto;
+}
+
+.link,
+.ancestorLabel,
+.currentLabel {
+  display: block;
+  max-width: 15rem;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link {
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-xs);
+  color: color-mix(in oklch, var(--text-on-inverse) 92%, transparent);
+  transition: var(--transition-control);
+}
+
+.link:hover {
+  color: var(--text-on-inverse);
+  background: color-mix(in oklch, var(--text-on-inverse) 10%, transparent);
+  text-decoration: none;
+}
+
+.link:active {
+  background: color-mix(in oklch, var(--text-on-inverse) 16%, transparent);
+}
+
+.link:focus-visible,
+.overflowTrigger:focus-visible {
+  box-shadow: var(--focus-ring-offset);
+}
+
+.ancestorLabel {
+  padding: var(--space-1) var(--space-1-5);
+  color: color-mix(in oklch, var(--text-on-inverse) 86%, transparent);
+}
+
+.currentLabel {
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-xs);
+  color: var(--text-on-inverse);
+  background: color-mix(in oklch, var(--text-on-inverse) 12%, transparent);
+  font-weight: var(--weight-semibold);
+}
+
+.separator,
+.compactOnly > svg {
+  flex: 0 0 auto;
+  color: color-mix(in oklch, var(--text-on-inverse) 62%, transparent);
+}
+
+.compactOnly {
+  display: none;
+}
+
+.overflowItem {
+  position: relative;
+}
+
+.overflowTrigger {
+  display: inline-flex;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-on-inverse);
+  background: color-mix(in oklch, var(--text-on-inverse) 14%, transparent);
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+
+.overflowTrigger:hover,
+.overflowTrigger[aria-expanded='true'] {
+  color: var(--text-on-inverse);
+  background: color-mix(in oklch, var(--text-on-inverse) 22%, transparent);
+}
+
+.overflowTrigger:active {
+  background: color-mix(in oklch, var(--text-on-inverse) 28%, transparent);
+}
+
+.overflowMenu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + var(--space-2));
+  left: 0;
+  color: var(--text-body);
+}
+
+.overflowLink {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-h-md);
+  align-items: center;
+  padding: var(--space-1-5) var(--space-2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  line-height: var(--leading-snug);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: var(--transition-control);
+}
+
+.overflowLink:hover {
+  color: var(--text-strong);
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+
+.overflowLink:active {
+  background: var(--surface-active);
+}
+
+@container (max-width: 32rem) {
+  .intermediateSegment {
+    display: none;
+  }
+
+  .compactOnly {
+    display: flex;
+  }
+
+  .item,
+  .currentSegment {
+    flex: 0 1 auto;
+  }
+
+  .item .link,
+  .item .ancestorLabel,
+  .currentLabel {
+    max-width: 10rem;
+  }
+}

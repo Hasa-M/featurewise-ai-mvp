@@ -40,6 +40,12 @@
   font-size: var(--type-caption-size);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
 .main {
   width: min(100%, var(--content-max));
   margin: 0 auto;

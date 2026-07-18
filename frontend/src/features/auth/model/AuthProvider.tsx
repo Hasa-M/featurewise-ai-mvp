@@ -1,0 +1,117 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+
+import {
+  getCurrentUser,
+  login,
+  type CurrentUserDto,
+} from '../api';
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthStatus,
+  type AuthUser,
+  type SignInCredentials,
+} from './auth-context';
+
+const accessTokenStorageKey = 'featurewise.accessToken';
+
+interface AuthProviderProps {
+  readonly children: ReactNode;
+}
+
+function readStoredAccessToken(): string | null {
+  try {
+    return window.localStorage.getItem(accessTokenStorageKey);
+  } catch {
+    return null;
+  }
+}
+
+function storeAccessToken(accessToken: string): void {
+  try {
+    window.localStorage.setItem(accessTokenStorageKey, accessToken);
+  } catch {
+    // Authentication still works for the current page when storage is unavailable.
+  }
+}
+
+function removeStoredAccessToken(): void {
+  try {
+    window.localStorage.removeItem(accessTokenStorageKey);
+  } catch {
+    // There is no recoverable action when browser storage is unavailable.
+  }
+}
+
+function toAuthUser(user: CurrentUserDto): AuthUser {
+  return {
+    organizationId: user.organizationId,
+    projectId: user.projectId,
+    userId: user.userId,
+    username: user.username,
+  };
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [accessToken, setAccessToken] = useState(readStoredAccessToken);
+  const [status, setStatus] = useState<AuthStatus>(() =>
+    accessToken ? 'initializing' : 'anonymous',
+  );
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!accessToken || status !== 'initializing') {
+      return;
+    }
+
+    let active = true;
+
+    void getCurrentUser(accessToken)
+      .then((currentUser) => {
+        if (!active) {
+          return;
+        }
+
+        setUser(toAuthUser(currentUser));
+        setStatus('authenticated');
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        removeStoredAccessToken();
+        setAccessToken(null);
+        setUser(null);
+        setStatus('anonymous');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accessToken, status]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      status,
+      user,
+      async signIn(credentials: SignInCredentials) {
+        const response = await login(credentials);
+
+        storeAccessToken(response.accessToken);
+        setAccessToken(response.accessToken);
+        setUser(toAuthUser(response.user));
+        setStatus('authenticated');
+      },
+      signOut() {
+        removeStoredAccessToken();
+        setAccessToken(null);
+        setUser(null);
+        setStatus('anonymous');
+      },
+    }),
+    [status, user],
+  );
+
+  return <AuthContext value={value}>{children}</AuthContext>;
+}

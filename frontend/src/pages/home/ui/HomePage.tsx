@@ -1,8 +1,13 @@
-import { FolderKanban, Sparkles } from 'lucide-react';
+import { FolderKanban, LogOut, Sparkles } from 'lucide-react';
+
+import { useAuth } from '@/features/auth';
+import { Button } from '@/shared/ui/button';
 
 import styles from './HomePage.module.css';
 
 export function HomePage() {
+  const { signOut, user } = useAuth();
+
   return (
     <div className={styles.page}>
       <header className={styles.topbar}>
@@ -12,7 +17,19 @@ export function HomePage() {
           </span>
           <span>Featurewise</span>
         </div>
-        <span className={styles.environment}>Local workspace</span>
+        <div className={styles.actions}>
+          <span className={styles.environment}>
+            {user ? `Signed in as ${user.username}` : 'Local workspace'}
+          </span>
+          <Button
+            leadingIcon={<LogOut size={15} strokeWidth={1.8} />}
+            onClick={signOut}
+            size={'small'}
+            variant={'secondary'}
+          >
+            Log out
+          </Button>
+        </div>
       </header>
 
       <main className={styles.main}>

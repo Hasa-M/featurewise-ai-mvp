@@ -16,7 +16,7 @@ describe('request', () => {
       { id: 'feature-1' },
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:3000/features/feature-1',
+      '/api/features/feature-1',
       expect.objectContaining({ headers: expect.any(Headers) }),
     );
   });
