@@ -62,6 +62,9 @@ Use a lowercase kebab-case folder, PascalCase component files, and a small publi
 - Add a representative default story plus separate stories for relevant variants, sizes, and states.
 - Use realistic content and accessible labels. Demonstrate icon placement and icon-only use when supported.
 - Include error and empty states only when they belong to the contract.
+- Assess whether the component needs a Storybook interaction test. Add a `play` function when real-browser execution or the Interactions debugger materially improves confidence, including components with keyboard navigation, popovers or dialogs, complex selection, multi-step state transitions, focus management, rich editing, drag/pointer behavior, or browser APIs.
+- When an interaction test is warranted, implement it in the most representative story with Storybook's instrumented `userEvent` and `expect`. Assert observable behavior through roles, accessible names, visible state, and focus. Add another interaction story only for a distinct contract-critical workflow.
+- Do not add a `play` function merely to duplicate simple prop rendering, a basic callback assertion, or behavior already covered adequately by the focused Vitest test. Record the intentional omission in the final report when interaction testing was considered but not useful.
 - Import no global CSS in the story. .storybook/preview.ts already loads src/styles/index.css.
 - Do not create Storybook-only tokens, themes, providers, wrappers, or behavior.
 
@@ -78,6 +81,7 @@ Run from frontend/:
 
     npm run lint
     npm test -- --run
+    npm run test-storybook -- --run
     npm run build
     npm run build-storybook
 
@@ -89,6 +93,7 @@ Before finishing, confirm:
 - TypeScript and CSS have no unused variants or placeholders;
 - every visual decision uses variables shared by the app and Storybook;
 - stories expose each state a reviewer needs to inspect;
+- the need for a Storybook interaction test was assessed and any warranted `play` test passes in browser mode;
 - no API, domain, or Storybook-only logic leaked into the component.
 
-Report the component contract, stories, tests, verification results, and any intentionally omitted state.
+Report the component contract, stories, unit tests, the interaction-test decision and coverage, verification results, and any intentionally omitted state.
