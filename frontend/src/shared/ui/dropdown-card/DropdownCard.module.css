@@ -20,7 +20,7 @@
 }
 
 .trigger:hover:not(:disabled) {
-  background: var(--surface-active);
+  background: var(--surface-hover);
 }
 
 .trigger:active:not(:disabled) {

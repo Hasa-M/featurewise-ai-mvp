@@ -5,7 +5,7 @@ import { Button } from '../button';
 import { Header } from './Header';
 
 const meta = {
-  title: 'Shared/Header',
+  title: 'Global/Header',
   component: Header,
   args: {
     dropdownCardProps: {

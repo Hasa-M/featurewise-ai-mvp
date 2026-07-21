@@ -43,7 +43,7 @@ export function Logo({
       className={classes}
       height={isIcon ? 32 : 34}
       src={src}
-      width={isIcon ? 32 : 186}
+      width={isIcon ? 32 : 148}
     />
   );
 }

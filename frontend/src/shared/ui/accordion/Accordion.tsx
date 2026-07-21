@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { useId, useState } from 'react';
 import type {
+  AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   HTMLAttributes,
   ReactNode,
@@ -8,16 +9,34 @@ import type {
 
 import styles from './Accordion.module.css';
 
-export type AccordionActionProps = Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  'aria-label' | 'children'
-> & {
+type AccordionActionBase = {
   'aria-label': string;
   icon: ReactNode;
   visibility?: AccordionActionVisibility;
 };
 
+export type AccordionButtonActionProps = AccordionActionBase &
+  Omit<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    'aria-label' | 'children'
+  > & {
+    href?: never;
+  };
+
+export type AccordionLinkActionProps = AccordionActionBase &
+  Omit<
+    AnchorHTMLAttributes<HTMLAnchorElement>,
+    'aria-label' | 'children' | 'href'
+  > & {
+    href: string;
+  };
+
+export type AccordionActionProps =
+  | AccordionButtonActionProps
+  | AccordionLinkActionProps;
+
 export type AccordionActionVisibility = 'always' | 'hover';
+export type AccordionSelection = 'ancestor' | 'current' | 'none';
 
 export type AccordionProps = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -31,7 +50,16 @@ export type AccordionProps = Omit<
   leadingIcon?: ReactNode;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
+  selection?: AccordionSelection;
 };
+
+function AccordionIcon({ children }: { children: ReactNode }) {
+  return (
+    <span aria-hidden="true" className={styles.iconSlot}>
+      {children}
+    </span>
+  );
+}
 
 export function Accordion({
   actions = [],
@@ -43,6 +71,7 @@ export function Accordion({
   leadingIcon,
   onOpenChange,
   open,
+  selection = 'none',
   ...props
 }: AccordionProps) {
   const generatedId = useId();
@@ -67,6 +96,7 @@ export function Accordion({
       className={[styles.root, className].filter(Boolean).join(' ')}
       data-disabled={disabled ? 'true' : undefined}
       data-open={isOpen ? 'true' : 'false'}
+      data-selection={selection === 'none' ? undefined : selection}
     >
       <div className={styles.header}>
         <button
@@ -78,11 +108,7 @@ export function Accordion({
           onClick={toggle}
           type="button"
         >
-          {leadingIcon ? (
-            <span aria-hidden="true" className={styles.iconSlot}>
-              {leadingIcon}
-            </span>
-          ) : null}
+          {leadingIcon ? <AccordionIcon>{leadingIcon}</AccordionIcon> : null}
           <span className={styles.label}>{label}</span>
           <ChevronRight
             aria-hidden="true"
@@ -94,6 +120,43 @@ export function Accordion({
         {actions.length > 0 ? (
           <div className={styles.actions}>
             {actions.map((action, index) => {
+              if ('href' in action && action.href !== undefined) {
+                const {
+                  'aria-label': actionLabel,
+                  className: actionClassName,
+                  href,
+                  icon: actionIcon,
+                  onClick,
+                  title: actionTitle,
+                  visibility = 'always',
+                  ...linkProps
+                } = action;
+
+                return (
+                  <a
+                    {...linkProps}
+                    aria-disabled={disabled || undefined}
+                    aria-label={actionLabel}
+                    className={[styles.action, actionClassName]
+                      .filter(Boolean)
+                      .join(' ')}
+                    data-visibility={visibility}
+                    href={href}
+                    key={`${actionLabel}-${index}`}
+                    onClick={(event) => {
+                      if (disabled) {
+                        event.preventDefault();
+                        return;
+                      }
+                      onClick?.(event);
+                    }}
+                    title={actionTitle ?? actionLabel}
+                  >
+                    <AccordionIcon>{actionIcon}</AccordionIcon>
+                  </a>
+                );
+              }
+
               const {
                 'aria-label': actionLabel,
                 className: actionClassName,
@@ -102,12 +165,12 @@ export function Accordion({
                 title: actionTitle,
                 type: actionType = 'button',
                 visibility = 'always',
-                ...actionProps
+                ...buttonProps
               } = action;
 
               return (
                 <button
-                  {...actionProps}
+                  {...buttonProps}
                   aria-label={actionLabel}
                   className={[styles.action, actionClassName]
                     .filter(Boolean)
@@ -118,9 +181,7 @@ export function Accordion({
                   title={actionTitle ?? actionLabel}
                   type={actionType}
                 >
-                  <span aria-hidden="true" className={styles.iconSlot}>
-                    {actionIcon}
-                  </span>
+                  <AccordionIcon>{actionIcon}</AccordionIcon>
                 </button>
               );
             })}

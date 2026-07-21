@@ -100,6 +100,33 @@ export const WithActions: Story = {
   },
 };
 
+export const SelectedWithLinkActions: Story = {
+  args: {
+    actions: [
+      {
+        'aria-label': 'View all recent features',
+        href: '#all-recents',
+        icon: <List />,
+      },
+      {
+        'aria-label': 'Add recent feature',
+        href: '#new-recent',
+        icon: <Plus />,
+      },
+    ],
+    leadingIcon: <FileText />,
+    selection: 'current',
+  },
+};
+
+export const AncestorSelection: Story = {
+  args: {
+    defaultOpen: true,
+    leadingIcon: <FileText />,
+    selection: 'ancestor',
+  },
+};
+
 export const Disabled: Story = {
   args: {
     actions: [

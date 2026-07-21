@@ -49,6 +49,65 @@ describe('Accordion', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('keeps nested disclosure states independent', async () => {
+    const user = userEvent.setup();
+    render(
+      <Accordion defaultOpen label="Projects">
+        <Accordion label="Northstar">
+          <span>Project content</span>
+        </Accordion>
+      </Accordion>,
+    );
+
+    const projects = screen.getByRole('button', { name: 'Projects' });
+    const northstar = screen.getByRole('button', { name: 'Northstar' });
+    expect(projects).toHaveAttribute('aria-expanded', 'true');
+    expect(northstar).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(northstar);
+    expect(projects).toHaveAttribute('aria-expanded', 'true');
+    expect(northstar).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('keeps a navigation action separate from the full label trigger', async () => {
+    const onOpenChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Accordion
+        actions={[
+          {
+            'aria-label': 'View all recent features',
+            href: '#all-recents',
+            icon: <List />,
+          },
+        ]}
+        label="Recents"
+        onOpenChange={onOpenChange}
+        selection="current"
+      >
+        <span>Feature list</span>
+      </Accordion>,
+    );
+
+    const action = screen.getByRole('link', {
+      name: 'View all recent features',
+    });
+    const trigger = screen.getByRole('button', { name: 'Recents' });
+
+    await user.click(action);
+    expect(action).toHaveAttribute('href', '#all-recents');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(trigger.closest('[data-selection]')).toHaveAttribute(
+      'data-selection',
+      'current',
+    );
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
   it('runs ordered hover and always-visible actions without toggling', async () => {
     const onMenu = vi.fn();
     const onList = vi.fn();

@@ -114,4 +114,62 @@ describe('Menu', () => {
       'page',
     );
   });
+
+  it('renders a selected navigation item as an anchor', () => {
+    render(
+      <MenuItem href="#generation-2" selected>
+        Generation 2
+      </MenuItem>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Generation 2' }),
+    ).toHaveAttribute('href', '#generation-2');
+    expect(
+      screen.getByRole('link', { name: 'Generation 2' }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('disables link navigation and removes it from the tab order', async () => {
+    const onClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MenuItem disabled href="#generation-2" onClick={onClick}>
+        Generation 2
+      </MenuItem>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Generation 2' });
+    await user.click(link);
+
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    expect(link).toHaveAttribute('tabindex', '-1');
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('includes enabled links in menu keyboard navigation', async () => {
+    const user = userEvent.setup();
+    render(
+      <MenuWrapper aria-label="Generation actions">
+        <MenuItem>Rename generation</MenuItem>
+        <MenuItem href="#review">Review generation</MenuItem>
+        <MenuItem disabled href="#archived">
+          Archived generation
+        </MenuItem>
+      </MenuWrapper>,
+    );
+
+    const rename = screen.getByRole('menuitem', {
+      name: 'Rename generation',
+    });
+    const review = screen.getByRole('menuitem', {
+      name: 'Review generation',
+    });
+
+    rename.focus();
+    await user.keyboard('{ArrowDown}');
+    expect(review).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(rename).toHaveFocus();
+  });
 });

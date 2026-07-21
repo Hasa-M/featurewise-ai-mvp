@@ -14,8 +14,27 @@
   transition: var(--transition-control);
 }
 
-.root:not([data-disabled='true']) .header:hover {
+.root:not([data-disabled='true']) > .header:hover {
   background: var(--surface-hover);
+}
+
+.root[data-selection='ancestor'] > .header {
+  background: var(--brand-subtle);
+}
+
+.root[data-selection='ancestor']:not([data-disabled='true']) > .header:hover {
+  background: var(--brand-subtle-hover);
+}
+
+.root[data-selection='current'] > .header {
+  color: var(--brand-text);
+  background: var(--brand-subtle);
+  box-shadow: inset 0 0 0 var(--border-w) var(--brand);
+}
+
+.root[data-selection='current']:not([data-disabled='true']) > .header:hover {
+  color: var(--brand-text);
+  background: var(--brand-subtle-hover);
 }
 
 .trigger {
@@ -47,7 +66,8 @@
 }
 
 .trigger:disabled,
-.action:disabled {
+.action:disabled,
+.action[aria-disabled='true'] {
   color: var(--text-subtle);
   cursor: not-allowed;
   opacity: 0.72;
@@ -86,7 +106,7 @@
     transform var(--duration-fast) var(--ease-standard);
 }
 
-.root[data-open='true'] .indicator {
+.root[data-open='true'] > .header .indicator {
   transform: rotate(90deg);
 }
 
@@ -111,12 +131,14 @@
   color: var(--text-body);
   background: transparent;
   cursor: pointer;
+  text-decoration: none;
   transition: var(--transition-control);
 }
 
 .action:hover:not(:disabled) {
   color: var(--text-strong);
   background: var(--surface-active);
+  text-decoration: none;
 }
 
 .action:active:not(:disabled) {
@@ -135,14 +157,14 @@
 }
 
 @media (hover: hover) {
-  .indicator,
+  .root[data-open='true'] > .header .indicator,
   .action[data-visibility='hover'] {
     opacity: 0;
   }
 
-  .header:hover .indicator,
+  .root[data-open='true'] > .header:hover .indicator,
+  .root[data-open='true'] > .header:focus-within .indicator,
   .header:hover .action[data-visibility='hover'],
-  .header:focus-within .indicator,
   .header:focus-within .action[data-visibility='hover'] {
     opacity: 1;
   }

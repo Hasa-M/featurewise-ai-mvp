@@ -8,7 +8,7 @@ describe('Logo', () => {
     render(<Logo />);
 
     const logo = screen.getByRole('img', { name: 'Featurewise' });
-    expect(logo).toHaveAttribute('width', '186');
+    expect(logo).toHaveAttribute('width', '148');
     expect(logo).toHaveAttribute('height', '34');
   });
 

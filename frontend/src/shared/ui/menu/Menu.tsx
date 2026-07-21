@@ -1,4 +1,5 @@
 ﻿import type {
+  AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   HTMLAttributes,
   KeyboardEvent,
@@ -61,13 +62,13 @@ export function MenuWrapper({
 
   function getEnabledItems() {
     return Array.from(
-      menuRef.current?.querySelectorAll<HTMLButtonElement>(
-        '[role="menuitem"]:not(:disabled)',
+      menuRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not(:disabled):not([aria-disabled="true"])',
       ) ?? [],
     );
   }
 
-  function focusItem(item: HTMLButtonElement | undefined) {
+  function focusItem(item: HTMLElement | undefined) {
     if (!item) return;
     setActiveItemId(item.id);
     item.focus();
@@ -169,57 +170,34 @@ export function MenuSection({
 
 export type MenuItemVariant = 'default' | 'danger';
 
-export type MenuItemProps = Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  'children'
-> & {
+type MenuItemBaseProps = {
   children: ReactNode;
+  disabled?: boolean;
   leadingIcon?: ReactNode;
   selected?: boolean;
   trailingIcon?: ReactNode;
   variant?: MenuItemVariant;
 };
 
-export function MenuItem({
-  'aria-current': ariaCurrent,
+export type MenuItemButtonProps = MenuItemBaseProps &
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
+    href?: never;
+  };
+
+export type MenuItemLinkProps = MenuItemBaseProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'children' | 'href'> & {
+    href: string;
+  };
+
+export type MenuItemProps = MenuItemButtonProps | MenuItemLinkProps;
+
+function MenuItemContent({
   children,
-  className,
-  id: providedId,
   leadingIcon,
-  onFocus,
-  selected = false,
-  tabIndex,
   trailingIcon,
-  type = 'button',
-  variant = 'default',
-  ...props
-}: MenuItemProps) {
-  const context = useContext(MenuContext);
-  const activeItemId = context?.activeItemId;
-  const registerItem = context?.registerItem;
-  const setActiveItemId = context?.setActiveItemId;
-  const generatedId = useId();
-  const id = providedId ?? generatedId;
-
-  useEffect(() => registerItem?.(id), [id, registerItem]);
-
+}: Pick<MenuItemBaseProps, 'children' | 'leadingIcon' | 'trailingIcon'>) {
   return (
-    <button
-      {...props}
-      aria-current={selected ? 'page' : ariaCurrent}
-      className={[styles.item, styles[variant], className]
-        .filter(Boolean)
-        .join(' ')}
-      data-selected={selected ? 'true' : undefined}
-      id={id}
-      onFocus={(event) => {
-        setActiveItemId?.(id);
-        onFocus?.(event);
-      }}
-      role={context ? 'menuitem' : undefined}
-      tabIndex={context ? (activeItemId === id ? 0 : -1) : tabIndex}
-      type={type}
-    >
+    <>
       {leadingIcon ? (
         <span aria-hidden="true" className={styles.iconSlot}>
           {leadingIcon}
@@ -231,6 +209,105 @@ export function MenuItem({
           {trailingIcon}
         </span>
       ) : null}
+    </>
+  );
+}
+
+export function MenuItem(props: MenuItemProps) {
+  const { selected = false, variant = 'default', ...nativeProps } = props;
+  const context = useContext(MenuContext);
+  const activeItemId = context?.activeItemId;
+  const registerItem = context?.registerItem;
+  const setActiveItemId = context?.setActiveItemId;
+  const generatedId = useId();
+  const id = nativeProps.id ?? generatedId;
+  const className = [styles.item, styles[variant], nativeProps.className]
+    .filter(Boolean)
+    .join(' ');
+
+  useEffect(() => registerItem?.(id), [id, registerItem]);
+
+  if ('href' in nativeProps && nativeProps.href !== undefined) {
+    const {
+      'aria-current': ariaCurrent,
+      children,
+      disabled = false,
+      href,
+      leadingIcon,
+      onClick,
+      onFocus,
+      tabIndex,
+      trailingIcon,
+      ...linkProps
+    } = nativeProps;
+
+    return (
+      <a
+        {...linkProps}
+        aria-current={selected ? 'page' : ariaCurrent}
+        aria-disabled={disabled || undefined}
+        className={className}
+        data-selected={selected ? 'true' : undefined}
+        href={href}
+        id={id}
+        onClick={(event) => {
+          if (disabled) {
+            event.preventDefault();
+            return;
+          }
+          onClick?.(event);
+        }}
+        onFocus={(event) => {
+          setActiveItemId?.(id);
+          onFocus?.(event);
+        }}
+        role={context ? 'menuitem' : undefined}
+        tabIndex={
+          context ? (activeItemId === id ? 0 : -1) : disabled ? -1 : tabIndex
+        }
+      >
+        <MenuItemContent
+          leadingIcon={leadingIcon}
+          trailingIcon={trailingIcon}
+        >
+          {children}
+        </MenuItemContent>
+      </a>
+    );
+  }
+
+  const {
+    'aria-current': ariaCurrent,
+    children,
+    leadingIcon,
+    onFocus,
+    tabIndex,
+    trailingIcon,
+    type = 'button',
+    ...buttonProps
+  } = nativeProps;
+
+  return (
+    <button
+      {...buttonProps}
+      aria-current={selected ? 'page' : ariaCurrent}
+      className={className}
+      data-selected={selected ? 'true' : undefined}
+      id={id}
+      onFocus={(event) => {
+        setActiveItemId?.(id);
+        onFocus?.(event);
+      }}
+      role={context ? 'menuitem' : undefined}
+      tabIndex={context ? (activeItemId === id ? 0 : -1) : tabIndex}
+      type={type}
+    >
+      <MenuItemContent
+        leadingIcon={leadingIcon}
+        trailingIcon={trailingIcon}
+      >
+        {children}
+      </MenuItemContent>
     </button>
   );
 }
