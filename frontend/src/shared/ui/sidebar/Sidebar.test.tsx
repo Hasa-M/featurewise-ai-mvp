@@ -327,4 +327,83 @@ describe('Sidebar', () => {
     );
     expect(screen.getByRole('status')).toHaveTextContent('No projects yet');
   });
+
+  it('renders only the navigation actions supplied by each hierarchy level', async () => {
+    const user = userEvent.setup();
+    render(
+      <Sidebar
+        nodes={[
+          {
+            children: [
+              {
+                children: [
+                  {
+                    addAction: {
+                      'aria-label': 'Add feature to Northstar',
+                    },
+                    children: [
+                      {
+                        children: [],
+                        id: 'feature-1',
+                        label: 'Authentication',
+                        menuAction: {
+                          'aria-label': 'Open Authentication menu',
+                        },
+                        pageAction: {
+                          'aria-label': 'Go to Authentication',
+                          href: '/features/feature-1',
+                        },
+                        type: 'group',
+                      },
+                    ],
+                    id: 'features',
+                    label: 'Features',
+                    type: 'node',
+                  },
+                ],
+                id: 'project-1',
+                label: 'Northstar',
+                menuAction: {
+                  'aria-label': 'Open Northstar menu',
+                },
+                pageAction: {
+                  'aria-label': 'Go to Northstar',
+                  href: '/projects/project-1',
+                },
+                type: 'group',
+              },
+            ],
+            id: 'projects',
+            label: 'Projects',
+            listAction: {
+              'aria-label': 'Go to Projects',
+              href: '/',
+            },
+            type: 'node',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Go to Projects' })).toBeVisible();
+    expect(
+      screen.queryByRole('link', { name: 'Add project' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Northstar' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Add feature to Northstar' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Open Northstar menu' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Go to Northstar' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Open Authentication menu' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Go to Authentication' }),
+    ).toBeVisible();
+  });
 });

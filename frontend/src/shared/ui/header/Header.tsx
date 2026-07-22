@@ -4,12 +4,17 @@ import type { HTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 import { Button } from '../button';
 import { DropdownCard, type DropdownCardProps } from '../dropdown-card';
 import { Logo } from '../logo';
+import {
+  NativeNavigationLink,
+  type NavigationLinkComponent,
+} from '../navigation-link';
 import styles from './Header.module.css';
 
 export type HeaderProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
   dropdownCardProps: DropdownCardProps;
   homeHref: string;
   homeLabel?: string;
+  linkComponent?: NavigationLinkComponent;
   sidebarControls?: string;
   sidebarOpen?: boolean;
   onSidebarToggle?: MouseEventHandler<HTMLButtonElement>;
@@ -22,6 +27,7 @@ export function Header({
   dropdownCardProps,
   homeHref,
   homeLabel = 'Featurewise home',
+  linkComponent: LinkComponent = NativeNavigationLink,
   onSidebarToggle,
   sidebarControls,
   sidebarOpen,
@@ -70,9 +76,13 @@ export function Header({
         </div>
         <div aria-hidden="true" className={styles.navigationSlot} />
         <div className={styles.actions}>
-          <a aria-label={homeLabel} className={styles.homeLink} href={homeHref}>
+          <LinkComponent
+            aria-label={homeLabel}
+            className={styles.homeLink}
+            href={homeHref}
+          >
             <Logo alt="" size="small" />
-          </a>
+          </LinkComponent>
           {userControl}
         </div>
       </div>

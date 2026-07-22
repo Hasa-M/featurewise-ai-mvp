@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import {
@@ -53,6 +54,7 @@ function toAuthUser(user: CurrentUserDto): AuthUser {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState(readStoredAccessToken);
   const [status, setStatus] = useState<AuthStatus>(() =>
     accessToken ? 'initializing' : 'anonymous',
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         removeStoredAccessToken();
+        queryClient.clear();
         setAccessToken(null);
         setUser(null);
         setStatus('anonymous');
@@ -89,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       active = false;
     };
-  }, [accessToken, status]);
+  }, [accessToken, queryClient, status]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -106,12 +109,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       },
       signOut() {
         removeStoredAccessToken();
+        queryClient.clear();
         setAccessToken(null);
         setUser(null);
         setStatus('anonymous');
       },
     }),
-    [accessToken, status, user],
+    [accessToken, queryClient, status, user],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

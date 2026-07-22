@@ -1,3 +1,4 @@
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
   LoaderCircle,
@@ -8,20 +9,33 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from 'react';
-import { Outlet } from 'react-router-dom';
+import { matchPath, Outlet, useLocation } from 'react-router-dom';
 
+import { RouterNavigationLink } from '@/app/router/RouterNavigationLink';
 import { useAuth } from '@/features/auth';
 import {
+  projectFeaturesQueryOptions,
+  type Feature,
+} from '@/features/features';
+import {
   useOrganization,
+  useProjects,
   type Organization,
+  type Project,
 } from '@/features/workspace';
 import { Button } from '@/shared/ui/button';
-import { Header } from '@/shared/ui/header';
+import type { HeaderProps } from '@/shared/ui/header';
 import { MenuItem, MenuSection, MenuWrapper } from '@/shared/ui/menu';
+import { PageStructure } from '@/shared/ui/page-structure';
+import type {
+  SidebarGroupItem,
+  SidebarNodeItem,
+} from '@/shared/ui/sidebar';
 import { TextInput } from '@/shared/ui/text-input';
 
 import styles from './AppShell.module.css';
@@ -31,119 +45,6 @@ function OrganizationMark() {
     <span aria-hidden="true" className={styles.organizationMark}>
       <Building2 size={15} strokeWidth={1.75} />
     </span>
-  );
-}
-
-interface WorkspaceHeaderProps {
-  readonly onLogout: () => void;
-  readonly organization: Organization;
-  readonly updateName: (name: string) => Promise<Organization>;
-  readonly username: string;
-}
-
-function WorkspaceHeader({
-  onLogout,
-  organization,
-  updateName,
-  username,
-}: WorkspaceHeaderProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [draftName, setDraftName] = useState(organization.name);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) {
-      setDraftName(organization.name);
-      setErrorMessage(null);
-    }
-    setIsOpen(nextOpen);
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = draftName.trim();
-
-    if (!name) {
-      setErrorMessage('Enter an organization name.');
-      return;
-    }
-
-    if (name.length > 120) {
-      setErrorMessage('Use 120 characters or fewer.');
-      return;
-    }
-
-    setErrorMessage(null);
-    setIsSaving(true);
-
-    try {
-      await updateName(name);
-      setIsOpen(false);
-    } catch {
-      setErrorMessage('The organization name could not be saved.');
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  const organizationPanel = (
-    <form className={styles.organizationPanel} onSubmit={handleSubmit}>
-      <div className={styles.organizationHeading}>
-        <OrganizationMark />
-        <div>
-          <h2>Organization settings</h2>
-          <p>Update the name shown across your workspace.</p>
-        </div>
-      </div>
-
-      <TextInput
-        autoComplete="organization"
-        disabled={isSaving}
-        errorMessage={errorMessage}
-        label="Organization name"
-        maxLength={120}
-        onChange={(event) => {
-          setDraftName(event.currentTarget.value);
-          if (errorMessage) setErrorMessage(null);
-        }}
-        value={draftName}
-      />
-
-      <div className={styles.organizationActions}>
-        <Button
-          disabled={isSaving}
-          onClick={() => handleOpenChange(false)}
-          size="small"
-          variant="secondary"
-        >
-          Cancel
-        </Button>
-        <Button
-          disabled={draftName.trim() === organization.name}
-          loading={isSaving}
-          size="small"
-          type="submit"
-        >
-          Save changes
-        </Button>
-      </div>
-    </form>
-  );
-
-  return (
-    <Header
-      dropdownCardProps={{
-        children: organizationPanel,
-        label: organization.name,
-        leadingVisual: <OrganizationMark />,
-        onOpenChange: handleOpenChange,
-        open: isOpen,
-        panelLabel: 'Organization settings',
-      }}
-      homeHref="/"
-      userControl={<UserMenu onLogout={onLogout} username={username} />}
-    />
   );
 }
 
@@ -235,6 +136,117 @@ function UserMenu({ onLogout, username }: UserMenuProps) {
   );
 }
 
+interface WorkspaceHeaderOptions {
+  readonly onLogout: () => void;
+  readonly organization: Organization;
+  readonly updateName: (name: string) => Promise<Organization>;
+  readonly username: string;
+}
+
+function useWorkspaceHeader({
+  onLogout,
+  organization,
+  updateName,
+  username,
+}: WorkspaceHeaderOptions): HeaderProps {
+  const [isOpen, setIsOpen] = useState(false);
+  const [draftName, setDraftName] = useState(organization.name);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setDraftName(organization.name);
+      setErrorMessage(null);
+    }
+    setIsOpen(nextOpen);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = draftName.trim();
+
+    if (!name) {
+      setErrorMessage('Enter an organization name.');
+      return;
+    }
+
+    if (name.length > 120) {
+      setErrorMessage('Use 120 characters or fewer.');
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSaving(true);
+
+    try {
+      await updateName(name);
+      setIsOpen(false);
+    } catch {
+      setErrorMessage('The organization name could not be saved.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const organizationPanel = (
+    <form className={styles.organizationPanel} onSubmit={handleSubmit}>
+      <div className={styles.organizationHeading}>
+        <OrganizationMark />
+        <div>
+          <h2>Organization settings</h2>
+          <p>Update the name shown across your workspace.</p>
+        </div>
+      </div>
+
+      <TextInput
+        autoComplete="organization"
+        disabled={isSaving}
+        errorMessage={errorMessage}
+        label="Organization name"
+        maxLength={120}
+        onChange={(event) => {
+          setDraftName(event.currentTarget.value);
+          if (errorMessage) setErrorMessage(null);
+        }}
+        value={draftName}
+      />
+
+      <div className={styles.organizationActions}>
+        <Button
+          disabled={isSaving}
+          onClick={() => handleOpenChange(false)}
+          size="small"
+          variant="secondary"
+        >
+          Cancel
+        </Button>
+        <Button
+          disabled={draftName.trim() === organization.name}
+          loading={isSaving}
+          size="small"
+          type="submit"
+        >
+          Save changes
+        </Button>
+      </div>
+    </form>
+  );
+
+  return {
+    dropdownCardProps: {
+      children: organizationPanel,
+      label: organization.name,
+      leadingVisual: <OrganizationMark />,
+      onOpenChange: handleOpenChange,
+      open: isOpen,
+      panelLabel: 'Organization settings',
+    },
+    homeHref: '/',
+    userControl: <UserMenu onLogout={onLogout} username={username} />,
+  };
+}
+
 interface ShellStatusProps {
   readonly errorMessage?: string | null;
   readonly onRetry?: () => void;
@@ -271,6 +283,191 @@ function ShellStatus({ errorMessage, onRetry }: ShellStatusProps) {
   );
 }
 
+function activeSidebarItem(pathname: string): string {
+  const featureMatch = matchPath(
+    '/projects/:projectId/features/:featureId',
+    pathname,
+  );
+  if (featureMatch?.params.featureId) {
+    return `feature:${featureMatch.params.featureId}`;
+  }
+
+  const projectMatch = matchPath('/projects/:projectId', pathname);
+  if (projectMatch?.params.projectId) {
+    return `project:${projectMatch.params.projectId}`;
+  }
+
+  return pathname === '/' ? 'projects' : '';
+}
+
+function featureGroups(
+  projectId: string,
+  features: readonly Feature[] | undefined,
+): readonly SidebarGroupItem[] {
+  return (features ?? []).map((feature) => ({
+    children: [],
+    emptyMessage: 'No feature sections yet',
+    id: `feature:${feature.id}`,
+    label: feature.title,
+    menuAction: {
+      'aria-label': `Open ${feature.title} menu`,
+      title: `Open ${feature.title} menu`,
+    },
+    pageAction: {
+      'aria-label': `Go to ${feature.title}`,
+      href: `/projects/${projectId}/features/${feature.id}`,
+      title: `Go to ${feature.title}`,
+    },
+    type: 'group',
+  }));
+}
+
+interface ReadyShellProps {
+  readonly accessToken: string;
+  readonly onLogout: () => void;
+  readonly organization: Organization;
+  readonly projects?: readonly Project[];
+  readonly projectsError: boolean;
+  readonly projectsPending: boolean;
+  readonly updateName: (name: string) => Promise<Organization>;
+  readonly username: string;
+}
+
+function ReadyShell({
+  accessToken,
+  onLogout,
+  organization,
+  projects = [],
+  projectsError,
+  projectsPending,
+  updateName,
+  username,
+}: ReadyShellProps) {
+  const [expandedProjects, setExpandedProjects] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const headerProps = useWorkspaceHeader({
+    onLogout,
+    organization,
+    updateName,
+    username,
+  });
+  const featureQueries = useQueries({
+    queries: projects.map((project) => ({
+      ...projectFeaturesQueryOptions(accessToken, project.id),
+      enabled: expandedProjects.has(project.id),
+    })),
+  });
+
+  const prefetchFeatures = useCallback(
+    (projectId: string) => {
+      void queryClient.prefetchQuery(
+        projectFeaturesQueryOptions(accessToken, projectId),
+      );
+    },
+    [accessToken, queryClient],
+  );
+
+  const sidebarNodes = useMemo<readonly SidebarNodeItem[]>(() => {
+    const projectGroups: readonly SidebarGroupItem[] = projects.map(
+      (project, index) => {
+        const featureQuery = featureQueries[index];
+        const emptyMessage = featureQuery?.isError
+          ? 'Features unavailable. Open the project page to retry.'
+          : featureQuery?.isPending
+            ? 'Loading features...'
+            : 'No features yet';
+
+        return {
+          children: [
+            {
+              addAction: {
+                'aria-label': `Add feature to ${project.name}`,
+                title: `Add feature to ${project.name}`,
+              },
+              children: featureGroups(project.id, featureQuery?.data),
+              emptyMessage,
+              id: `features:${project.id}`,
+              label: 'Features',
+              type: 'node',
+            },
+          ],
+          id: `project:${project.id}`,
+          label: project.name,
+          menuAction: {
+            'aria-label': `Open ${project.name} menu`,
+            title: `Open ${project.name} menu`,
+          },
+          pageAction: {
+            'aria-label': `Go to ${project.name}`,
+            href: `/projects/${project.id}`,
+            onFocus: () => prefetchFeatures(project.id),
+            onPointerEnter: () => prefetchFeatures(project.id),
+            title: `Go to ${project.name}`,
+          },
+          type: 'group',
+        };
+      },
+    );
+
+    return [
+      {
+        children: projectGroups,
+        emptyMessage: projectsError
+          ? 'Projects unavailable. Open Projects to retry.'
+          : projectsPending
+            ? 'Loading projects...'
+            : 'No projects yet',
+        id: 'projects',
+        label: 'Projects',
+        listAction: {
+          'aria-label': 'Go to Projects',
+          href: '/',
+          title: 'Go to Projects',
+        },
+        type: 'node',
+      },
+    ];
+  }, [
+    featureQueries,
+    prefetchFeatures,
+    projects,
+    projectsError,
+    projectsPending,
+  ]);
+
+  const handleItemOpenChange = useCallback((itemId: string, open: boolean) => {
+    if (!itemId.startsWith('project:')) return;
+    const projectId = itemId.slice('project:'.length);
+
+    setExpandedProjects((current) => {
+      const next = new Set(current);
+      if (open) {
+        next.add(projectId);
+      } else {
+        next.delete(projectId);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <PageStructure
+      headerProps={headerProps}
+      linkComponent={RouterNavigationLink}
+      sidebarProps={{
+        activeItemId: activeSidebarItem(location.pathname),
+        nodes: sidebarNodes,
+        onItemOpenChange: handleItemOpenChange,
+      }}
+    >
+      <Outlet />
+    </PageStructure>
+  );
+}
+
 export function AppShell() {
   const { accessToken, signOut, user } = useAuth();
 
@@ -281,8 +478,8 @@ export function AppShell() {
   return (
     <AuthenticatedShell
       accessToken={accessToken}
-      organizationId={user.organizationId}
       onLogout={signOut}
+      organizationId={user.organizationId}
       username={user.username}
     />
   );
@@ -301,26 +498,32 @@ function AuthenticatedShell({
   organizationId,
   username,
 }: AuthenticatedShellProps) {
-  const { errorMessage, organization, retry, status, updateName } =
-    useOrganization(accessToken, organizationId);
+  const organizationQuery = useOrganization(accessToken, organizationId);
+  const projectsQuery = useProjects(accessToken, organizationId);
 
-  if (status === 'loading' || !organization) {
-    if (status === 'error') {
-      return <ShellStatus errorMessage={errorMessage} onRetry={retry} />;
+  if (organizationQuery.status === 'loading' || !organizationQuery.organization) {
+    if (organizationQuery.status === 'error') {
+      return (
+        <ShellStatus
+          errorMessage={organizationQuery.errorMessage}
+          onRetry={() => void organizationQuery.retry()}
+        />
+      );
     }
 
     return <ShellStatus />;
   }
 
   return (
-    <div className={styles.shell}>
-      <WorkspaceHeader
-        onLogout={onLogout}
-        organization={organization}
-        updateName={updateName}
-        username={username}
-      />
-      <Outlet />
-    </div>
+    <ReadyShell
+      accessToken={accessToken}
+      onLogout={onLogout}
+      organization={organizationQuery.organization}
+      projects={projectsQuery.data}
+      projectsError={projectsQuery.isError}
+      projectsPending={projectsQuery.isPending}
+      updateName={organizationQuery.updateName}
+      username={username}
+    />
   );
 }

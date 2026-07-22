@@ -1,10 +1,10 @@
 import {
   ArrowUpRight,
+  Ellipsis,
   FileText,
   FolderClosed,
   FolderOpen,
   List,
-  MoreVertical,
   Plus,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -23,6 +23,7 @@ import type {
 } from '../accordion';
 import { MenuItem } from '../menu';
 import type { MenuItemLinkProps } from '../menu';
+import type { NavigationLinkComponent } from '../navigation-link';
 import styles from './Sidebar.module.css';
 
 export const SIDEBAR_MIN_WIDTH = 160;
@@ -59,15 +60,15 @@ export type SidebarLeafItem = {
 
 export type SidebarGroupItem = SidebarDisclosureItemBase & {
   children: readonly SidebarNodeItem[];
-  menuAction: SidebarNavigationAction;
+  menuAction?: SidebarNavigationAction;
   pageAction: SidebarNavigationAction;
   type: 'group';
 };
 
 type SidebarNodeBase = SidebarDisclosureItemBase & {
-  addAction: SidebarNavigationAction;
+  addAction?: SidebarNavigationAction;
   count?: number;
-  listAction: SidebarNavigationAction;
+  listAction?: SidebarNavigationAction;
 };
 
 type SidebarNodeWithGroups = SidebarNodeBase & {
@@ -86,6 +87,7 @@ export type SidebarProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
   activeItemId?: string;
   defaultWidth?: number;
   emptyMessage?: string;
+  linkComponent?: NavigationLinkComponent;
   navigationLabel?: string;
   nodes: readonly SidebarNodeItem[];
   onItemOpenChange?: (itemId: string, open: boolean) => void;
@@ -254,25 +256,37 @@ function disclosureActions(
 ): readonly AccordionActionProps[] {
   if (item.type === 'node') {
     return [
-      presentAction(
-        item.listAction,
-        <List aria-hidden="true" size={16} strokeWidth={1.75} />,
-        'hover',
-      ),
-      presentAction(
-        item.addAction,
-        <Plus aria-hidden="true" size={16} strokeWidth={1.75} />,
-        'always',
-      ),
+      ...(item.listAction
+        ? [
+            presentAction(
+              item.listAction,
+              <List aria-hidden="true" size={16} strokeWidth={1.75} />,
+              'hover',
+            ),
+          ]
+        : []),
+      ...(item.addAction
+        ? [
+            presentAction(
+              item.addAction,
+              <Plus aria-hidden="true" size={16} strokeWidth={1.75} />,
+              'always',
+            ),
+          ]
+        : []),
     ];
   }
 
   return [
-    presentAction(
-      item.menuAction,
-      <MoreVertical aria-hidden="true" size={16} strokeWidth={1.75} />,
-      'hover',
-    ),
+    ...(item.menuAction
+      ? [
+          presentAction(
+            item.menuAction,
+            <Ellipsis aria-hidden="true" size={16} strokeWidth={1.75} />,
+            'hover',
+          ),
+        ]
+      : []),
     presentAction(
       item.pageAction,
       <ArrowUpRight aria-hidden="true" size={16} strokeWidth={1.75} />,
@@ -321,6 +335,7 @@ function accordionSelection(
 
 type SidebarTreeProps = {
   activeItemId?: string;
+  linkComponent?: NavigationLinkComponent;
   onItemOpenChange?: (itemId: string, open: boolean) => void;
 };
 
@@ -335,6 +350,7 @@ function SidebarDisclosure({
   children,
   item,
   kind,
+  linkComponent,
   onItemOpenChange,
 }: SidebarDisclosureProps) {
   const [isOpen, setIsOpen] = useState(
@@ -365,6 +381,7 @@ function SidebarDisclosure({
           />
         }
         leadingIcon={icon}
+        linkComponent={linkComponent}
         onOpenChange={handleOpenChange}
         open={isOpen}
         selection={accordionSelection(item, activeItemId)}
@@ -386,7 +403,10 @@ function SidebarDisclosure({
 function SidebarLeaf({
   activeItemId,
   item,
-}: Pick<SidebarTreeProps, 'activeItemId'> & { item: SidebarLeafItem }) {
+  linkComponent,
+}: Pick<SidebarTreeProps, 'activeItemId' | 'linkComponent'> & {
+  item: SidebarLeafItem;
+}) {
   const { className, ...linkProps } = item.linkProps ?? {};
 
   return (
@@ -400,6 +420,7 @@ function SidebarLeaf({
             <FileText aria-hidden="true" size={16} strokeWidth={1.75} />
           )
         }
+        linkComponent={linkComponent}
         selected={activeItemId === item.id}
       >
         {item.label}
@@ -411,6 +432,7 @@ function SidebarLeaf({
 function SidebarGroup({
   activeItemId,
   item,
+  linkComponent,
   onItemOpenChange,
 }: SidebarTreeProps & { item: SidebarGroupItem }) {
   return (
@@ -418,10 +440,12 @@ function SidebarGroup({
       activeItemId={activeItemId}
       item={item}
       kind="group"
+      linkComponent={linkComponent}
       onItemOpenChange={onItemOpenChange}
     >
       <SidebarNodeList
         activeItemId={activeItemId}
+        linkComponent={linkComponent}
         nodes={item.children}
         onItemOpenChange={onItemOpenChange}
       />
@@ -432,6 +456,7 @@ function SidebarGroup({
 function SidebarNode({
   activeItemId,
   item,
+  linkComponent,
   onItemOpenChange,
 }: SidebarTreeProps & { item: SidebarNodeItem }) {
   return (
@@ -439,6 +464,7 @@ function SidebarNode({
       activeItemId={activeItemId}
       item={item}
       kind="node"
+      linkComponent={linkComponent}
       onItemOpenChange={onItemOpenChange}
     >
       <ul className={styles.list}>
@@ -448,6 +474,7 @@ function SidebarNode({
               activeItemId={activeItemId}
               item={child}
               key={child.id}
+              linkComponent={linkComponent}
               onItemOpenChange={onItemOpenChange}
             />
           ) : (
@@ -455,6 +482,7 @@ function SidebarNode({
               activeItemId={activeItemId}
               item={child}
               key={child.id}
+              linkComponent={linkComponent}
             />
           ),
         )}
@@ -465,6 +493,7 @@ function SidebarNode({
 
 function SidebarNodeList({
   activeItemId,
+  linkComponent,
   nodes,
   onItemOpenChange,
 }: SidebarTreeProps & { nodes: readonly SidebarNodeItem[] }) {
@@ -472,9 +501,10 @@ function SidebarNodeList({
     <ul className={styles.list}>
       {nodes.map((node) => (
         <SidebarNode
-          activeItemId={activeItemId}
-          item={node}
-          key={node.id}
+        activeItemId={activeItemId}
+        item={node}
+        key={node.id}
+        linkComponent={linkComponent}
           onItemOpenChange={onItemOpenChange}
         />
       ))}
@@ -487,6 +517,7 @@ export function Sidebar({
   className,
   defaultWidth,
   emptyMessage = 'No items yet',
+  linkComponent,
   navigationLabel = 'Workspace navigation',
   nodes,
   onItemOpenChange,
@@ -513,6 +544,7 @@ export function Sidebar({
         {nodes.length > 0 ? (
           <SidebarNodeList
             activeItemId={activeItemId}
+            linkComponent={linkComponent}
             nodes={nodes}
             onItemOpenChange={onItemOpenChange}
           />

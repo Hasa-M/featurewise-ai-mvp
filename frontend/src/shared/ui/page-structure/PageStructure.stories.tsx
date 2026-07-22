@@ -186,3 +186,63 @@ export const SidebarHidden: Story = {
     sidebarOpen: false,
   },
 };
+
+export const NavigationOnlyActions: Story = {
+  args: {
+    sidebarProps: {
+      activeItemId: 'authentication',
+      nodes: [
+        {
+          children: [
+            {
+              children: [
+                {
+                  addAction: {
+                    'aria-label': 'Add feature to Northstar mobile',
+                  },
+                  children: [
+                    {
+                      children: [],
+                      emptyMessage: 'No feature sections yet',
+                      id: 'authentication',
+                      label: 'Authentication workflow',
+                      menuAction: {
+                        'aria-label': 'Open Authentication workflow menu',
+                      },
+                      pageAction: {
+                        'aria-label': 'Go to Authentication workflow',
+                        href: '#authentication',
+                      },
+                      type: 'group',
+                    },
+                  ],
+                  id: 'features',
+                  label: 'Features',
+                  type: 'node',
+                },
+              ],
+              defaultOpen: true,
+              id: 'northstar',
+              label: 'Northstar mobile',
+              menuAction: {
+                'aria-label': 'Open Northstar mobile menu',
+              },
+              pageAction: {
+                'aria-label': 'Go to Northstar mobile',
+                href: '#northstar',
+              },
+              type: 'group',
+            },
+          ],
+          id: 'projects',
+          label: 'Projects',
+          listAction: {
+            'aria-label': 'Go to Projects',
+            href: '#projects',
+          },
+          type: 'node',
+        },
+      ],
+    },
+  },
+};

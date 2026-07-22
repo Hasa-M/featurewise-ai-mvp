@@ -2,16 +2,20 @@ import { useId, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { Header, type HeaderProps } from '../header';
+import type { NavigationLinkComponent } from '../navigation-link';
 import { Sidebar, type SidebarProps } from '../sidebar';
 import styles from './PageStructure.module.css';
 
 type ManagedHeaderProps = Omit<
   HeaderProps,
   | 'onSidebarToggle'
+  | 'linkComponent'
   | 'sidebarControls'
   | 'sidebarOpen'
   | 'sidebarToggleLabel'
 >;
+
+type ManagedSidebarProps = Omit<SidebarProps, 'linkComponent'>;
 
 export type PageStructureProps = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -20,9 +24,10 @@ export type PageStructureProps = Omit<
   children: ReactNode;
   defaultSidebarOpen?: boolean;
   headerProps: ManagedHeaderProps;
+  linkComponent?: NavigationLinkComponent;
   onSidebarOpenChange?: (open: boolean) => void;
   sidebarOpen?: boolean;
-  sidebarProps: SidebarProps;
+  sidebarProps: ManagedSidebarProps;
 };
 
 export function PageStructure({
@@ -30,6 +35,7 @@ export function PageStructure({
   className,
   defaultSidebarOpen = true,
   headerProps,
+  linkComponent,
   onSidebarOpenChange,
   sidebarOpen,
   sidebarProps,
@@ -58,6 +64,7 @@ export function PageStructure({
     >
       <Header
         {...headerProps}
+        linkComponent={linkComponent}
         onSidebarToggle={toggleSidebar}
         sidebarControls={sidebarRegionId}
         sidebarOpen={isSidebarOpen}
@@ -68,7 +75,7 @@ export function PageStructure({
           hidden={!isSidebarOpen}
           id={sidebarRegionId}
         >
-          <Sidebar {...sidebarProps} />
+          <Sidebar {...sidebarProps} linkComponent={linkComponent} />
         </div>
         <main className={styles.contentViewport}>
           <div className={styles.content}>{children}</div>

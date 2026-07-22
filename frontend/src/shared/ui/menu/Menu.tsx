@@ -15,6 +15,10 @@ import {
   useState,
 } from 'react';
 
+import {
+  NativeNavigationLink,
+  type NavigationLinkComponent,
+} from '../navigation-link';
 import styles from './Menu.module.css';
 
 type MenuContextValue = {
@@ -182,11 +186,13 @@ type MenuItemBaseProps = {
 export type MenuItemButtonProps = MenuItemBaseProps &
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
     href?: never;
+    linkComponent?: never;
   };
 
 export type MenuItemLinkProps = MenuItemBaseProps &
   Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'children' | 'href'> & {
     href: string;
+    linkComponent?: NavigationLinkComponent;
   };
 
 export type MenuItemProps = MenuItemButtonProps | MenuItemLinkProps;
@@ -234,6 +240,7 @@ export function MenuItem(props: MenuItemProps) {
       disabled = false,
       href,
       leadingIcon,
+      linkComponent: LinkComponent = NativeNavigationLink,
       onClick,
       onFocus,
       tabIndex,
@@ -242,7 +249,7 @@ export function MenuItem(props: MenuItemProps) {
     } = nativeProps;
 
     return (
-      <a
+      <LinkComponent
         {...linkProps}
         aria-current={selected ? 'page' : ariaCurrent}
         aria-disabled={disabled || undefined}
@@ -272,7 +279,7 @@ export function MenuItem(props: MenuItemProps) {
         >
           {children}
         </MenuItemContent>
-      </a>
+      </LinkComponent>
     );
   }
 

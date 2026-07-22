@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {
   getOrganization,
@@ -15,13 +20,30 @@ export interface Organization {
 
 export type OrganizationStatus = 'loading' | 'ready' | 'error';
 
-function toOrganization(dto: OrganizationDto): Organization {
+export const organizationKeys = {
+  detail: (organizationId: string) =>
+    ['organization', organizationId] as const,
+};
+
+export function toOrganization(dto: OrganizationDto): Organization {
   return {
     createdAt: new Date(dto.createdAt),
     id: dto.id,
     name: dto.name,
     updatedAt: new Date(dto.updatedAt),
   };
+}
+
+export function organizationQueryOptions(
+  accessToken: string,
+  organizationId: string,
+) {
+  return queryOptions({
+    queryKey: organizationKeys.detail(organizationId),
+    queryFn: async () =>
+      toOrganization(await getOrganization(accessToken, organizationId)),
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 function getErrorMessage(error: unknown): string {
@@ -34,54 +56,28 @@ export function useOrganization(
   accessToken: string,
   organizationId: string,
 ) {
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [status, setStatus] = useState<OrganizationStatus>('loading');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [requestVersion, setRequestVersion] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-
-    void getOrganization(accessToken, organizationId)
-      .then((dto) => {
-        if (!active) return;
-        setOrganization(toOrganization(dto));
-        setStatus('ready');
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setErrorMessage(getErrorMessage(error));
-        setStatus('error');
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [accessToken, organizationId, requestVersion]);
-
-  const retry = useCallback(() => {
-    setStatus('loading');
-    setErrorMessage(null);
-    setRequestVersion((version) => version + 1);
-  }, []);
-
-  const updateName = useCallback(
-    async (name: string) => {
-      const dto = await updateOrganization(accessToken, organizationId, {
-        name,
-      });
-      const updatedOrganization = toOrganization(dto);
-      setOrganization(updatedOrganization);
-      return updatedOrganization;
-    },
-    [accessToken, organizationId],
+  const queryClient = useQueryClient();
+  const query = useQuery(
+    organizationQueryOptions(accessToken, organizationId),
   );
+  const mutation = useMutation({
+    mutationFn: async (name: string) =>
+      toOrganization(
+        await updateOrganization(accessToken, organizationId, { name }),
+      ),
+    onSuccess: (organization) => {
+      queryClient.setQueryData(
+        organizationKeys.detail(organizationId),
+        organization,
+      );
+    },
+  });
 
   return {
-    errorMessage,
-    organization,
-    retry,
-    status,
-    updateName,
+    errorMessage: query.error ? getErrorMessage(query.error) : null,
+    organization: query.data ?? null,
+    retry: query.refetch,
+    status: query.isPending ? 'loading' : query.isError ? 'error' : 'ready',
+    updateName: mutation.mutateAsync,
   } as const;
 }

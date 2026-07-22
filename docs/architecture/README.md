@@ -16,5 +16,6 @@ Current diagrams:
 - `02-c4-container`
 - `03-erd-core-mvp`
 - `04-sequence-gene-spec-new-feature`
+- `05-c4-frontend-navigation`
 
 Additional sequence diagrams can be added later when specific flows become clear.

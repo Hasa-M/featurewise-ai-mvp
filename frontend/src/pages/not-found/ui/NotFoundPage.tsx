@@ -9,7 +9,7 @@ export function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <div className={styles.content}>
         <p className="fw-overline">404</p>
         <h1>Page not found</h1>
@@ -19,6 +19,6 @@ export function NotFoundPage() {
           Back to workspace
         </Button>
       </div>
-    </main>
+    </div>
   );
 }

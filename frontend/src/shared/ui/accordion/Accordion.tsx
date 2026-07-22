@@ -7,6 +7,10 @@ import type {
   ReactNode,
 } from 'react';
 
+import {
+  NativeNavigationLink,
+  type NavigationLinkComponent,
+} from '../navigation-link';
 import styles from './Accordion.module.css';
 
 type AccordionActionBase = {
@@ -48,6 +52,7 @@ export type AccordionProps = Omit<
   disabled?: boolean;
   label: ReactNode;
   leadingIcon?: ReactNode;
+  linkComponent?: NavigationLinkComponent;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
   selection?: AccordionSelection;
@@ -69,6 +74,7 @@ export function Accordion({
   disabled = false,
   label,
   leadingIcon,
+  linkComponent: LinkComponent = NativeNavigationLink,
   onOpenChange,
   open,
   selection = 'none',
@@ -133,7 +139,7 @@ export function Accordion({
                 } = action;
 
                 return (
-                  <a
+                  <LinkComponent
                     {...linkProps}
                     aria-disabled={disabled || undefined}
                     aria-label={actionLabel}
@@ -153,7 +159,7 @@ export function Accordion({
                     title={actionTitle ?? actionLabel}
                   >
                     <AccordionIcon>{actionIcon}</AccordionIcon>
-                  </a>
+                  </LinkComponent>
                 );
               }
 

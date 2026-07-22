@@ -2,7 +2,6 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 
 import { AppShell } from '@/app/layout';
 import { AnonymousRoute, AuthenticatedRoute } from '@/features/auth';
-import { HomePage } from '@/pages/home';
 import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
 
@@ -24,7 +23,21 @@ export const routes: RouteObject[] = [
         children: [
           {
             path: '/',
-            element: <HomePage />,
+            lazy: async () => ({
+              Component: (await import('@/pages/projects')).ProjectsPage,
+            }),
+          },
+          {
+            path: '/projects/:projectId',
+            lazy: async () => ({
+              Component: (await import('@/pages/project')).ProjectPage,
+            }),
+          },
+          {
+            path: '/projects/:projectId/features/:featureId',
+            lazy: async () => ({
+              Component: (await import('@/pages/feature')).FeaturePage,
+            }),
           },
           {
             path: '*',
