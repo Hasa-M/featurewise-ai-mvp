@@ -70,4 +70,42 @@ describe('Header', () => {
     await user.click(screen.getByRole('button', { name: 'Toggle sidebar' }));
     expect(onSidebarToggle).toHaveBeenCalledOnce();
   });
+
+  it('describes the controlled sidebar state and region', () => {
+    const { rerender } = render(
+      <Header
+        dropdownCardProps={{
+          children: <span>Organization settings</span>,
+          label: 'Northstar Labs',
+          panelLabel: 'Organization settings',
+        }}
+        homeHref="/"
+        sidebarControls="workspace-sidebar"
+        sidebarOpen
+        userControl={<button type="button">User</button>}
+      />,
+    );
+
+    const hideButton = screen.getByRole('button', { name: 'Hide sidebar' });
+    expect(hideButton).toHaveAttribute('aria-controls', 'workspace-sidebar');
+    expect(hideButton).toHaveAttribute('aria-expanded', 'true');
+
+    rerender(
+      <Header
+        dropdownCardProps={{
+          children: <span>Organization settings</span>,
+          label: 'Northstar Labs',
+          panelLabel: 'Organization settings',
+        }}
+        homeHref="/"
+        sidebarControls="workspace-sidebar"
+        sidebarOpen={false}
+        userControl={<button type="button">User</button>}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Show sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+  });
 });

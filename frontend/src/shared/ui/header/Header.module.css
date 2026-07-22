@@ -2,7 +2,8 @@
   width: 100%;
   height: var(--topbar-h);
   color: var(--text-body);
-  background: var(--brand-subtle);
+  background: var(--surface-page);
+  border-bottom: var(--border-w) solid var(--divider);
 }
 
 .inner {

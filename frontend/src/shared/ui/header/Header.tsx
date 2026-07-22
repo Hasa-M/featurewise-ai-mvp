@@ -1,4 +1,4 @@
-import { PanelLeftClose } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { HTMLAttributes, MouseEventHandler, ReactNode } from 'react';
 
 import { Button } from '../button';
@@ -10,6 +10,8 @@ export type HeaderProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
   dropdownCardProps: DropdownCardProps;
   homeHref: string;
   homeLabel?: string;
+  sidebarControls?: string;
+  sidebarOpen?: boolean;
   onSidebarToggle?: MouseEventHandler<HTMLButtonElement>;
   sidebarToggleLabel?: string;
   userControl: ReactNode;
@@ -21,7 +23,14 @@ export function Header({
   homeHref,
   homeLabel = 'Featurewise home',
   onSidebarToggle,
-  sidebarToggleLabel = 'Toggle sidebar',
+  sidebarControls,
+  sidebarOpen,
+  sidebarToggleLabel =
+    sidebarOpen === undefined
+      ? 'Toggle sidebar'
+      : sidebarOpen
+        ? 'Hide sidebar'
+        : 'Show sidebar',
   userControl,
   ...props
 }: HeaderProps) {
@@ -33,6 +42,8 @@ export function Header({
       <div className={styles.inner}>
         <div className={styles.start}>
           <Button
+            aria-controls={sidebarControls}
+            aria-expanded={sidebarOpen}
             aria-label={sidebarToggleLabel}
             className={styles.sidebarButton}
             isIcon
@@ -41,11 +52,19 @@ export function Header({
             title={sidebarToggleLabel}
             variant="ghost"
           >
-            <PanelLeftClose
-              aria-hidden="true"
-              size={17}
-              strokeWidth={1.75}
-            />
+            {sidebarOpen === false ? (
+              <PanelLeftOpen
+                aria-hidden="true"
+                size={17}
+                strokeWidth={1.75}
+              />
+            ) : (
+              <PanelLeftClose
+                aria-hidden="true"
+                size={17}
+                strokeWidth={1.75}
+              />
+            )}
           </Button>
           <DropdownCard {...dropdownCardProps} />
         </div>
