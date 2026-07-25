@@ -1,0 +1,43 @@
+.card {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  height: fit-content;
+  min-width: 0;
+  padding: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-card);
+  color: var(--text-body);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.interactive {
+  appearance: none;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transition: var(--transition-control);
+}
+
+.interactive:hover:not(:disabled) {
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(calc(-1 * var(--space-px)));
+}
+
+.interactive:focus-visible {
+  box-shadow: var(--focus-ring-offset);
+}
+
+.interactive:active:not(:disabled) {
+  background: var(--surface-active);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(var(--space-px));
+}
+
+.interactive:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
