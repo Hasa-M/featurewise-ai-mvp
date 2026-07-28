@@ -1,181 +1,180 @@
 .breadcrumb {
+  position: relative;
   min-width: 0;
-  color: var(--text-on-inverse);
-  container-type: inline-size;
 }
 
 .list {
   display: flex;
   min-width: 0;
+  min-height: var(--control-h-sm);
   align-items: center;
-  gap: var(--space-1);
+  flex-wrap: nowrap;
+  gap: var(--space-0-5) var(--space-1-5);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-.item,
-.pathSegment,
-.compactOnly {
+.item {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: var(--space-1-5);
+}
+
+.item:last-child {
+  flex: 1 1 auto;
+}
+
+.currentHeading,
+.label {
+  display: inline-flex;
   min-width: 0;
   align-items: center;
 }
 
-.item,
-.pathSegment {
-  display: flex;
+.currentHeading {
+  flex: 1 1 auto;
 }
 
-.pathSegment {
-  gap: var(--space-1);
-}
-
-.currentSegment {
-  flex: 0 1 auto;
-}
-
-.link,
-.ancestorLabel,
-.currentLabel {
-  display: block;
-  max-width: 15rem;
-  overflow: hidden;
-  font-size: var(--text-sm);
+.label {
+  gap: var(--space-1-5);
+  letter-spacing: var(--tracking-normal);
   line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+  transition: var(--transition-control);
+}
+
+.folderLabel {
+  padding: var(--space-0-5) var(--space-1-5);
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-body);
+  background: var(--surface-sunken);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.itemLabel {
+  border-radius: var(--radius-xs);
+  color: var(--text-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+}
+
+.folderLabel:hover {
+  border-color: var(--border-default);
+  color: var(--text-strong);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+}
+
+.folderLabel:active {
+  background: var(--surface-active);
+  box-shadow: none;
+  transform: none;
+}
+
+.itemLabel:hover {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.label:active {
+  color: var(--brand-active);
+}
+
+.label:focus-visible {
+  box-shadow: var(--focus-ring-offset);
+}
+
+.itemLabel.currentLabel {
+  color: var(--text-strong);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.folderLabel.currentLabel {
+  border-color: var(--brand-border);
+  color: var(--brand-text);
+  background: var(--brand-subtle);
+  font-weight: var(--weight-semibold);
+}
+
+.folderLabel.currentLabel:hover {
+  border-color: var(--brand);
+  background: var(--brand-subtle-hover);
+}
+
+.label > span:last-child {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.link {
-  padding: var(--space-1) var(--space-1-5);
-  border-radius: var(--radius-xs);
-  color: color-mix(in oklch, var(--text-on-inverse) 92%, transparent);
-  transition: var(--transition-control);
-}
-
-.link:hover {
-  color: var(--text-on-inverse);
-  background: color-mix(in oklch, var(--text-on-inverse) 10%, transparent);
-  text-decoration: none;
-}
-
-.link:active {
-  background: color-mix(in oklch, var(--text-on-inverse) 16%, transparent);
-}
-
-.link:focus-visible,
-.overflowTrigger:focus-visible {
-  box-shadow: var(--focus-ring-offset);
-}
-
-.ancestorLabel {
-  padding: var(--space-1) var(--space-1-5);
-  color: color-mix(in oklch, var(--text-on-inverse) 86%, transparent);
-}
-
-.currentLabel {
-  padding: var(--space-1) var(--space-1-5);
-  border-radius: var(--radius-xs);
-  color: var(--text-on-inverse);
-  background: color-mix(in oklch, var(--text-on-inverse) 12%, transparent);
-  font-weight: var(--weight-semibold);
-}
-
-.separator,
-.compactOnly > svg {
+.icon,
+.separator {
   flex: 0 0 auto;
-  color: color-mix(in oklch, var(--text-on-inverse) 62%, transparent);
 }
 
-.compactOnly {
-  display: none;
+.icon {
+  display: inline-flex;
+  color: currentColor;
+}
+
+.folderLabel .icon > svg {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+.separator {
+  color: var(--text-subtle);
+}
+
+.overflowRoot {
+  position: relative;
+  display: inline-flex;
 }
 
 .overflowItem {
-  position: relative;
+  flex: 0 0 auto;
 }
 
 .overflowTrigger {
   display: inline-flex;
-  width: var(--control-h-sm);
-  height: var(--control-h-sm);
+  width: var(--space-5);
+  height: var(--space-5);
   align-items: center;
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: var(--radius-control);
-  color: var(--text-on-inverse);
-  background: color-mix(in oklch, var(--text-on-inverse) 14%, transparent);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  background: transparent;
   cursor: pointer;
   transition: var(--transition-control);
 }
 
 .overflowTrigger:hover,
 .overflowTrigger[aria-expanded='true'] {
-  color: var(--text-on-inverse);
-  background: color-mix(in oklch, var(--text-on-inverse) 22%, transparent);
+  color: var(--text-strong);
+  background: var(--surface-hover);
 }
 
 .overflowTrigger:active {
-  background: color-mix(in oklch, var(--text-on-inverse) 28%, transparent);
+  background: var(--surface-active);
+}
+
+.overflowTrigger:focus-visible {
+  box-shadow: var(--focus-ring-offset);
 }
 
 .overflowMenu {
   position: absolute;
   z-index: var(--z-dropdown);
-  top: calc(100% + var(--space-2));
+  top: calc(100% + var(--space-1));
   left: 0;
-  color: var(--text-body);
-}
-
-.overflowLink {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  min-height: var(--control-h-md);
-  align-items: center;
-  padding: var(--space-1-5) var(--space-2);
-  overflow: hidden;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--text-body);
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  line-height: var(--leading-snug);
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: var(--transition-control);
-}
-
-.overflowLink:hover {
-  color: var(--text-strong);
-  background: var(--surface-hover);
-  text-decoration: none;
-}
-
-.overflowLink:active {
-  background: var(--surface-active);
-}
-
-@container (max-width: 32rem) {
-  .intermediateSegment {
-    display: none;
-  }
-
-  .compactOnly {
-    display: flex;
-  }
-
-  .item,
-  .currentSegment {
-    flex: 0 1 auto;
-  }
-
-  .item .link,
-  .item .ancestorLabel,
-  .currentLabel {
-    max-width: 10rem;
-  }
 }

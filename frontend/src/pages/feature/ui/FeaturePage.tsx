@@ -1,8 +1,11 @@
+import { FileText, FolderClosed, FolderKanban } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { useFeature } from '@/features/features';
+import { useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
+import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 
 import styles from './FeaturePage.module.css';
@@ -20,27 +23,31 @@ function isNotFound(error: unknown) {
 interface FeatureContentProps {
   readonly accessToken: string;
   readonly featureId: string;
+  readonly organizationId: string;
   readonly projectId: string;
 }
 
 function FeatureContent({
   accessToken,
   featureId,
+  organizationId,
   projectId,
 }: FeatureContentProps) {
+  const projectQuery = useProject(accessToken, organizationId, projectId);
   const featureQuery = useFeature(accessToken, projectId, featureId);
 
-  if (featureQuery.isPending) {
+  if (projectQuery.isPending || featureQuery.isPending) {
     return <p className={styles.status}>Loading feature...</p>;
   }
 
-  if (
-    featureQuery.isError ||
-    featureQuery.data.projectId !== projectId
-  ) {
+  const targetMismatch =
+    featureQuery.isSuccess && featureQuery.data.projectId !== projectId;
+
+  if (projectQuery.isError || featureQuery.isError || targetMismatch) {
     if (
-      !featureQuery.isError ||
-      isNotFound(featureQuery.error)
+      targetMismatch ||
+      (projectQuery.isError && isNotFound(projectQuery.error)) ||
+      (featureQuery.isError && isNotFound(featureQuery.error))
     ) {
       return (
         <section className={styles.page}>
@@ -56,7 +63,13 @@ function FeatureContent({
     return (
       <div className={styles.status} role="alert">
         <p>The feature could not be loaded.</p>
-        <Button onClick={() => void featureQuery.refetch()} size="small">
+        <Button
+          onClick={() => {
+            void projectQuery.refetch();
+            void featureQuery.refetch();
+          }}
+          size="small"
+        >
           Retry
         </Button>
       </div>
@@ -66,8 +79,35 @@ function FeatureContent({
   return (
     <section className={styles.page} aria-labelledby="feature-title">
       <div className={styles.heading}>
-        <p className="fw-overline">Feature</p>
-        <h1 id="feature-title">{featureQuery.data.title}</h1>
+        <Breadcrumb
+          items={[
+            {
+              href: '/',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Projects',
+            },
+            {
+              href: `/projects/${projectId}`,
+              icon: <FolderKanban size={14} strokeWidth={1.75} />,
+              kind: 'item',
+              label: projectQuery.data.name,
+            },
+            {
+              href: `/projects/${projectId}`,
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Features',
+            },
+            {
+              href: `/projects/${projectId}/features/${featureId}`,
+              icon: <FileText size={14} strokeWidth={1.75} />,
+              kind: 'item',
+              label: featureQuery.data.title,
+            },
+          ]}
+          titleId={'feature-title'}
+        />
       </div>
       <div className={styles.placeholder}>
         Feature workspace content will be added in a future milestone.
@@ -77,7 +117,7 @@ function FeatureContent({
 }
 
 export function FeaturePage() {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { featureId, projectId } = useParams();
 
   if (
@@ -95,12 +135,13 @@ export function FeaturePage() {
     );
   }
 
-  if (!accessToken) return null;
+  if (!accessToken || !user) return null;
 
   return (
     <FeatureContent
       accessToken={accessToken}
       featureId={featureId}
+      organizationId={user.organizationId}
       projectId={projectId}
     />
   );

@@ -1,26 +1,89 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { FileText, FolderClosed, FolderKanban } from 'lucide-react';
+import { expect } from 'storybook/test';
 
 import { Breadcrumb, type BreadcrumbItems } from './Breadcrumb';
 
-const defaultItems = [
-  { href: '#organization', label: 'Northstar Labs' },
-  { href: '#project', label: 'Featurewise MVP' },
-  { href: '#feature', label: 'Spec generation' },
-  { label: 'Context' },
+const featureItems = [
+  {
+    href: '#projects',
+    icon: <FolderClosed size={14} strokeWidth={1.75} />,
+    kind: 'folder',
+    label: 'Projects',
+  },
+  {
+    href: '#northstar-mobile',
+    icon: <FolderKanban size={14} strokeWidth={1.75} />,
+    kind: 'item',
+    label: 'Northstar mobile',
+  },
+  {
+    href: '#features',
+    icon: <FolderClosed size={14} strokeWidth={1.75} />,
+    kind: 'folder',
+    label: 'Features',
+  },
+  {
+    href: '#authentication',
+    icon: <FileText size={14} strokeWidth={1.75} />,
+    kind: 'item',
+    label: 'Authentication workflow',
+  },
+] satisfies BreadcrumbItems;
+
+const overflowItems = [
+  {
+    href: '#projects',
+    icon: <FolderClosed size={14} strokeWidth={1.75} />,
+    kind: 'folder',
+    label: 'Projects',
+  },
+  {
+    href: '#northstar-mobile',
+    icon: <FolderKanban size={14} strokeWidth={1.75} />,
+    kind: 'item',
+    label: 'Northstar mobile',
+  },
+  {
+    href: '#features',
+    icon: <FolderClosed size={14} strokeWidth={1.75} />,
+    kind: 'folder',
+    label: 'Features',
+  },
+  {
+    href: '#authentication',
+    icon: <FileText size={14} strokeWidth={1.75} />,
+    kind: 'item',
+    label: 'Authentication workflow',
+  },
+  {
+    href: '#generations',
+    icon: <FolderClosed size={14} strokeWidth={1.75} />,
+    kind: 'folder',
+    label: 'Generations',
+  },
+  {
+    href: '#generation-2',
+    icon: <FileText size={14} strokeWidth={1.75} />,
+    kind: 'item',
+    label: 'Generation 2',
+  },
 ] satisfies BreadcrumbItems;
 
 const meta = {
-  title: 'Deprecated/Breadcrumb',
+  title: 'Global/Breadcrumb',
   component: Breadcrumb,
-  args: { items: defaultItems },
+  args: {
+    items: featureItems,
+  },
   decorators: [
     (Story) => (
       <div
         style={{
-          background: 'var(--surface-brand-strong)',
-          padding: 'var(--space-4)',
-          width: '48rem',
+          background: 'var(--surface-canvas)',
+          minHeight: '10rem',
+          padding: 'var(--space-8)',
+          width: 'min(64rem, 100vw)',
         }}
       >
         <Story />
@@ -34,48 +97,124 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const FeaturePage: Story = {};
 
-export const LongLabels: Story = {
+export const ProjectsPage: Story = {
   args: {
     items: [
-      { href: '#organization', label: 'Product Development Organization' },
-      { href: '#project', label: 'Customer onboarding modernization' },
-      { href: '#feature', label: 'Implementation-readiness specification' },
-      { label: 'Context artifacts and unresolved questions' },
+      {
+        href: '#projects',
+        icon: <FolderClosed size={14} strokeWidth={1.75} />,
+        kind: 'folder',
+        label: 'Projects',
+      },
+    ],
+    titleId: 'projects-title',
+  },
+};
+
+export const ProjectPage: Story = {
+  args: {
+    items: [
+      {
+        href: '#projects',
+        icon: <FolderClosed size={14} strokeWidth={1.75} />,
+        kind: 'folder',
+        label: 'Projects',
+      },
+      {
+        href: '#northstar-mobile',
+        icon: <FolderKanban size={14} strokeWidth={1.75} />,
+        kind: 'item',
+        label: 'Northstar mobile',
+      },
     ],
   },
 };
 
-export const CompactOverflow: Story = {
-  decorators: [
-    (Story) => (
-      <div style={{ width: '22rem' }}>
-        <Story />
-      </div>
-    ),
-  ],
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+export const LongHierarchy: Story = {
+  args: {
+    items: [
+      {
+        href: '#projects',
+        icon: <FolderClosed size={14} strokeWidth={1.75} />,
+        kind: 'folder',
+        label: 'Projects',
+      },
+      {
+        href: '#project',
+        icon: <FolderKanban size={14} strokeWidth={1.75} />,
+        kind: 'item',
+        label: 'Customer onboarding modernization',
+      },
+      {
+        href: '#features',
+        icon: <FolderClosed size={14} strokeWidth={1.75} />,
+        kind: 'folder',
+        label: 'Features',
+      },
+      {
+        href: '#specification',
+        icon: <FileText size={14} strokeWidth={1.75} />,
+        kind: 'item',
+        label:
+          'Implementation-readiness specification for authentication recovery',
+      },
+    ],
+  },
+};
+
+export const Overflow: Story = {
+  args: { items: overflowItems },
+  play: async ({ canvas, userEvent }) => {
     const trigger = canvas.getByRole('button', {
       name: 'Show hidden breadcrumb levels',
     });
 
+    await expect(
+      canvas.queryByRole('menuitem', { name: 'Features' }),
+    ).not.toBeInTheDocument();
     await userEvent.click(trigger);
 
-    const project = canvas.getByRole('menuitem', { name: 'Featurewise MVP' });
-    const feature = canvas.getByRole('menuitem', { name: 'Spec generation' });
-    await expect(project).toHaveFocus();
+    const features = canvas.getByRole('menuitem', { name: 'Features' });
+    const authentication = canvas.getByRole('menuitem', {
+      name: 'Authentication workflow',
+    });
+    await expect(features).toHaveFocus();
 
     await userEvent.keyboard('{ArrowDown}');
-    await expect(feature).toHaveFocus();
-
+    await expect(authentication).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     await expect(trigger).toHaveFocus();
     await expect(canvas.queryByRole('menu')).not.toBeInTheDocument();
   },
 };
 
-export const SinglePage: Story = {
-  args: { items: [{ label: 'Organizations' }] },
+export const Narrow: Story = {
+  decorators: [
+    (Story) => (
+      <div style={{ width: '18rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvas }) => {
+    const title = canvas.getByRole('heading', {
+      level: 1,
+      name: 'Authentication workflow',
+    });
+    const label = title.querySelector('span:last-child');
+    const currentLink = canvas.getByRole('link', {
+      name: 'Authentication workflow',
+    });
+
+    await expect(label).not.toBeNull();
+    await expect((label as HTMLElement).scrollWidth).toBeGreaterThan(
+      (label as HTMLElement).clientWidth,
+    );
+    await expect(currentLink).toHaveAttribute(
+      'title',
+      'Authentication workflow',
+    );
+  },
 };

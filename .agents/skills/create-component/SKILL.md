@@ -22,6 +22,7 @@ Stop and report an accepted ADR conflict. Ask for direction only when an unresol
 - Implement exactly the requested component and necessary states. Do not add adjacent components merely to enrich a demo.
 - Put domain-neutral reusable primitives in frontend/src/shared/ui/<component-name>/.
 - Keep product-specific orchestration, API calls, and backend DTOs out of shared/ui. Feature-specific components belong in the feature ui segment and are outside this workflow.
+- When a platform use case needs new table behavior, generalize the domain-neutral capability in `shared/ui/table` first. Keep use-case columns, cell content, data mapping, and orchestration in the consuming slice; do not fork sorting, row-action, sizing, or state behavior into a page-specific table.
 - Avoid dependencies. State the reason before adding one when the existing React, Lucide, CSS, Storybook, and test stack cannot meet the requirement.
 
 Use this colocated structure:

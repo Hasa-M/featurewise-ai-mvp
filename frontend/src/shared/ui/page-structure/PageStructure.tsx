@@ -2,7 +2,11 @@ import { useId, useState } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { Header, type HeaderProps } from '../header';
-import type { NavigationLinkComponent } from '../navigation-link';
+import {
+  NativeNavigationLink,
+  NavigationLinkContext,
+  type NavigationLinkComponent,
+} from '../navigation-link';
 import { Sidebar, type SidebarProps } from '../sidebar';
 import styles from './PageStructure.module.css';
 
@@ -58,29 +62,33 @@ export function PageStructure({
   }
 
   return (
-    <div
-      {...props}
-      className={[styles.structure, className].filter(Boolean).join(' ')}
+    <NavigationLinkContext.Provider
+      value={linkComponent ?? NativeNavigationLink}
     >
-      <Header
-        {...headerProps}
-        linkComponent={linkComponent}
-        onSidebarToggle={toggleSidebar}
-        sidebarControls={sidebarRegionId}
-        sidebarOpen={isSidebarOpen}
-      />
-      <div className={styles.workspace}>
-        <div
-          className={styles.sidebarRegion}
-          hidden={!isSidebarOpen}
-          id={sidebarRegionId}
-        >
-          <Sidebar {...sidebarProps} linkComponent={linkComponent} />
+      <div
+        {...props}
+        className={[styles.structure, className].filter(Boolean).join(' ')}
+      >
+        <Header
+          {...headerProps}
+          linkComponent={linkComponent}
+          onSidebarToggle={toggleSidebar}
+          sidebarControls={sidebarRegionId}
+          sidebarOpen={isSidebarOpen}
+        />
+        <div className={styles.workspace}>
+          <div
+            className={styles.sidebarRegion}
+            hidden={!isSidebarOpen}
+            id={sidebarRegionId}
+          >
+            <Sidebar {...sidebarProps} linkComponent={linkComponent} />
+          </div>
+          <main className={styles.contentViewport}>
+            <div className={styles.content}>{children}</div>
+          </main>
         </div>
-        <main className={styles.contentViewport}>
-          <div className={styles.content}>{children}</div>
-        </main>
       </div>
-    </div>
+    </NavigationLinkContext.Provider>
   );
 }

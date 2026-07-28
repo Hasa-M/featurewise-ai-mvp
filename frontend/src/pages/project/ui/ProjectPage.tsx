@@ -1,10 +1,11 @@
-import { FileText } from 'lucide-react';
+import { FileText, FolderClosed, FolderKanban } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { useProjectFeatures } from '@/features/features';
 import { useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
+import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 
 import styles from './ProjectPage.module.css';
@@ -67,8 +68,23 @@ function ProjectContent({
   return (
     <section className={styles.page} aria-labelledby="project-title">
       <div className={styles.heading}>
-        <p className="fw-overline">Project</p>
-        <h1 id="project-title">{projectQuery.data.name}</h1>
+        <Breadcrumb
+          items={[
+            {
+              href: '/',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Projects',
+            },
+            {
+              href: `/projects/${projectId}`,
+              icon: <FolderKanban size={14} strokeWidth={1.75} />,
+              kind: 'item',
+              label: projectQuery.data.name,
+            },
+          ]}
+          titleId={'project-title'}
+        />
         <p>Choose a feature to open its workspace.</p>
       </div>
 

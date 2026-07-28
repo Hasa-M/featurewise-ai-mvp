@@ -221,6 +221,13 @@ describe('application routes', () => {
     expect(
       await screen.findByRole('heading', { name: 'Northstar mobile' }),
     ).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute(
+      'href',
+      '/',
+    );
     await user.click(
       await screen.findByRole('link', { name: 'Authentication workflow' }),
     );
@@ -246,6 +253,11 @@ describe('application routes', () => {
         ([input]) => requestPath(input) === `/api/features/${feature.id}`,
       ),
     ).toBe(false);
+
+    await user.click(
+      screen.getByRole('link', { name: 'Northstar mobile' }),
+    );
+    expect(testRouter.state.location.pathname).toBe(`/projects/${project.id}`);
   });
 
   it('keeps expanded navigation mounted and leaves placeholder actions inert', async () => {

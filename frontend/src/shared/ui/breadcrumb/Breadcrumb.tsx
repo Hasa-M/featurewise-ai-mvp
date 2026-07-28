@@ -1,55 +1,75 @@
 import { ChevronRight, Ellipsis } from 'lucide-react';
-import type { HTMLAttributes } from 'react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
-import { MenuWrapper } from '../menu';
+import {
+  type NavigationLinkComponent,
+  useNavigationLinkComponent,
+} from '../navigation-link';
+import { MenuItem, MenuWrapper } from '../menu';
 import styles from './Breadcrumb.module.css';
 
-/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
+export type BreadcrumbItemKind = 'folder' | 'item';
+
 export type BreadcrumbItem = {
-  href?: string;
+  href: string;
+  icon?: ReactNode;
+  kind: BreadcrumbItemKind;
   label: string;
 };
 
-/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
-export type BreadcrumbItems = readonly [BreadcrumbItem, ...BreadcrumbItem[]];
+export type BreadcrumbItems = readonly [
+  BreadcrumbItem,
+  ...BreadcrumbItem[],
+];
 
-/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export type BreadcrumbProps = Omit<
   HTMLAttributes<HTMLElement>,
   'children'
 > & {
   items: BreadcrumbItems;
+  linkComponent?: NavigationLinkComponent;
   overflowLabel?: string;
+  titleId?: string;
 };
 
-function BreadcrumbLabel({ item }: { item: BreadcrumbItem }) {
-  if (item.href) {
-    return (
-      <a className={styles.link} href={item.href}>
-        {item.label}
-      </a>
-    );
-  }
-
-  return <span className={styles.ancestorLabel}>{item.label}</span>;
+function BreadcrumbLabelContent({ item }: { item: BreadcrumbItem }) {
+  return (
+    <>
+      {item.icon ? (
+        <span aria-hidden={true} className={styles.icon}>
+          {item.icon}
+        </span>
+      ) : null}
+      <span>{item.label}</span>
+    </>
+  );
 }
 
-/** @deprecated Breadcrumb navigation will be redesigned outside the global header. */
 export function Breadcrumb({
   'aria-label': ariaLabel = 'Breadcrumb',
   className,
   items,
+  linkComponent,
   overflowLabel = 'Show hidden breadcrumb levels',
+  titleId,
   ...props
 }: BreadcrumbProps) {
+  const defaultLinkComponent = useNavigationLinkComponent();
+  const LinkComponent = linkComponent ?? defaultLinkComponent;
   const [isOverflowOpen, setIsOverflowOpen] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLElement>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const currentIndex = items.length - 1;
-  const hiddenItems = items.slice(1, currentIndex);
+  const hasOverflow = items.length > 4;
+  const currentItem = items.at(-1);
+  const hiddenItems = hasOverflow
+    ? items.slice(2, -2)
+    : [];
+  const visibleItems = hasOverflow
+    ? [...items.slice(0, 2), ...items.slice(-2)]
+    : items;
 
   function closeOverflow({ restoreFocus = false } = {}) {
     setIsOverflowOpen(false);
@@ -84,115 +104,121 @@ export function Breadcrumb({
       ref={rootRef}
     >
       <ol className={styles.list}>
-        <li
-          className={[styles.item, currentIndex === 0 && styles.currentSegment]
+        {visibleItems.map((item, index) => {
+          const isCurrent = item === currentItem;
+          const previousItem = visibleItems[index - 1];
+          const showOverflow = hasOverflow && index === 2;
+          const showSeparator =
+            index > 0 && !showOverflow && previousItem?.kind === 'item';
+          const labelClassName = [
+            styles.label,
+            item.kind === 'folder' ? styles.folderLabel : styles.itemLabel,
+            isCurrent && styles.currentLabel,
+          ]
             .filter(Boolean)
-            .join(' ')}
-        >
-          {currentIndex === 0 ? (
-            <span aria-current="page" className={styles.currentLabel}>
-              {items[0].label}
-            </span>
-          ) : (
-            <BreadcrumbLabel item={items[0]} />
-          )}
-        </li>
-
-        {hiddenItems.length > 0 ? (
-          <>
-            <li aria-hidden="true" className={styles.compactOnly}>
-              <ChevronRight size={14} strokeWidth={1.75} />
-            </li>
-            <li className={[styles.compactOnly, styles.overflowItem].join(' ')}>
-              <button
-                aria-controls={menuId}
-                aria-expanded={isOverflowOpen}
-                aria-haspopup="menu"
-                aria-label={overflowLabel}
-                className={styles.overflowTrigger}
-                onClick={() => setIsOverflowOpen((isOpen) => !isOpen)}
-                onKeyDown={(event) => {
-                  if (event.key === 'ArrowDown' && !isOverflowOpen) {
-                    event.preventDefault();
-                    setIsOverflowOpen(true);
-                  }
-                }}
-                ref={triggerRef}
-                title={overflowLabel}
-                type="button"
-              >
-                <Ellipsis size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-
-              {isOverflowOpen ? (
-                <div className={styles.overflowMenu} ref={menuContainerRef}>
-                  <MenuWrapper
-                    aria-label="Hidden breadcrumb levels"
-                    id={menuId}
-                    onEscape={() => closeOverflow({ restoreFocus: true })}
-                  >
-                    {hiddenItems.map((item, index) =>
-                      item.href ? (
-                        <a
-                          className={styles.overflowLink}
-                          href={item.href}
-                          key={item.label}
-                          onClick={() => closeOverflow()}
-                          role="menuitem"
-                          tabIndex={index === 0 ? 0 : -1}
-                        >
-                          {item.label}
-                        </a>
-                      ) : (
-                        <button
-                          className={styles.overflowLink}
-                          key={item.label}
-                          onClick={() => closeOverflow()}
-                          role="menuitem"
-                          tabIndex={index === 0 ? 0 : -1}
-                          type="button"
-                        >
-                          {item.label}
-                        </button>
-                      ),
-                    )}
-                  </MenuWrapper>
-                </div>
-              ) : null}
-            </li>
-          </>
-        ) : null}
-
-        {items.slice(1).map((item, offset) => {
-          const index = offset + 1;
-          const isCurrent = index === currentIndex;
-          const isIntermediate = index < currentIndex;
+            .join(' ');
 
           return (
-            <li
-              className={[
-                styles.pathSegment,
-                isIntermediate && styles.intermediateSegment,
-                isCurrent && styles.currentSegment,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              key={`${item.label}-${index}`}
-            >
-              <ChevronRight
-                aria-hidden="true"
-                className={styles.separator}
-                size={14}
-                strokeWidth={1.75}
-              />
+            <Fragment key={`${item.label}-${index}`}>
+            {showOverflow ? (
+              <li className={[styles.item, styles.overflowItem].join(' ')}>
+                <ChevronRight
+                  aria-hidden={true}
+                  className={styles.separator}
+                  size={14}
+                  strokeWidth={1.75}
+                />
+                <div className={styles.overflowRoot}>
+                  <button
+                    aria-controls={menuId}
+                    aria-expanded={isOverflowOpen}
+                    aria-haspopup={'menu'}
+                    aria-label={overflowLabel}
+                    className={styles.overflowTrigger}
+                    onClick={() => setIsOverflowOpen((isOpen) => !isOpen)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'ArrowDown' && !isOverflowOpen) {
+                        event.preventDefault();
+                        setIsOverflowOpen(true);
+                      }
+                    }}
+                    ref={triggerRef}
+                    title={overflowLabel}
+                    type={'button'}
+                  >
+                    <Ellipsis
+                      aria-hidden={true}
+                      size={15}
+                      strokeWidth={1.75}
+                    />
+                  </button>
+                  {isOverflowOpen ? (
+                    <div
+                      className={styles.overflowMenu}
+                      ref={menuContainerRef}
+                    >
+                      <MenuWrapper
+                        aria-label={'Hidden breadcrumb levels'}
+                        id={menuId}
+                        onEscape={() =>
+                          closeOverflow({ restoreFocus: true })
+                        }
+                      >
+                        {hiddenItems.map((hiddenItem, hiddenIndex) => (
+                          <MenuItem
+                            href={hiddenItem.href}
+                            key={`${hiddenItem.label}-${hiddenIndex}`}
+                            leadingIcon={hiddenItem.icon}
+                            linkComponent={LinkComponent}
+                            onClick={() => closeOverflow()}
+                          >
+                            {hiddenItem.label}
+                          </MenuItem>
+                        ))}
+                      </MenuWrapper>
+                    </div>
+                  ) : null}
+                </div>
+                <ChevronRight
+                  aria-hidden={true}
+                  className={styles.separator}
+                  size={14}
+                  strokeWidth={1.75}
+                />
+              </li>
+            ) : null}
+            <li className={styles.item}>
+              {showSeparator ? (
+                <ChevronRight
+                  aria-hidden={true}
+                  className={styles.separator}
+                  size={14}
+                  strokeWidth={1.75}
+                />
+              ) : null}
+
               {isCurrent ? (
-                <span aria-current="page" className={styles.currentLabel}>
-                  {item.label}
-                </span>
+                <h1 className={styles.currentHeading} id={titleId}>
+                  <LinkComponent
+                    aria-current={'page'}
+                    className={labelClassName}
+                    href={item.href}
+                    title={item.label}
+                  >
+                    <BreadcrumbLabelContent item={item} />
+                  </LinkComponent>
+                </h1>
               ) : (
-                <BreadcrumbLabel item={item} />
+                <LinkComponent
+                  className={labelClassName}
+                  href={item.href}
+                  title={item.label}
+                >
+                  <BreadcrumbLabelContent item={item} />
+                </LinkComponent>
               )}
             </li>
+            </Fragment>
           );
         })}
       </ol>

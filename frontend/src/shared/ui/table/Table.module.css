@@ -1,0 +1,225 @@
+.tableFrame {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-w) solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-body);
+  background: var(--surface-card);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.caption {
+  padding: var(--space-4);
+  border-bottom: var(--border-w) solid var(--divider);
+  color: var(--text-strong);
+  background: var(--surface-card);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-align: left;
+}
+
+.hiddenCaption {
+  position: absolute;
+  width: var(--space-px);
+  height: var(--space-px);
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  margin: calc(-1 * var(--space-px));
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.headerCell,
+.bodyCell {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-w) solid var(--divider);
+  vertical-align: middle;
+}
+
+.headerCell {
+  color: var(--text-body);
+  background: var(--surface-sunken);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.headerCell[data-align='center'],
+.bodyCell[data-align='center'] {
+  text-align: center;
+}
+
+.headerCell[data-align='end'],
+.bodyCell[data-align='end'] {
+  text-align: right;
+}
+
+.headerContent {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.headerIcon,
+.sortIndicator,
+.cellIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerIcon,
+.sortIndicator {
+  color: var(--text-subtle);
+}
+
+.headerIcon > svg,
+.cellIcon > svg {
+  width: var(--space-4);
+  height: var(--space-4);
+  stroke-width: 1.75;
+}
+
+.sortButton {
+  display: flex;
+  width: calc(100% + var(--space-3));
+  min-height: var(--control-h-sm);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: calc(-1 * var(--space-1-5));
+  padding: var(--space-1-5);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: inherit;
+  transition: var(--transition-control);
+}
+
+.headerCell[data-align='center'] .sortButton {
+  justify-content: center;
+}
+
+.headerCell[data-align='end'] .sortButton {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.sortButton:hover {
+  color: var(--text-strong);
+  background: var(--surface-active);
+}
+
+.sortButton:active {
+  background: var(--surface-inset);
+}
+
+.sortButton:focus-visible {
+  position: relative;
+  z-index: var(--z-base);
+  box-shadow: var(--focus-ring);
+}
+
+.bodyRow {
+  background: var(--surface-card);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.bodyRow:hover {
+  background: var(--surface-hover);
+}
+
+.bodyRow:last-child > .bodyCell {
+  border-bottom: 0;
+}
+
+.rowHeader {
+  color: var(--text-strong);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.bodyCell[data-technical='true'] {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.cellContent {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cellIcon {
+  color: var(--text-muted);
+}
+
+.cellCopy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: var(--space-0-5);
+}
+
+.cellPrimary,
+.supportingText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellPrimary {
+  color: inherit;
+}
+
+.supportingText {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+}
+
+.trailingContent {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.stateCell {
+  padding: var(--space-8) var(--space-4);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.stateContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.spinner {
+  flex: 0 0 auto;
+  animation: spin var(--duration-slow) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

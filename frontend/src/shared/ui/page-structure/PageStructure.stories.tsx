@@ -1,8 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Building2, UserRound } from 'lucide-react';
+import {
+  Building2,
+  FileText,
+  FolderClosed,
+  FolderKanban,
+  UserRound,
+} from 'lucide-react';
 import { expect } from 'storybook/test';
 
 import { Button } from '../button';
+import { Breadcrumb } from '../breadcrumb';
 import type { SidebarNodeItem } from '../sidebar';
 import { PageStructure } from './PageStructure';
 
@@ -102,8 +109,35 @@ const pagePlaceholder = (
       padding: 'var(--space-6)',
     }}
   >
-    <p className="fw-overline">Page structure</p>
-    <h1 id="page-placeholder-title">Page content</h1>
+    <Breadcrumb
+      items={[
+        {
+          href: '#projects',
+          icon: <FolderClosed size={14} strokeWidth={1.75} />,
+          kind: 'folder',
+          label: 'Projects',
+        },
+        {
+          href: '#northstar',
+          icon: <FolderKanban size={14} strokeWidth={1.75} />,
+          kind: 'item',
+          label: 'Northstar mobile',
+        },
+        {
+          href: '#features',
+          icon: <FolderClosed size={14} strokeWidth={1.75} />,
+          kind: 'folder',
+          label: 'Features',
+        },
+        {
+          href: '#authentication',
+          icon: <FileText size={14} strokeWidth={1.75} />,
+          kind: 'item',
+          label: 'Authentication workflow',
+        },
+      ]}
+      titleId={'page-placeholder-title'}
+    />
     <p style={{ color: 'var(--text-muted)' }}>
       Title, actions, tabs, and body will render here.
     </p>

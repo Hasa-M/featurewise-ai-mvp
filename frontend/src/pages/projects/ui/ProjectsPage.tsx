@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { FolderKanban } from 'lucide-react';
+import { FolderClosed, FolderKanban } from 'lucide-react';
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { projectFeaturesQueryOptions } from '@/features/features';
 import { useProjects } from '@/features/workspace';
+import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 
 import styles from './ProjectsPage.module.css';
@@ -33,8 +34,17 @@ function ProjectsContent({
   return (
     <section className={styles.page} aria-labelledby="projects-title">
       <div className={styles.heading}>
-        <p className="fw-overline">Workspace</p>
-        <h1 id="projects-title">Projects</h1>
+        <Breadcrumb
+          items={[
+            {
+              href: '/',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Projects',
+            },
+          ]}
+          titleId={'projects-title'}
+        />
         <p>Choose a project to browse its features.</p>
       </div>
 
