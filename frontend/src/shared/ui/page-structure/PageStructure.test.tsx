@@ -66,8 +66,16 @@ const sidebarProps: PageStructureProps['sidebarProps'] = {
 describe('PageStructure', () => {
   it('composes the global regions around page content', () => {
     render(
-      <PageStructure headerProps={headerProps} sidebarProps={sidebarProps}>
-        <h1>Feature overview</h1>
+      <PageStructure
+        headerProps={headerProps}
+        pageHeaderProps={{
+          actions: <button type="button">Add context</button>,
+          breadcrumb: <h1>Feature overview</h1>,
+          subtitle: 'Review the available context.',
+        }}
+        sidebarProps={sidebarProps}
+      >
+        <p>Effective page content</p>
       </PageStructure>,
     );
 
@@ -78,6 +86,9 @@ describe('PageStructure', () => {
     expect(screen.getByRole('main')).toContainElement(
       screen.getByRole('heading', { name: 'Feature overview' }),
     );
+    expect(screen.getByText('Review the available context.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add context' })).toBeVisible();
+    expect(screen.getByText('Effective page content')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Hide sidebar' })).toHaveAttribute(
       'aria-expanded',
       'true',

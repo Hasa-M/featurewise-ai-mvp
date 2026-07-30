@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Building2,
+  Download,
   FileText,
   FolderClosed,
   FolderKanban,
+  Plus,
   UserRound,
 } from 'lucide-react';
 import { expect } from 'storybook/test';
@@ -99,7 +101,7 @@ const nodes: readonly SidebarNodeItem[] = [
 
 const pagePlaceholder = (
   <section
-    aria-labelledby="page-placeholder-title"
+    aria-labelledby="readiness-overview-title"
     style={{
       background: 'var(--surface-card)',
       borderRadius: 'var(--radius-card)',
@@ -109,37 +111,9 @@ const pagePlaceholder = (
       padding: 'var(--space-6)',
     }}
   >
-    <Breadcrumb
-      items={[
-        {
-          href: '#projects',
-          icon: <FolderClosed size={14} strokeWidth={1.75} />,
-          kind: 'folder',
-          label: 'Projects',
-        },
-        {
-          href: '#northstar',
-          icon: <FolderKanban size={14} strokeWidth={1.75} />,
-          kind: 'item',
-          label: 'Northstar mobile',
-        },
-        {
-          href: '#features',
-          icon: <FolderClosed size={14} strokeWidth={1.75} />,
-          kind: 'folder',
-          label: 'Features',
-        },
-        {
-          href: '#authentication',
-          icon: <FileText size={14} strokeWidth={1.75} />,
-          kind: 'item',
-          label: 'Authentication workflow',
-        },
-      ]}
-      titleId={'page-placeholder-title'}
-    />
+    <h2 id="readiness-overview-title">Readiness overview</h2>
     <p style={{ color: 'var(--text-muted)' }}>
-      Title, actions, tabs, and body will render here.
+      Effective page content renders on the canvas below the page header.
     </p>
   </section>
 );
@@ -173,6 +147,54 @@ const meta = {
           <UserRound aria-hidden="true" size={17} strokeWidth={1.75} />
         </Button>
       ),
+    },
+    pageHeaderProps: {
+      actions: (
+        <>
+          <Button
+            leadingIcon={<Download size={16} strokeWidth={1.75} />}
+            variant="secondary"
+          >
+            Export
+          </Button>
+          <Button leadingIcon={<Plus size={16} strokeWidth={1.75} />}>
+            Add context
+          </Button>
+        </>
+      ),
+      breadcrumb: (
+        <Breadcrumb
+          items={[
+            {
+              href: '#projects',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Projects',
+            },
+            {
+              href: '#northstar',
+              icon: <FolderKanban size={14} strokeWidth={1.75} />,
+              kind: 'item',
+              label: 'Northstar mobile',
+            },
+            {
+              href: '#features',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder',
+              label: 'Features',
+            },
+            {
+              href: '#authentication',
+              icon: <FileText size={14} strokeWidth={1.75} />,
+              kind: 'item',
+              label: 'Authentication workflow',
+            },
+          ]}
+          titleId="page-placeholder-title"
+        />
+      ),
+      subtitle:
+        'Review the available context and move this feature toward implementation readiness.',
     },
     sidebarProps: {
       activeItemId: 'authentication',

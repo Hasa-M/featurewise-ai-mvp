@@ -7,6 +7,7 @@ import {
   NavigationLinkContext,
   type NavigationLinkComponent,
 } from '../navigation-link';
+import { PageHeader, type PageHeaderProps } from '../page-header';
 import { Sidebar, type SidebarProps } from '../sidebar';
 import styles from './PageStructure.module.css';
 
@@ -30,6 +31,7 @@ export type PageStructureProps = Omit<
   headerProps: ManagedHeaderProps;
   linkComponent?: NavigationLinkComponent;
   onSidebarOpenChange?: (open: boolean) => void;
+  pageHeaderProps?: PageHeaderProps;
   sidebarOpen?: boolean;
   sidebarProps: ManagedSidebarProps;
 };
@@ -41,6 +43,7 @@ export function PageStructure({
   headerProps,
   linkComponent,
   onSidebarOpenChange,
+  pageHeaderProps,
   sidebarOpen,
   sidebarProps,
   ...props
@@ -85,6 +88,12 @@ export function PageStructure({
             <Sidebar {...sidebarProps} linkComponent={linkComponent} />
           </div>
           <main className={styles.contentViewport}>
+            {pageHeaderProps ? (
+              <PageHeader
+                {...pageHeaderProps}
+                role={pageHeaderProps.role ?? 'presentation'}
+              />
+            ) : null}
             <div className={styles.content}>{children}</div>
           </main>
         </div>
