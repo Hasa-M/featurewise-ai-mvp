@@ -23,12 +23,13 @@ import type {
 } from '../accordion';
 import { MenuItem } from '../menu';
 import type { MenuItemLinkProps } from '../menu';
+import { MenuPopover } from '../menu-popover';
 import type { NavigationLinkComponent } from '../navigation-link';
 import styles from './Sidebar.module.css';
 
 export const SIDEBAR_MIN_WIDTH = 160;
 export const SIDEBAR_MAX_WIDTH = 640;
-export const SIDEBAR_DEFAULT_WIDTH = 320;
+export const SIDEBAR_DEFAULT_WIDTH = 400;
 export const SIDEBAR_RESIZE_STEP = 16;
 
 type WithoutActionPresentation<T> = T extends AccordionActionProps
@@ -36,6 +37,11 @@ type WithoutActionPresentation<T> = T extends AccordionActionProps
   : never;
 
 export type SidebarNavigationAction = WithoutActionPresentation<AccordionActionProps>;
+
+export type SidebarMenuAction = {
+  'aria-label': string;
+  children: ReactNode;
+};
 
 type SidebarDisclosureItemBase = {
   defaultOpen?: boolean;
@@ -61,6 +67,7 @@ export type SidebarLeafItem = {
 export type SidebarGroupItem = SidebarDisclosureItemBase & {
   children: readonly SidebarNodeItem[];
   menuAction?: SidebarNavigationAction;
+  menuContent?: SidebarMenuAction;
   pageAction: SidebarNavigationAction;
   type: 'group';
 };
@@ -367,6 +374,13 @@ function SidebarDisclosure({
   return (
     <li className={styles.item}>
       <Accordion
+        actionContent={
+          item.type === 'group' && item.menuContent ? (
+            <MenuPopover label={item.menuContent['aria-label']}>
+              {item.menuContent.children}
+            </MenuPopover>
+          ) : undefined
+        }
         actions={disclosureActions(item)}
         className={kind === 'node' ? styles.node : styles.group}
         label={

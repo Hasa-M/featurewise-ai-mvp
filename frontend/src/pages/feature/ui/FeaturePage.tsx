@@ -1,10 +1,18 @@
-import { FileText, FolderClosed, FolderKanban } from 'lucide-react';
+import {
+  FileText,
+  FolderClosed,
+  FolderKanban,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
-import { useFeature } from '@/features/features';
+import { useFeature, useFeatureActions } from '@/features/features';
 import { useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
+import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 
@@ -35,13 +43,82 @@ function FeatureContent({
 }: FeatureContentProps) {
   const projectQuery = useProject(accessToken, organizationId, projectId);
   const featureQuery = useFeature(accessToken, projectId, featureId);
+  const featureActions = useFeatureActions();
+  const targetMismatch =
+    featureQuery.isSuccess && featureQuery.data.projectId !== projectId;
+  const notFound =
+    targetMismatch ||
+    (projectQuery.isError && isNotFound(projectQuery.error)) ||
+    (featureQuery.isError && isNotFound(featureQuery.error));
+  const pageHeader = useMemo(
+    () => ({
+      actions: featureQuery.data && !targetMismatch ? (
+        <>
+          <Button
+            leadingIcon={<Pencil size={16} strokeWidth={1.75} />}
+            onClick={() => featureActions.openEdit(featureQuery.data)}
+            variant='secondary'
+          >
+            Edit feature
+          </Button>
+          <Button
+            leadingIcon={<Trash2 size={16} strokeWidth={1.75} />}
+            onClick={() => featureActions.openDelete(featureQuery.data)}
+            variant='danger'
+          >
+            Delete feature
+          </Button>
+        </>
+      ) : undefined,
+      breadcrumb: (
+        <Breadcrumb
+          items={[
+            {
+              href: '/',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder' as const,
+              label: 'Projects',
+            },
+            {
+              href: `/projects/${projectId}`,
+              icon: <FolderKanban size={14} strokeWidth={1.75} />,
+              kind: 'item' as const,
+              label: projectQuery.data?.name ?? 'Project',
+            },
+            {
+              href: `/projects/${projectId}`,
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder' as const,
+              label: 'Features',
+            },
+            {
+              href: `/projects/${projectId}/features/${featureId}`,
+              icon: <FileText size={14} strokeWidth={1.75} />,
+              kind: 'item' as const,
+              label: notFound
+                ? 'Feature not found'
+                : featureQuery.data?.title ?? 'Feature',
+            },
+          ]}
+          titleId='feature-title'
+        />
+      ),
+    }),
+    [
+      featureActions,
+      featureId,
+      featureQuery.data,
+      notFound,
+      projectId,
+      projectQuery.data?.name,
+      targetMismatch,
+    ],
+  );
+  usePageHeaderRegistration(pageHeader);
 
   if (projectQuery.isPending || featureQuery.isPending) {
     return <p className={styles.status}>Loading feature...</p>;
   }
-
-  const targetMismatch =
-    featureQuery.isSuccess && featureQuery.data.projectId !== projectId;
 
   if (projectQuery.isError || featureQuery.isError || targetMismatch) {
     if (
@@ -52,7 +129,6 @@ function FeatureContent({
       return (
         <section className={styles.page}>
           <p className="fw-overline">404</p>
-          <h1>Feature not found</h1>
           <p className={styles.status}>
             This feature does not exist in the selected project.
           </p>
@@ -78,37 +154,6 @@ function FeatureContent({
 
   return (
     <section className={styles.page} aria-labelledby="feature-title">
-      <div className={styles.heading}>
-        <Breadcrumb
-          items={[
-            {
-              href: '/',
-              icon: <FolderClosed size={14} strokeWidth={1.75} />,
-              kind: 'folder',
-              label: 'Projects',
-            },
-            {
-              href: `/projects/${projectId}`,
-              icon: <FolderKanban size={14} strokeWidth={1.75} />,
-              kind: 'item',
-              label: projectQuery.data.name,
-            },
-            {
-              href: `/projects/${projectId}`,
-              icon: <FolderClosed size={14} strokeWidth={1.75} />,
-              kind: 'folder',
-              label: 'Features',
-            },
-            {
-              href: `/projects/${projectId}/features/${featureId}`,
-              icon: <FileText size={14} strokeWidth={1.75} />,
-              kind: 'item',
-              label: featureQuery.data.title,
-            },
-          ]}
-          titleId={'feature-title'}
-        />
-      </div>
       <div className={styles.placeholder}>
         Feature workspace content will be added in a future milestone.
       </div>

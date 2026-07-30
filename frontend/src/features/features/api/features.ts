@@ -21,6 +21,17 @@ export interface FeatureDto {
   readonly updatedAt: string;
 }
 
+export interface CreateFeatureDto {
+  readonly origin: FeatureDto['origin'];
+  readonly title: string;
+}
+
+export interface UpdateFeatureDto {
+  readonly brief: string | null;
+  readonly includeInProjectContext: boolean;
+  readonly title: string;
+}
+
 export function getProjectFeatures(
   accessToken: string,
   projectId: string,
@@ -35,4 +46,38 @@ export function getFeature(
   featureId: string,
 ): Promise<FeatureDto> {
   return request<FeatureDto>(`/features/${featureId}`, { accessToken });
+}
+
+export function createFeature(
+  accessToken: string,
+  projectId: string,
+  input: CreateFeatureDto,
+): Promise<FeatureDto> {
+  return request<FeatureDto>(`/projects/${projectId}/features`, {
+    accessToken,
+    body: input,
+    method: 'POST',
+  });
+}
+
+export function updateFeature(
+  accessToken: string,
+  featureId: string,
+  input: UpdateFeatureDto,
+): Promise<FeatureDto> {
+  return request<FeatureDto>(`/features/${featureId}`, {
+    accessToken,
+    body: input,
+    method: 'PATCH',
+  });
+}
+
+export function deleteFeature(
+  accessToken: string,
+  featureId: string,
+): Promise<void> {
+  return request<void>(`/features/${featureId}`, {
+    accessToken,
+    method: 'DELETE',
+  });
 }

@@ -1,0 +1,15 @@
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.panel {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + var(--space-1));
+  min-width: 12rem;
+}
+
+.panel[data-align='start'] { left: 0; }
+.panel[data-align='end'] { right: 0; }
+

@@ -1,6 +1,16 @@
-import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
-import { getProject, getProjects, type ProjectDto } from '../api';
+import {
+  getProject,
+  getProjects,
+  type ProjectDto,
+  updateProject,
+} from '../api';
 
 export interface Project {
   readonly createdAt: Date;
@@ -65,5 +75,29 @@ export function useProject(
         ?.find((project) => project.id === projectId),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
+  });
+}
+
+export function useUpdateProject(accessToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      name,
+      projectId,
+    }: {
+      readonly name: string;
+      readonly projectId: string;
+    }) => toProject(await updateProject(accessToken, projectId, { name })),
+    onSuccess: (project) => {
+      queryClient.setQueryData(projectKeys.detail(project.id), project);
+      queryClient.setQueryData<readonly Project[]>(
+        projectKeys.list(project.organizationId),
+        (current) =>
+          current?.map((item) =>
+            item.id === project.id ? project : item,
+          ),
+      );
+    },
   });
 }

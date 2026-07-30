@@ -46,6 +46,7 @@ export type AccordionProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   'children'
 > & {
+  actionContent?: ReactNode;
   actions?: readonly AccordionActionProps[];
   children: ReactNode;
   defaultOpen?: boolean;
@@ -67,6 +68,7 @@ function AccordionIcon({ children }: { children: ReactNode }) {
 }
 
 export function Accordion({
+  actionContent,
   actions = [],
   children,
   className,
@@ -123,7 +125,7 @@ export function Accordion({
             strokeWidth={1.75}
           />
         </button>
-        {actions.length > 0 ? (
+        {actions.length > 0 || actionContent ? (
           <div className={styles.actions}>
             {actions.map((action, index) => {
               if ('href' in action && action.href !== undefined) {
@@ -191,6 +193,7 @@ export function Accordion({
                 </button>
               );
             })}
+            {actionContent}
           </div>
         ) : null}
       </div>

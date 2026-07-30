@@ -39,7 +39,7 @@ export function Button({
   isIcon = false,
   leadingIcon,
   loading = false,
-  size = 'medium',
+  size = 'small',
   trailingIcon,
   type = 'button',
   variant = 'primary',

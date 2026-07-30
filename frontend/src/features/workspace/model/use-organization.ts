@@ -81,3 +81,26 @@ export function useOrganization(
     updateName: mutation.mutateAsync,
   } as const;
 }
+
+export function useUpdateOrganization(accessToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      name,
+      organizationId,
+    }: {
+      readonly name: string;
+      readonly organizationId: string;
+    }) =>
+      toOrganization(
+        await updateOrganization(accessToken, organizationId, { name }),
+      ),
+    onSuccess: (organization) => {
+      queryClient.setQueryData(
+        organizationKeys.detail(organization.id),
+        organization,
+      );
+    },
+  });
+}

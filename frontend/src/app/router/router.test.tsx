@@ -196,6 +196,7 @@ describe('application routes', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Northstar Labs' }),
     );
+    await user.click(screen.getByRole('menuitem', { name: 'Edit organization' }));
     const input = screen.getByLabelText('Organization name');
     await user.clear(input);
     await user.type(input, 'Renamed workspace');
@@ -260,7 +261,7 @@ describe('application routes', () => {
     expect(testRouter.state.location.pathname).toBe(`/projects/${project.id}`);
   });
 
-  it('keeps expanded navigation mounted and leaves placeholder actions inert', async () => {
+  it('keeps expanded navigation mounted and exposes shared entity actions', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const user = userEvent.setup();
     const { testRouter } = renderRoute('/');
@@ -280,6 +281,9 @@ describe('application routes', () => {
       name: 'Open Northstar mobile menu',
     });
     await user.click(projectMenu);
+    await user.click(screen.getByRole('menuitem', { name: 'Edit project' }));
+    expect(screen.getByRole('dialog', { name: 'Edit project' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(testRouter.state.location.pathname).toBe('/');
 
     await user.click(
@@ -294,6 +298,31 @@ describe('application routes', () => {
         name: 'Open Authentication workflow menu',
       }),
     ).toBeVisible();
+  });
+
+  it('keeps feature quick edit bounded and creation origin explicit', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const user = userEvent.setup();
+    renderRoute(`/projects/${project.id}/features/${feature.id}`);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Edit feature' }),
+    );
+    expect(screen.getByRole('dialog', { name: 'Edit feature' })).toBeVisible();
+    expect(screen.getByLabelText('Feature title')).toBeVisible();
+    expect(screen.getByLabelText('Feature brief')).toBeVisible();
+    expect(screen.getByLabelText('Include in project context')).toBeVisible();
+    expect(screen.queryByText('Feature origin')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await user.click(screen.getByRole('link', { name: project.name }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Add feature' }),
+    );
+    expect(screen.getByRole('dialog', { name: 'Create feature' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Feature origin' })).toBeVisible();
+    expect(screen.queryByLabelText('Feature brief')).toBeNull();
+    expect(screen.queryByLabelText('Include in project context')).toBeNull();
   });
 
   it('does not intercept modified navigation-link clicks', async () => {

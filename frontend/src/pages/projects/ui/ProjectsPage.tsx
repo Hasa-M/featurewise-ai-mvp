@@ -1,13 +1,16 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { FolderClosed, FolderKanban } from 'lucide-react';
-import { useCallback } from 'react';
+import { FolderClosed, FolderKanban, Pencil } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { projectFeaturesQueryOptions } from '@/features/features';
-import { useProjects } from '@/features/workspace';
+import { useProjectActions, useProjects } from '@/features/workspace';
+import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
+import { MenuItem } from '@/shared/ui/menu';
+import { MenuPopover } from '@/shared/ui/menu-popover';
 
 import styles from './ProjectsPage.module.css';
 
@@ -21,7 +24,28 @@ function ProjectsContent({
   organizationId,
 }: ProjectsContentProps) {
   const projectsQuery = useProjects(accessToken, organizationId);
+  const { openEdit } = useProjectActions();
   const queryClient = useQueryClient();
+  const pageHeader = useMemo(
+    () => ({
+      breadcrumb: (
+        <Breadcrumb
+          items={[
+            {
+              href: '/',
+              icon: <FolderClosed size={14} strokeWidth={1.75} />,
+              kind: 'folder' as const,
+              label: 'Projects',
+            },
+          ]}
+          titleId='projects-title'
+        />
+      ),
+      subtitle: 'Choose a project to browse its features.',
+    }),
+    [],
+  );
+  usePageHeaderRegistration(pageHeader);
   const prefetchFeatures = useCallback(
     (projectId: string) => {
       void queryClient.prefetchQuery(
@@ -33,21 +57,6 @@ function ProjectsContent({
 
   return (
     <section className={styles.page} aria-labelledby="projects-title">
-      <div className={styles.heading}>
-        <Breadcrumb
-          items={[
-            {
-              href: '/',
-              icon: <FolderClosed size={14} strokeWidth={1.75} />,
-              kind: 'folder',
-              label: 'Projects',
-            },
-          ]}
-          titleId={'projects-title'}
-        />
-        <p>Choose a project to browse its features.</p>
-      </div>
-
       {projectsQuery.isPending ? (
         <p className={styles.status} role="status">
           Loading projects...
@@ -66,7 +75,7 @@ function ProjectsContent({
       ) : (
         <ul className={styles.list}>
           {projectsQuery.data.map((project) => (
-            <li key={project.id}>
+            <li className={styles.row} key={project.id}>
               <Link
                 className={styles.link}
                 onFocus={() => prefetchFeatures(project.id)}
@@ -80,6 +89,14 @@ function ProjectsContent({
                 />
                 <span>{project.name}</span>
               </Link>
+              <MenuPopover label={`Open ${project.name} row menu`}>
+                <MenuItem
+                  leadingIcon={<Pencil size={16} strokeWidth={1.75} />}
+                  onClick={() => openEdit(project)}
+                >
+                  Edit project
+                </MenuItem>
+              </MenuPopover>
             </li>
           ))}
         </ul>

@@ -1,0 +1,111 @@
+.modal {
+  width: min(calc(100vw - var(--space-8)), 24rem);
+  max-width: none;
+  max-height: calc(100dvh - var(--space-8));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  color: var(--text-body);
+  background: transparent;
+  overflow: visible;
+}
+
+.modal::backdrop {
+  background: var(--surface-overlay);
+}
+
+.medium {
+  width: min(calc(100vw - var(--space-8)), 38rem);
+  border-radius: var(--radius-surface);
+}
+
+.surface {
+  display: flex;
+  max-height: calc(100dvh - var(--space-8));
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xl);
+}
+
+.header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.medium .header {
+  padding: var(--space-6);
+}
+
+.heading {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--leading-snug);
+}
+
+.medium .title {
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  letter-spacing: var(--type-h2-tracking);
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.closeButton {
+  flex: 0 0 auto;
+}
+
+.content {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--space-5) var(--space-5);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+}
+
+.medium .content {
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-w) solid var(--divider);
+}
+
+.medium .actions {
+  padding-right: var(--space-6);
+  padding-left: var(--space-6);
+}
+
+@media (max-width: 30rem) {
+  .modal,
+  .medium {
+    width: calc(100vw - var(--space-4) * 2);
+    max-height: calc(100dvh - var(--space-4) * 2);
+  }
+
+  .surface {
+    max-height: calc(100dvh - var(--space-4) * 2);
+  }
+}

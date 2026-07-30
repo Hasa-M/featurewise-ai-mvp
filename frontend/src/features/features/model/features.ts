@@ -1,6 +1,20 @@
-import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
-import { getFeature, getProjectFeatures, type FeatureDto } from '../api';
+import {
+  createFeature,
+  deleteFeature,
+  getFeature,
+  getProjectFeatures,
+  type CreateFeatureDto,
+  type FeatureDto,
+  type UpdateFeatureDto,
+  updateFeature,
+} from '../api';
 
 export interface Feature {
   readonly alignment: FeatureDto['alignment'];
@@ -75,5 +89,72 @@ export function useFeature(
         ?.find((feature) => feature.id === featureId),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
+  });
+}
+
+export interface CreateFeatureInput extends CreateFeatureDto {
+  readonly projectId: string;
+}
+
+export interface FeatureQuickEditInput extends UpdateFeatureDto {
+  readonly featureId: string;
+}
+
+export function useCreateFeature(accessToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, ...input }: CreateFeatureInput) =>
+      toFeature(await createFeature(accessToken, projectId, input)),
+    onSuccess: (feature) => {
+      queryClient.setQueryData(featureKeys.detail(feature.id), feature);
+      queryClient.setQueryData<readonly Feature[]>(
+        featureKeys.list(feature.projectId),
+        (current) => [
+          feature,
+          ...(current?.filter((item) => item.id !== feature.id) ?? []),
+        ],
+      );
+    },
+  });
+}
+
+export function useUpdateFeature(accessToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ featureId, ...input }: FeatureQuickEditInput) =>
+      toFeature(await updateFeature(accessToken, featureId, input)),
+    onSuccess: (feature) => {
+      queryClient.setQueryData(featureKeys.detail(feature.id), feature);
+      queryClient.setQueryData<readonly Feature[]>(
+        featureKeys.list(feature.projectId),
+        (current) =>
+          current?.map((item) =>
+            item.id === feature.id ? feature : item,
+          ),
+      );
+    },
+  });
+}
+
+export function useDeleteFeature(accessToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (feature: Feature) => {
+      await deleteFeature(accessToken, feature.id);
+      return feature;
+    },
+    onSuccess: (feature) => {
+      queryClient.setQueryData<readonly Feature[]>(
+        featureKeys.list(feature.projectId),
+        (current) => current?.filter((item) => item.id !== feature.id),
+      );
+      queryClient.removeQueries({
+        queryKey: featureKeys.detail(feature.id),
+        exact: true,
+      });
+    },
   });
 }

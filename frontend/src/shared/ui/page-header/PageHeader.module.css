@@ -10,7 +10,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-4) var(--space-6);
-  padding: var(--space-6) var(--container-pad);
+  padding: var(--space-3) var(--container-pad);
   margin: 0 auto;
 }
 

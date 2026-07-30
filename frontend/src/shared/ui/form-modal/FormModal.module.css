@@ -1,0 +1,18 @@
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.resetAction {
+  margin-right: auto;
+}
+
+.error {
+  padding: var(--space-3);
+  border: var(--border-w) solid var(--status-blocked-border);
+  border-radius: var(--radius-control);
+  color: var(--status-blocked-fg);
+  background: var(--status-blocked-bg);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}

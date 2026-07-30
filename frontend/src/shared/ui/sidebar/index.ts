@@ -6,6 +6,7 @@ export {
   Sidebar,
   type SidebarGroupItem,
   type SidebarLeafItem,
+  type SidebarMenuAction,
   type SidebarNavigationAction,
   type SidebarNodeItem,
   type SidebarProps,

@@ -5,6 +5,8 @@ import { AnonymousRoute, AuthenticatedRoute } from '@/features/auth';
 import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
 
+import { EntityActionsRoute } from './EntityActionsRoute';
+
 export const routes: RouteObject[] = [
   {
     element: <AnonymousRoute />,
@@ -19,29 +21,34 @@ export const routes: RouteObject[] = [
     element: <AuthenticatedRoute />,
     children: [
       {
-        element: <AppShell />,
+        element: <EntityActionsRoute />,
         children: [
           {
-            path: '/',
-            lazy: async () => ({
-              Component: (await import('@/pages/projects')).ProjectsPage,
-            }),
-          },
-          {
-            path: '/projects/:projectId',
-            lazy: async () => ({
-              Component: (await import('@/pages/project')).ProjectPage,
-            }),
-          },
-          {
-            path: '/projects/:projectId/features/:featureId',
-            lazy: async () => ({
-              Component: (await import('@/pages/feature')).FeaturePage,
-            }),
-          },
-          {
-            path: '*',
-            element: <NotFoundPage />,
+            element: <AppShell />,
+            children: [
+              {
+                path: '/',
+                lazy: async () => ({
+                  Component: (await import('@/pages/projects')).ProjectsPage,
+                }),
+              },
+              {
+                path: '/projects/:projectId',
+                lazy: async () => ({
+                  Component: (await import('@/pages/project')).ProjectPage,
+                }),
+              },
+              {
+                path: '/projects/:projectId/features/:featureId',
+                lazy: async () => ({
+                  Component: (await import('@/pages/feature')).FeaturePage,
+                }),
+              },
+              {
+                path: '*',
+                element: <NotFoundPage />,
+              },
+            ],
           },
         ],
       },

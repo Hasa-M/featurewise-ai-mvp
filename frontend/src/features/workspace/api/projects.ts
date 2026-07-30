@@ -8,6 +8,10 @@ export interface ProjectDto {
   readonly updatedAt: string;
 }
 
+export interface UpdateProjectDto {
+  readonly name: string;
+}
+
 export function getProjects(
   accessToken: string,
   organizationId: string,
@@ -23,4 +27,16 @@ export function getProject(
   projectId: string,
 ): Promise<ProjectDto> {
   return request<ProjectDto>(`/projects/${projectId}`, { accessToken });
+}
+
+export function updateProject(
+  accessToken: string,
+  projectId: string,
+  input: UpdateProjectDto,
+): Promise<ProjectDto> {
+  return request<ProjectDto>(`/projects/${projectId}`, {
+    accessToken,
+    body: input,
+    method: 'PATCH',
+  });
 }
