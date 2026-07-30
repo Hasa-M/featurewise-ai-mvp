@@ -12,6 +12,8 @@ import type {
   TableHTMLAttributes,
 } from 'react';
 
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Table.module.css';
 
 export type TableColumnAlignment = 'start' | 'center' | 'end';
@@ -88,6 +90,9 @@ export function TableCellContent({
   trailingContent,
   ...props
 }: TableCellContentProps) {
+  const primaryOverflowTitle = useOverflowTitle<HTMLSpanElement>();
+  const supportingOverflowTitle = useOverflowTitle<HTMLSpanElement>();
+
   return (
     <div
       {...props}
@@ -99,9 +104,13 @@ export function TableCellContent({
         </span>
       ) : null}
       <span className={styles.cellCopy}>
-        <span className={styles.cellPrimary}>{children}</span>
+        <span {...primaryOverflowTitle} className={styles.cellPrimary}>
+          {children}
+        </span>
         {supportingText ? (
-          <span className={styles.supportingText}>{supportingText}</span>
+          <span {...supportingOverflowTitle} className={styles.supportingText}>
+            {supportingText}
+          </span>
         ) : null}
       </span>
       {trailingContent ? (

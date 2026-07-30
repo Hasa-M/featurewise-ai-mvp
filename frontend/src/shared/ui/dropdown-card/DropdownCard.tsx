@@ -2,6 +2,8 @@ import { ChevronDown } from 'lucide-react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './DropdownCard.module.css';
 
 export type DropdownCardAlignment = 'start' | 'end';
@@ -34,6 +36,7 @@ export function DropdownCard({
   panelLabel,
   ...props
 }: DropdownCardProps) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = open !== undefined;
   const isOpen = !disabled && (open ?? internalOpen);
@@ -120,7 +123,9 @@ export function DropdownCard({
             {leadingVisual}
           </span>
         ) : null}
-        <span className={styles.label}>{label}</span>
+        <span {...overflowTitle} className={styles.label}>
+          {label}
+        </span>
         <ChevronDown
           aria-hidden="true"
           className={styles.chevron}

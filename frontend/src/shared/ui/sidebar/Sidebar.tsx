@@ -25,6 +25,8 @@ import { MenuItem } from '../menu';
 import type { MenuItemLinkProps } from '../menu';
 import { MenuPopover } from '../menu-popover';
 import type { NavigationLinkComponent } from '../navigation-link';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Sidebar.module.css';
 
 export const SIDEBAR_MIN_WIDTH = 160;
@@ -224,9 +226,14 @@ function DisclosureLabel({
   kind: 'group' | 'node';
   label: string;
 }) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
+
   return (
     <span className={styles.itemIdentity}>
-      <span className={kind === 'node' ? styles.nodeLabel : styles.groupLabel}>
+      <span
+        {...overflowTitle}
+        className={kind === 'node' ? styles.nodeLabel : styles.groupLabel}
+      >
         {label}
       </span>
       {count !== undefined ? (

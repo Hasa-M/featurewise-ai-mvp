@@ -7,6 +7,8 @@ import {
   useNavigationLinkComponent,
 } from '../navigation-link';
 import { MenuItem, MenuWrapper } from '../menu';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Breadcrumb.module.css';
 
 export type BreadcrumbItemKind = 'folder' | 'item';
@@ -34,6 +36,8 @@ export type BreadcrumbProps = Omit<
 };
 
 function BreadcrumbLabelContent({ item }: { item: BreadcrumbItem }) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
+
   return (
     <>
       {item.icon ? (
@@ -41,7 +45,7 @@ function BreadcrumbLabelContent({ item }: { item: BreadcrumbItem }) {
           {item.icon}
         </span>
       ) : null}
-      <span>{item.label}</span>
+      <span {...overflowTitle}>{item.label}</span>
     </>
   );
 }
@@ -203,7 +207,6 @@ export function Breadcrumb({
                     aria-current={'page'}
                     className={labelClassName}
                     href={item.href}
-                    title={item.label}
                   >
                     <BreadcrumbLabelContent item={item} />
                   </LinkComponent>
@@ -212,7 +215,6 @@ export function Breadcrumb({
                 <LinkComponent
                   className={labelClassName}
                   href={item.href}
-                  title={item.label}
                 >
                   <BreadcrumbLabelContent item={item} />
                 </LinkComponent>

@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Tag.module.css';
 
 export type TagProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
@@ -19,11 +21,14 @@ export function Tag({
   removeLabel = 'Remove tag',
   ...props
 }: TagProps) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
   const classes = [styles.tag, className].filter(Boolean).join(' ');
 
   return (
     <span {...props} className={classes}>
-      <span className={styles.label}>{children}</span>
+      <span {...overflowTitle} className={styles.label}>
+        {children}
+      </span>
       {onRemove ? (
         <button
           aria-label={removeLabel}

@@ -8,6 +8,8 @@ import {
 } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './DatePicker.module.css';
 
 export type DateRangeValue = {
@@ -96,6 +98,7 @@ function getInitialMonth(props: DatePickerProps) {
 }
 
 export function DatePicker(props: DatePickerProps) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
   const {
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
@@ -390,7 +393,10 @@ export function DatePicker(props: DatePickerProps) {
           type="button"
         >
           <CalendarDays aria-hidden="true" className={styles.calendarIcon} size={17} strokeWidth={1.75} />
-          <span className={displayValue ? styles.selectedText : styles.placeholder}>
+          <span
+            {...overflowTitle}
+            className={displayValue ? styles.selectedText : styles.placeholder}
+          >
             {displayValue || placeholder}
           </span>
         </button>

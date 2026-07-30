@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   HTMLAttributes,
@@ -19,6 +19,8 @@ import {
   NativeNavigationLink,
   type NavigationLinkComponent,
 } from '../navigation-link';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Menu.module.css';
 
 type MenuContextValue = {
@@ -153,6 +155,7 @@ export function MenuSection({
   title,
   ...props
 }: MenuSectionProps) {
+  const overflowTitle = useOverflowTitle<HTMLDivElement>();
   const titleId = useId();
 
   return (
@@ -163,7 +166,11 @@ export function MenuSection({
       role="group"
     >
       {title ? (
-        <div className={styles.sectionTitle} id={titleId}>
+        <div
+          {...overflowTitle}
+          className={styles.sectionTitle}
+          id={titleId}
+        >
           {title}
         </div>
       ) : null}
@@ -202,6 +209,8 @@ function MenuItemContent({
   leadingIcon,
   trailingIcon,
 }: Pick<MenuItemBaseProps, 'children' | 'leadingIcon' | 'trailingIcon'>) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
+
   return (
     <>
       {leadingIcon ? (
@@ -209,7 +218,9 @@ function MenuItemContent({
           {leadingIcon}
         </span>
       ) : null}
-      <span className={styles.itemLabel}>{children}</span>
+      <span {...overflowTitle} className={styles.itemLabel}>
+        {children}
+      </span>
       {trailingIcon ? (
         <span aria-hidden="true" className={styles.iconSlot}>
           {trailingIcon}

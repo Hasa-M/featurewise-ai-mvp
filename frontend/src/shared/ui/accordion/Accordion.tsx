@@ -11,6 +11,8 @@ import {
   NativeNavigationLink,
   type NavigationLinkComponent,
 } from '../navigation-link';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Accordion.module.css';
 
 type AccordionActionBase = {
@@ -82,6 +84,7 @@ export function Accordion({
   selection = 'none',
   ...props
 }: AccordionProps) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
   const generatedId = useId();
   const triggerId = `${generatedId}-trigger`;
   const contentId = `${generatedId}-content`;
@@ -117,7 +120,9 @@ export function Accordion({
           type="button"
         >
           {leadingIcon ? <AccordionIcon>{leadingIcon}</AccordionIcon> : null}
-          <span className={styles.label}>{label}</span>
+          <span {...overflowTitle} className={styles.label}>
+            {label}
+          </span>
           <ChevronRight
             aria-hidden="true"
             className={styles.indicator}

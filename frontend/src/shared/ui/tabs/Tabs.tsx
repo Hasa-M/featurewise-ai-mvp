@@ -14,6 +14,8 @@ import {
 } from 'react';
 
 import { MenuItem, MenuWrapper } from '../menu';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Tabs.module.css';
 
 export type TabItem = {
@@ -56,6 +58,9 @@ function initialValue(items: TabsItems, defaultValue: string | undefined) {
 }
 
 function TabContent({ item }: { item: TabItem }) {
+  const labelOverflowTitle = useOverflowTitle<HTMLSpanElement>();
+  const infoOverflowTitle = useOverflowTitle<HTMLSpanElement>();
+
   return (
     <>
       {item.icon ? (
@@ -63,9 +68,15 @@ function TabContent({ item }: { item: TabItem }) {
           {item.icon}
         </span>
       ) : null}
-      <span className={styles.label}>{item.label}</span>
+      <span {...labelOverflowTitle} className={styles.label}>
+        {item.label}
+      </span>
       {item.info !== undefined && item.info !== null ? (
-        <span aria-hidden="true" className={styles.info}>
+        <span
+          {...infoOverflowTitle}
+          aria-hidden="true"
+          className={styles.info}
+        >
           {item.info}
         </span>
       ) : null}

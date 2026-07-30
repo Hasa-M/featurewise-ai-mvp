@@ -4,6 +4,8 @@ import type { KeyboardEvent, ReactNode } from 'react';
 
 import { Search } from '../search';
 import { Tag } from '../tag';
+import { useOverflowTitle } from '@/shared/model';
+
 import styles from './Select.module.css';
 
 export type SelectOption = {
@@ -47,6 +49,7 @@ export type SelectProps = SingleSelectProps | MultipleSelectProps;
 const SEARCH_THRESHOLD = 12;
 
 export function Select(props: SelectProps) {
+  const overflowTitle = useOverflowTitle<HTMLSpanElement>();
   const {
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
@@ -237,9 +240,13 @@ export function Select(props: SelectProps) {
                 ))}
               </div>
             ) : selectedOption ? (
-              <span className={styles.selectedText}>{selectedOption.label}</span>
+              <span {...overflowTitle} className={styles.selectedText}>
+                {selectedOption.label}
+              </span>
             ) : (
-              <span className={styles.placeholder}>{placeholder}</span>
+              <span {...overflowTitle} className={styles.placeholder}>
+                {placeholder}
+              </span>
             )}
           </div>
           <ChevronDown

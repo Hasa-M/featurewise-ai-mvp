@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FileText, FolderClosed, FolderKanban } from 'lucide-react';
-import { expect } from 'storybook/test';
+import { expect, userEvent } from 'storybook/test';
 
 import { Breadcrumb, type BreadcrumbItems } from './Breadcrumb';
 
@@ -204,17 +204,16 @@ export const Narrow: Story = {
       name: 'Authentication workflow',
     });
     const label = title.querySelector('span:last-child');
-    const currentLink = canvas.getByRole('link', {
-      name: 'Authentication workflow',
-    });
-
     await expect(label).not.toBeNull();
     await expect((label as HTMLElement).scrollWidth).toBeGreaterThan(
       (label as HTMLElement).clientWidth,
     );
-    await expect(currentLink).toHaveAttribute(
-      'title',
-      'Authentication workflow',
-    );
+    await expect(label).not.toHaveAttribute('title');
+
+    await userEvent.hover(label as HTMLElement);
+    await expect(label).toHaveAttribute('title', 'Authentication workflow');
+
+    await userEvent.unhover(label as HTMLElement);
+    await expect(label).not.toHaveAttribute('title');
   },
 };
