@@ -15,40 +15,94 @@
 
 .list {
   display: grid;
-  max-width: 44rem;
-  gap: var(--space-3);
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 18rem), 1fr)
+  );
+  gap: var(--space-4);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-2);
+.item {
+  min-width: 0;
 }
 
-.link {
-  display: flex;
+.card {
+  position: relative;
+  transition: var(--transition-control);
+}
+
+.card:hover {
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(calc(-1 * var(--space-px)));
+}
+
+.card:focus-within {
+  box-shadow: var(--focus-ring-offset);
+}
+
+.cardContent {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-4);
+}
+
+.cardHeading {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-card);
-  color: var(--text-strong);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-sm);
-  transition:
-    background var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-.link:hover {
-  text-decoration: none;
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-md);
-}
-
-.link svg {
+.projectIcon {
+  display: inline-flex;
   color: var(--brand);
+}
+
+.projectName {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+}
+
+.projectLink {
+  color: var(--text-strong);
+}
+
+.projectLink::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: var(--radius-card);
+  content: '';
+}
+
+.projectLink:hover {
+  text-decoration: none;
+}
+
+.projectLink:focus-visible {
+  outline: none;
+}
+
+.cardMenu {
+  position: relative;
+  z-index: 1;
+}
+
+.featureCount {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-caption-size);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
 }

@@ -9,6 +9,7 @@ import {
   getProject,
   getProjects,
   type ProjectDto,
+  type ProjectSummaryDto,
   updateProject,
 } from '../api';
 
@@ -18,6 +19,10 @@ export interface Project {
   readonly name: string;
   readonly organizationId: string;
   readonly updatedAt: Date;
+}
+
+export interface ProjectSummary extends Project {
+  readonly featureCount: number;
 }
 
 export const projectKeys = {
@@ -35,6 +40,28 @@ export function toProject(dto: ProjectDto): Project {
   };
 }
 
+export function toProjectSummary(dto: ProjectSummaryDto): ProjectSummary {
+  return {
+    ...toProject(dto),
+    featureCount: dto.featureCount,
+  };
+}
+
+export function adjustProjectFeatureCount(
+  projects: readonly ProjectSummary[] | undefined,
+  projectId: string,
+  difference: number,
+): readonly ProjectSummary[] | undefined {
+  return projects?.map((project) =>
+    project.id === projectId
+      ? {
+          ...project,
+          featureCount: Math.max(0, project.featureCount + difference),
+        }
+      : project,
+  );
+}
+
 export function projectsQueryOptions(
   accessToken: string,
   organizationId: string,
@@ -42,7 +69,7 @@ export function projectsQueryOptions(
   return queryOptions({
     queryKey: projectKeys.list(organizationId),
     queryFn: async () =>
-      (await getProjects(accessToken, organizationId)).map(toProject),
+      (await getProjects(accessToken, organizationId)).map(toProjectSummary),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -71,7 +98,7 @@ export function useProject(
     ...projectQueryOptions(accessToken, projectId),
     initialData: () =>
       queryClient
-        .getQueryData<readonly Project[]>(listKey)
+        .getQueryData<readonly ProjectSummary[]>(listKey)
         ?.find((project) => project.id === projectId),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
@@ -91,11 +118,11 @@ export function useUpdateProject(accessToken: string) {
     }) => toProject(await updateProject(accessToken, projectId, { name })),
     onSuccess: (project) => {
       queryClient.setQueryData(projectKeys.detail(project.id), project);
-      queryClient.setQueryData<readonly Project[]>(
+      queryClient.setQueryData<readonly ProjectSummary[]>(
         projectKeys.list(project.organizationId),
         (current) =>
           current?.map((item) =>
-            item.id === project.id ? project : item,
+            item.id === project.id ? { ...item, ...project } : item,
           ),
       );
     },

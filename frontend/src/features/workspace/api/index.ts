@@ -9,5 +9,6 @@ export {
   getProjects,
   updateProject,
   type ProjectDto,
+  type ProjectSummaryDto,
   type UpdateProjectDto,
 } from './projects';

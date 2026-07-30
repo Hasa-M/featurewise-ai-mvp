@@ -8,14 +8,17 @@ export {
   type OrganizationStatus,
 } from './model/use-organization';
 export {
+  adjustProjectFeatureCount,
   projectKeys,
   projectQueryOptions,
   projectsQueryOptions,
   toProject,
+  toProjectSummary,
   useProject,
   useProjects,
   useUpdateProject,
   type Project,
+  type ProjectSummary,
 } from './model/projects';
 export {
   useOrganizationActions,

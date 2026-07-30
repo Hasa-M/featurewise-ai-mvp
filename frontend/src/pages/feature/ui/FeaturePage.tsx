@@ -5,8 +5,8 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { useFeature, useFeatureActions } from '@/features/features';
@@ -15,11 +15,54 @@ import { ApiError } from '@/shared/api';
 import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
+import { Tabs, type TabsItems } from '@/shared/ui/tabs';
 
 import styles from './FeaturePage.module.css';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const FEATURE_TABS = [
+  {
+    id: 'context',
+    label: 'Context',
+    panelId: 'feature-context-panel',
+    tabId: 'feature-context-tab',
+  },
+  {
+    id: 'generations',
+    label: 'Generations',
+    panelId: 'feature-generations-panel',
+    tabId: 'feature-generations-tab',
+  },
+  {
+    id: 'updates',
+    label: 'Updates',
+    panelId: 'feature-updates-panel',
+    tabId: 'feature-updates-tab',
+  },
+  {
+    id: 'specifications',
+    label: 'Specifications',
+    panelId: 'feature-specifications-panel',
+    tabId: 'feature-specifications-tab',
+  },
+] as const satisfies TabsItems;
+
+type FeatureTabId = (typeof FEATURE_TABS)[number]['id'];
+
+const FEATURE_TAB_COPY: Record<FeatureTabId, string> = {
+  context: 'Context data entry will be added in the next milestone.',
+  generations:
+    'Generation history and controls will be added in a later milestone.',
+  updates: 'Feature updates will be added in a later milestone.',
+  specifications:
+    'Specification review will be added in a later milestone.',
+};
+
+function isFeatureTabId(value: string | null): value is FeatureTabId {
+  return FEATURE_TABS.some((tab) => tab.id === value);
+}
 
 function isNotFound(error: unknown) {
   return (
@@ -44,6 +87,11 @@ function FeatureContent({
   const projectQuery = useProject(accessToken, organizationId, projectId);
   const featureQuery = useFeature(accessToken, projectId, featureId);
   const featureActions = useFeatureActions();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const activeTab: FeatureTabId = isFeatureTabId(requestedTab)
+    ? requestedTab
+    : 'context';
   const targetMismatch =
     featureQuery.isSuccess && featureQuery.data.projectId !== projectId;
   const notFound =
@@ -103,6 +151,10 @@ function FeatureContent({
           titleId='feature-title'
         />
       ),
+      subtitle:
+        featureQuery.data && !targetMismatch
+          ? 'Manage feature context, generations, updates, and specifications.'
+          : undefined,
     }),
     [
       featureActions,
@@ -115,6 +167,14 @@ function FeatureContent({
     ],
   );
   usePageHeaderRegistration(pageHeader);
+
+  useEffect(() => {
+    if (requestedTab === activeTab) return;
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('tab', activeTab);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [activeTab, requestedTab, searchParams, setSearchParams]);
 
   if (projectQuery.isPending || featureQuery.isPending) {
     return <p className={styles.status}>Loading feature...</p>;
@@ -152,10 +212,31 @@ function FeatureContent({
     );
   }
 
+  const activeTabItem =
+    FEATURE_TABS.find((tab) => tab.id === activeTab) ?? FEATURE_TABS[0];
+
   return (
     <section className={styles.page} aria-labelledby="feature-title">
-      <div className={styles.placeholder}>
-        Feature workspace content will be added in a future milestone.
+      <Tabs
+        aria-label="Feature workspace"
+        items={FEATURE_TABS}
+        onValueChange={(value) => {
+          if (!isFeatureTabId(value)) return;
+
+          const nextSearchParams = new URLSearchParams(searchParams);
+          nextSearchParams.set('tab', value);
+          setSearchParams(nextSearchParams);
+        }}
+        value={activeTab}
+      />
+      <div
+        aria-labelledby={activeTabItem.tabId}
+        className={styles.placeholder}
+        id={activeTabItem.panelId}
+        role="tabpanel"
+        tabIndex={0}
+      >
+        {FEATURE_TAB_COPY[activeTab]}
       </div>
     </section>
   );

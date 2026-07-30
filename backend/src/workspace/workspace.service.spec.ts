@@ -82,7 +82,17 @@ describe('WorkspaceService', () => {
   });
 
   it('lists projects for the authenticated organization', async () => {
-    const findMany = jest.fn().mockResolvedValue([]);
+    const project = {
+      id: currentUser.projectId,
+      organizationId: currentUser.organizationId,
+      name: 'MVP',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _count: {
+        features: 2,
+      },
+    };
+    const findMany = jest.fn().mockResolvedValue([project]);
     const service = new WorkspaceService({
       project: {
         findMany,
@@ -91,13 +101,33 @@ describe('WorkspaceService', () => {
 
     await expect(
       service.listProjects(currentUser, currentUser.organizationId),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual([
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        name: project.name,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        featureCount: 2,
+      },
+    ]);
     expect(findMany).toHaveBeenCalledWith({
       where: {
         organizationId: currentUser.organizationId,
       },
       orderBy: {
         createdAt: 'asc',
+      },
+      include: {
+        _count: {
+          select: {
+            features: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
       },
     });
   });

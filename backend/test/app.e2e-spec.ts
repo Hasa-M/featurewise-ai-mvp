@@ -198,17 +198,22 @@ class InMemoryPrisma {
     },
     findMany: ({ where }: { where: { organizationId: string } }) =>
       Promise.resolve(
-        this.projects.filter(
-          (project) => project.organizationId === where.organizationId,
-        ),
+        this.projects
+          .filter((project) => project.organizationId === where.organizationId)
+          .map((project) => ({
+            ...project,
+            _count: {
+              features: this.features.filter(
+                (feature) =>
+                  feature.projectId === project.id &&
+                  feature.deletedAt === null,
+              ).length,
+            },
+          })),
       ),
-    findFirst: ({ where }: { where: { id: string; organizationId: string } }) =>
+    findUnique: ({ where }: { where: { id: string } }) =>
       Promise.resolve(
-        this.projects.find(
-          (project) =>
-            project.id === where.id &&
-            project.organizationId === where.organizationId,
-        ) ?? null,
+        this.projects.find((project) => project.id === where.id) ?? null,
       ),
     update: ({
       where,
@@ -549,19 +554,19 @@ describe('Featurewise backend (e2e)', () => {
       .expect(200)
       .expect((response: Response) => {
         const projects = response.body as ReadonlyArray<{
+          readonly featureCount: number;
           readonly id: string;
         }>;
 
         expect(projects).toHaveLength(1);
         expect(projects[0]).toMatchObject({
+          featureCount: 0,
           id: currentUser.projectId,
         });
       });
 
     await withAuth(
-      request(app.getHttpServer()).patch(
-        `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}`,
-      ),
+      request(app.getHttpServer()).patch(`/projects/${currentUser.projectId}`),
       authorizationHeader,
     )
       .send({ name: 'Renamed project' })
@@ -575,7 +580,7 @@ describe('Featurewise backend (e2e)', () => {
 
     await withAuth(
       request(app.getHttpServer()).post(
-        `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
+        `/projects/${currentUser.projectId}/features`,
       ),
       authorizationHeader,
     )
@@ -584,7 +589,7 @@ describe('Featurewise backend (e2e)', () => {
 
     const createFeatureResponse = await withAuth(
       request(app.getHttpServer()).post(
-        `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
+        `/projects/${currentUser.projectId}/features`,
       ),
       authorizationHeader,
     )
@@ -599,7 +604,7 @@ describe('Featurewise backend (e2e)', () => {
 
     await withAuth(
       request(app.getHttpServer()).get(
-        `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
+        `/projects/${currentUser.projectId}/features`,
       ),
       authorizationHeader,
     )
@@ -686,7 +691,7 @@ describe('Featurewise backend (e2e)', () => {
 
     await withAuth(
       request(app.getHttpServer()).get(
-        `/organizations/${currentUser.organizationId}/projects/${currentUser.projectId}/features`,
+        `/projects/${currentUser.projectId}/features`,
       ),
       authorizationHeader,
     )

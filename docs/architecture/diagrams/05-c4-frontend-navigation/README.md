@@ -4,11 +4,12 @@
 
 This document describes the Phase 1 authenticated platform navigation implemented by the React web application. It covers route ownership, the persistent application shell, Sidebar behavior, REST server-state caching, lazy loading, and communication with the existing NestJS API.
 
-The navigation exposes Projects, a selected project's Features, and a minimal
-Feature destination. Organization/project metadata and Feature create,
-quick-edit, and delete actions are shared across the shell and route pages.
-Context, generated-spec, validation, and generation workflows remain dedicated
-Feature-page milestones.
+The navigation exposes Projects, a selected project's Features, and a Feature
+workspace with Context, Generations, Updates, and Specifications tabs.
+Organization/project metadata and Feature create, quick-edit, and delete
+actions are shared across the shell and route pages. The tab shell is
+implemented; context editing, generation, update, specification, and validation
+workflows remain dedicated Feature-page milestones.
 
 ## Routes and persistent layout
 
@@ -16,7 +17,10 @@ The authenticated route tree keeps `AppShell` and `PageStructure` mounted above 
 
 - `/` renders the Projects list and is also the application home.
 - `/projects/:projectId` renders the selected project and its feature links.
-- `/projects/:projectId/features/:featureId` renders the selected feature title and a future-work placeholder.
+- `/projects/:projectId/features/:featureId` renders the selected Feature
+  workspace. Its `tab` query parameter supports `context`, `generations`,
+  `updates`, and `specifications`; missing or invalid values resolve to
+  `context`.
 
 `PageStructure` owns the single `main` landmark. Its Header, Sidebar visibility,
 Sidebar width, accordion state, user menu, action providers, and query
@@ -55,16 +59,24 @@ One QueryClient is mounted above authentication and routing. Authentication fail
 | Resource | Query key | Freshness |
 | --- | --- | --- |
 | Organization | `['organization', organizationId]` | 5 minutes |
-| Projects | `['projects', organizationId]` | 5 minutes |
+| Project summaries, including active-feature count | `['projects', organizationId]` | 5 minutes |
 | Project | `['project', projectId]` | 5 minutes |
 | Project features | `['features', projectId]` | 1 minute |
 | Feature | `['feature', featureId]` | 1 minute |
 
-Organization and projects start concurrently after authentication. Feature collections start only when a project page needs them, a project accordion opens, or pointer/keyboard intent prefetches them. All three paths use the same query options, so TanStack Query deduplicates concurrent requests and skips fresh data.
+Organization and project summaries start concurrently after authentication. The
+project-summary response includes the count of non-deleted Features so the
+Projects page does not eagerly load every Feature collection. Feature
+collections start only when a project page needs them, a project accordion
+opens, or pointer/keyboard intent prefetches them. All three paths use the same
+query options, so TanStack Query deduplicates concurrent requests and skips
+fresh data.
 
 Successful mutations update the relevant detail and collection caches.
 Creation seeds the Feature detail and project collection caches; deletion
 removes both only after the backend succeeds. There are no optimistic updates.
+Successful Feature creation and deletion also adjust the cached project-summary
+count at the app composition boundary.
 
 Project and feature detail queries use fresh collection entries as initial data and inherit the collection's update timestamp. Direct deep links fall back to the existing detail endpoints. No navigation aggregate, GraphQL endpoint, polling, or frontend persistence is introduced.
 

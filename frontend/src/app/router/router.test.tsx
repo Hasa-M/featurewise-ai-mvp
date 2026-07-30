@@ -25,6 +25,7 @@ const organization = {
 
 const project = {
   createdAt: '2026-07-18T10:00:00.000Z',
+  featureCount: 1,
   id: currentUser.projectId,
   name: 'Northstar mobile',
   organizationId: currentUser.organizationId,
@@ -84,6 +85,11 @@ function defaultFetch(
     return Promise.resolve(jsonResponse([project]));
   }
   if (path === `/api/projects/${project.id}`) {
+    if (init?.method === 'PATCH') {
+      return Promise.resolve(
+        jsonResponse({ ...project, name: 'Renamed project' }),
+      );
+    }
     return Promise.resolve(jsonResponse(project));
   }
   if (path === `/api/projects/${project.id}/features`) {
@@ -207,6 +213,49 @@ describe('application routes', () => {
     ).toBeVisible();
   });
 
+  it('renders a clickable project card with its feature count and edit menu', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const user = userEvent.setup();
+    const fetchMock = vi.mocked(fetch);
+    const { testRouter } = renderRoute('/');
+
+    const projectLink = await screen.findByRole('link', {
+      name: project.name,
+    });
+    expect(
+      screen.getByRole('heading', { level: 2, name: project.name }),
+    ).toBeVisible();
+    expect(projectLink).toHaveAccessibleDescription('1 feature');
+    expect(
+      fetchMock.mock.calls.some(
+        ([input]) =>
+          requestPath(input) === `/api/projects/${project.id}/features`,
+      ),
+    ).toBe(false);
+
+    await user.click(
+      screen.getByRole('button', {
+        name: `Open ${project.name} project menu`,
+      }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Edit project' }));
+    const input = screen.getByLabelText('Project name');
+    await user.clear(input);
+    await user.type(input, 'Renamed project');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    const renamedLink = await screen.findByRole('link', {
+      name: 'Renamed project',
+    });
+    expect(renamedLink).toHaveAccessibleDescription('1 feature');
+    await user.click(renamedLink);
+    await waitFor(() => {
+      expect(testRouter.state.location.pathname).toBe(
+        `/projects/${project.id}`,
+      );
+    });
+  });
+
   it('prefetches once and navigates through project and feature pages without reloading', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const user = userEvent.setup();
@@ -220,7 +269,10 @@ describe('application routes', () => {
     await user.click(projectLink);
 
     expect(
-      await screen.findByRole('heading', { name: 'Northstar mobile' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Northstar mobile',
+      }),
     ).toBeVisible();
     expect(
       screen.getByRole('navigation', { name: 'Breadcrumb' }),
@@ -238,6 +290,9 @@ describe('application routes', () => {
     expect(testRouter.state.location.pathname).toBe(
       `/projects/${project.id}/features/${feature.id}`,
     );
+    await waitFor(() => {
+      expect(testRouter.state.location.search).toBe('?tab=context');
+    });
     expect(
       fetchMock.mock.calls.filter(
         ([input]) =>
@@ -259,6 +314,88 @@ describe('application routes', () => {
       screen.getByRole('link', { name: 'Northstar mobile' }),
     );
     expect(testRouter.state.location.pathname).toBe(`/projects/${project.id}`);
+  });
+
+  it('normalizes an invalid feature tab while preserving other query parameters', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const { testRouter } = renderRoute(
+      `/projects/${project.id}/features/${feature.id}?tab=unknown&view=compact`,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: feature.title }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tabpanel')).toHaveTextContent(
+      'Context data entry will be added in the next milestone.',
+    );
+    await waitFor(() => {
+      expect(testRouter.state.location.search).toBe(
+        '?tab=context&view=compact',
+      );
+    });
+  });
+
+  it('deep-links and navigates feature tabs through browser history without refetching', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const user = userEvent.setup();
+    const fetchMock = vi.mocked(fetch);
+    const { testRouter } = renderRoute(
+      `/projects/${project.id}/features/${feature.id}?tab=generations&view=compact`,
+    );
+
+    expect(
+      await screen.findByText(
+        'Generation history and controls will be added in a later milestone.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Manage feature context, generations, updates, and specifications.',
+      ),
+    ).toBeVisible();
+    const generationsTab = screen.getByRole('tab', { name: 'Generations' });
+    const generationsPanel = screen.getByRole('tabpanel');
+    expect(generationsTab).toHaveAttribute('aria-selected', 'true');
+    expect(generationsTab).toHaveAttribute(
+      'aria-controls',
+      'feature-generations-panel',
+    );
+    expect(generationsPanel).toHaveAttribute(
+      'aria-labelledby',
+      'feature-generations-tab',
+    );
+
+    const featureRequestsBeforeSwitch = fetchMock.mock.calls.filter(
+      ([input]) => requestPath(input) === `/api/features/${feature.id}`,
+    ).length;
+    await user.click(screen.getByRole('tab', { name: 'Updates' }));
+
+    await waitFor(() => {
+      expect(testRouter.state.location.search).toBe(
+        '?tab=updates&view=compact',
+      );
+    });
+    expect(screen.getByRole('tabpanel')).toHaveTextContent(
+      'Feature updates will be added in a later milestone.',
+    );
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input]) => requestPath(input) === `/api/features/${feature.id}`,
+      ),
+    ).toHaveLength(featureRequestsBeforeSwitch);
+
+    await testRouter.navigate(-1);
+    await waitFor(() => {
+      expect(testRouter.state.location.search).toBe(
+        '?tab=generations&view=compact',
+      );
+      expect(generationsTab).toHaveAttribute('aria-selected', 'true');
+    });
   });
 
   it('keeps expanded navigation mounted and exposes shared entity actions', async () => {
@@ -290,7 +427,10 @@ describe('application routes', () => {
       screen.getByRole('link', { name: 'Go to Northstar mobile' }),
     );
     expect(
-      await screen.findByRole('heading', { name: 'Northstar mobile' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Northstar mobile',
+      }),
     ).toBeVisible();
     expect(projectDisclosure).toHaveAttribute('aria-expanded', 'true');
     expect(

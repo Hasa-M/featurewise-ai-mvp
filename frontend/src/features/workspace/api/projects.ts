@@ -8,6 +8,10 @@ export interface ProjectDto {
   readonly updatedAt: string;
 }
 
+export interface ProjectSummaryDto extends ProjectDto {
+  readonly featureCount: number;
+}
+
 export interface UpdateProjectDto {
   readonly name: string;
 }
@@ -15,8 +19,8 @@ export interface UpdateProjectDto {
 export function getProjects(
   accessToken: string,
   organizationId: string,
-): Promise<readonly ProjectDto[]> {
-  return request<readonly ProjectDto[]>(
+): Promise<readonly ProjectSummaryDto[]> {
+  return request<readonly ProjectSummaryDto[]>(
     `/organizations/${organizationId}/projects`,
     { accessToken },
   );

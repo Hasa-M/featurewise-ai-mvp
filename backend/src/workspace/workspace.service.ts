@@ -44,14 +44,30 @@ export class WorkspaceService {
   async listProjects(currentUser: CurrentUserContext, organizationId: string) {
     this.assertOrganizationVisible(currentUser, organizationId);
 
-    return this.prismaService.project.findMany({
+    const projects = await this.prismaService.project.findMany({
       where: {
         organizationId,
       },
       orderBy: {
         createdAt: 'asc',
       },
+      include: {
+        _count: {
+          select: {
+            features: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
     });
+
+    return projects.map(({ _count, ...project }) => ({
+      ...project,
+      featureCount: _count.features,
+    }));
   }
 
   async getProject(currentUser: CurrentUserContext, projectId: string) {
