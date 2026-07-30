@@ -1,6 +1,24 @@
 import { request } from '@/shared/api';
 
 export interface FeatureDto {
+  readonly activity: {
+    readonly currentValidSpecVersion: number | null;
+    readonly generationRunCount: number;
+    readonly latestFeatureRun: {
+      readonly runKind: 'generation' | 'consolidation';
+      readonly status:
+        | 'queued'
+        | 'preparing_context'
+        | 'calling_llm'
+        | 'validating_output'
+        | 'repairing_output'
+        | 'checking_quality'
+        | 'persisting'
+        | 'completed'
+        | 'failed';
+      readonly usedProjectContext: boolean | null;
+    } | null;
+  };
   readonly alignment: {
     readonly pendingUpdates: readonly {
       readonly featureUpdateId: string;
@@ -27,9 +45,9 @@ export interface CreateFeatureDto {
 }
 
 export interface UpdateFeatureDto {
-  readonly brief: string | null;
-  readonly includeInProjectContext: boolean;
-  readonly title: string;
+  readonly brief?: string | null;
+  readonly includeInProjectContext?: boolean;
+  readonly title?: string;
 }
 
 export function getProjectFeatures(

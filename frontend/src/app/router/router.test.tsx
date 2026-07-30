@@ -33,6 +33,15 @@ const project = {
 };
 
 const feature = {
+  activity: {
+    currentValidSpecVersion: 2,
+    generationRunCount: 3,
+    latestFeatureRun: {
+      runKind: 'generation',
+      status: 'completed',
+      usedProjectContext: true,
+    },
+  },
   alignment: { pendingUpdates: [], status: 'aligned' },
   brief: null,
   createdAt: '2026-07-18T10:00:00.000Z',
@@ -43,6 +52,19 @@ const feature = {
   projectId: project.id,
   title: 'Authentication workflow',
   updatedAt: '2026-07-18T10:00:00.000Z',
+};
+
+const includedFeature = {
+  ...feature,
+  activity: {
+    currentValidSpecVersion: null,
+    generationRunCount: 0,
+    latestFeatureRun: null,
+  },
+  id: '55555555-5555-4555-8555-555555555555',
+  includeInProjectContext: true,
+  origin: 'mapped_existing',
+  title: 'Billing controls',
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -284,12 +306,17 @@ describe('application routes', () => {
     await user.click(
       await screen.findByRole('link', { name: 'Authentication workflow' }),
     );
+    await waitFor(() => {
+      expect(testRouter.state.location.pathname).toBe(
+        `/projects/${project.id}/features/${feature.id}`,
+      );
+    });
     expect(
-      await screen.findByRole('heading', { name: 'Authentication workflow' }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Authentication workflow',
+      }),
     ).toBeVisible();
-    expect(testRouter.state.location.pathname).toBe(
-      `/projects/${project.id}/features/${feature.id}`,
-    );
     await waitFor(() => {
       expect(testRouter.state.location.search).toBe('?tab=context');
     });
@@ -314,6 +341,157 @@ describe('application routes', () => {
       screen.getByRole('link', { name: 'Northstar mobile' }),
     );
     expect(testRouter.state.location.pathname).toBe(`/projects/${project.id}`);
+  });
+
+  it('renders feature cards with distinct readiness, membership, and run information', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    renderRoute(`/projects/${project.id}`);
+
+    expect(
+      await screen.findByRole('heading', { name: feature.title }),
+    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Features' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByText('Brand new')).toBeVisible();
+    expect(screen.getByText('Aligned')).toBeVisible();
+    expect(screen.getByText('Not in project context')).toBeVisible();
+    expect(screen.getByText('3 generations')).toBeVisible();
+    expect(screen.getByText('Version 2')).toBeVisible();
+    expect(screen.getByText('Generation · Completed')).toBeVisible();
+    expect(
+      screen.getByText('Project context used in latest run'),
+    ).toBeVisible();
+  });
+
+  it('normalizes an invalid project tab while preserving other query parameters', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const { testRouter } = renderRoute(
+      `/projects/${project.id}?tab=unknown&view=compact`,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: feature.title }),
+    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Features' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await waitFor(() => {
+      expect(testRouter.state.location.search).toBe(
+        '?tab=features&view=compact',
+      );
+    });
+  });
+
+  it('persists changed project-context membership and exposes select-all indeterminacy', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const fetchMock = vi.fn(
+      (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+        const path = requestPath(input);
+
+        if (path === `/api/projects/${project.id}/features`) {
+          return Promise.resolve(jsonResponse([feature, includedFeature]));
+        }
+        if (path === `/api/features/${feature.id}` && init?.method === 'PATCH') {
+          const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+          return Promise.resolve(jsonResponse({ ...feature, ...body }));
+        }
+
+        return defaultFetch(input, init);
+      },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    renderRoute(`/projects/${project.id}?tab=context`);
+
+    const selectAll = await screen.findByRole('checkbox', {
+      name: 'Select all features',
+    });
+    const authentication = screen.getByRole('checkbox', {
+      name: feature.title,
+    });
+    const save = screen.getByRole('button', { name: 'Save selection' });
+
+    expect(selectAll).toBePartiallyChecked();
+    expect(save).toBeDisabled();
+    await user.click(authentication);
+    expect(selectAll).toBeChecked();
+    expect(save).toBeEnabled();
+    await user.click(save);
+
+    expect(
+      await screen.findByText('Project context membership saved.'),
+    ).toBeVisible();
+    expect(save).toBeDisabled();
+    const membershipRequests = fetchMock.mock.calls.filter(
+      ([input, init]) =>
+        requestPath(input) === `/api/features/${feature.id}` &&
+        init?.method === 'PATCH',
+    );
+    expect(membershipRequests).toHaveLength(1);
+    expect(JSON.parse(String(membershipRequests[0]?.[1]?.body))).toEqual({
+      includeInProjectContext: true,
+    });
+  });
+
+  it('keeps failed project-context changes dirty after partial save', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+          const path = requestPath(input);
+
+          if (path === `/api/projects/${project.id}/features`) {
+            return Promise.resolve(jsonResponse([feature, includedFeature]));
+          }
+          if (
+            path === `/api/features/${feature.id}` &&
+            init?.method === 'PATCH'
+          ) {
+            const body = JSON.parse(String(init.body)) as Record<
+              string,
+              unknown
+            >;
+            return Promise.resolve(jsonResponse({ ...feature, ...body }));
+          }
+          if (
+            path === `/api/features/${includedFeature.id}` &&
+            init?.method === 'PATCH'
+          ) {
+            return Promise.resolve(
+              jsonResponse({ message: 'Membership update failed' }, 500),
+            );
+          }
+
+          return defaultFetch(input, init);
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderRoute(`/projects/${project.id}?tab=context`);
+
+    await user.click(
+      await screen.findByRole('checkbox', { name: feature.title }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: includedFeature.title }),
+    );
+    const save = screen.getByRole('button', { name: 'Save selection' });
+    await user.click(save);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Membership update failed',
+    );
+    expect(save).toBeEnabled();
+    expect(
+      screen.getByRole('checkbox', { name: feature.title }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: includedFeature.title }),
+    ).not.toBeChecked();
   });
 
   it('normalizes an invalid feature tab while preserving other query parameters', async () => {

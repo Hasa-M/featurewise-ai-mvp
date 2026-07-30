@@ -37,7 +37,6 @@
 .card:hover {
   background: var(--surface-hover);
   box-shadow: var(--shadow-md);
-  transform: translateY(calc(-1 * var(--space-px)));
 }
 
 .card:focus-within {

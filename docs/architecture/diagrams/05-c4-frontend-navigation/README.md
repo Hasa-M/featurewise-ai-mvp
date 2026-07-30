@@ -16,7 +16,11 @@ workflows remain dedicated Feature-page milestones.
 The authenticated route tree keeps `AppShell` and `PageStructure` mounted above all three lazy child pages:
 
 - `/` renders the Projects list and is also the application home.
-- `/projects/:projectId` renders the selected project and its feature links.
+- `/projects/:projectId` renders the selected Project workspace. Its `tab`
+  query parameter supports `features` and `context`; missing or invalid values
+  resolve to `features`. The context tab currently persists only Feature
+  membership. ProjectContextSummary content editing and recalculation remain
+  deferred until their backend workflow is defined.
 - `/projects/:projectId/features/:featureId` renders the selected Feature
   workspace. Its `tab` query parameter supports `context`, `generations`,
   `updates`, and `specifications`; missing or invalid values resolve to
@@ -78,7 +82,15 @@ removes both only after the backend succeeds. There are no optimistic updates.
 Successful Feature creation and deletion also adjust the cached project-summary
 count at the app composition boundary.
 
-Project and feature detail queries use fresh collection entries as initial data and inherit the collection's update timestamp. Direct deep links fall back to the existing detail endpoints. No navigation aggregate, GraphQL endpoint, polling, or frontend persistence is introduced.
+Project and feature detail queries use fresh collection entries as initial data
+and inherit the collection's update timestamp. Direct deep links fall back to
+the existing detail endpoints. Project feature reads also expose backend-derived
+activity: direct generation-run count, current valid-spec version, and the
+latest feature-target run's kind, status, and project-summary inclusion setting.
+The Project context tab keeps an explicit local membership draft, then
+pessimistically PATCHes only changed Features; successful responses update the
+shared detail and collection caches. No navigation aggregate, GraphQL endpoint,
+polling, or frontend persistence is introduced.
 
 Errors are local to their owning surface: shell-level organization failure blocks the authenticated layout with Retry; project/feature list failures render route or branch feedback; malformed, inaccessible, mismatched, and missing resources render not-found states. Network and 5xx responses retry once, while 4xx responses do not retry.
 
@@ -123,7 +135,7 @@ C4Component
 
 - Lazy child routes produce separate production chunks.
 - The persistent shell avoids remounting global navigation during route changes.
-- Query results remain the source of truth; pages do not copy REST data into local state.
+- Query results remain the source of truth; the Project context membership selector copies only an explicit, unsaved editing draft into local state.
 - Sidebar trees and cross-boundary handlers are derived with stable memoization.
 - Prefetch is intent-based rather than eager for every feature collection.
 - Cache freshness, not component mount count, determines whether another request is needed.

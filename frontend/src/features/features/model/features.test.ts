@@ -13,6 +13,15 @@ describe('feature model', () => {
 
   it('maps the backend response without changing domain labels', () => {
     const feature = toFeature({
+      activity: {
+        currentValidSpecVersion: 2,
+        generationRunCount: 3,
+        latestFeatureRun: {
+          runKind: 'generation',
+          status: 'completed',
+          usedProjectContext: true,
+        },
+      },
       alignment: { pendingUpdates: [], status: 'updates_pending' },
       brief: null,
       createdAt: '2026-07-18T10:00:00.000Z',
@@ -25,6 +34,8 @@ describe('feature model', () => {
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
 
+    expect(feature.activity.generationRunCount).toBe(3);
+    expect(feature.activity.latestFeatureRun?.usedProjectContext).toBe(true);
     expect(feature.alignment.status).toBe('updates_pending');
     expect(feature.origin).toBe('brand_new');
     expect(feature.createdAt).toBeInstanceOf(Date);

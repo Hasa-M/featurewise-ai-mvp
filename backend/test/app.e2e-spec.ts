@@ -365,6 +365,7 @@ class InMemoryPrisma {
   };
 
   readonly specRun = {
+    count: jest.fn().mockResolvedValue(0),
     findFirst: jest.fn().mockResolvedValue(null),
   };
 
@@ -621,6 +622,11 @@ describe('Featurewise backend (e2e)', () => {
         expect(features).toHaveLength(1);
         expect(features[0]).toMatchObject({
           id: feature.id,
+          activity: {
+            currentValidSpecVersion: null,
+            generationRunCount: 0,
+            latestFeatureRun: null,
+          },
           alignment: {
             status: 'aligned',
             pendingUpdates: [],

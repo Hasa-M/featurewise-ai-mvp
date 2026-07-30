@@ -24,7 +24,6 @@
 .interactive:hover:not(:disabled) {
   background: var(--surface-hover);
   box-shadow: var(--shadow-md);
-  transform: translateY(calc(-1 * var(--space-px)));
 }
 
 .interactive:focus-visible {
@@ -34,7 +33,6 @@
 .interactive:active:not(:disabled) {
   background: var(--surface-active);
   box-shadow: var(--shadow-sm);
-  transform: translateY(var(--space-px));
 }
 
 .interactive:disabled {

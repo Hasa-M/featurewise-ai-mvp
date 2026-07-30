@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, SpecRunStatus } from '@prisma/client';
+import { Prisma, SpecRunKind, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { PrismaService } from '../database/prisma.service';
@@ -32,6 +32,16 @@ export interface PendingUpdate {
 export interface FeatureAlignment {
   readonly status: 'aligned' | 'updates_pending';
   readonly pendingUpdates: PendingUpdate[];
+}
+
+export interface FeatureActivity {
+  readonly currentValidSpecVersion: number | null;
+  readonly generationRunCount: number;
+  readonly latestFeatureRun: {
+    readonly runKind: SpecRunKind;
+    readonly status: SpecRunStatus;
+    readonly usedProjectContext: boolean | null;
+  } | null;
 }
 
 @Injectable()
@@ -189,6 +199,11 @@ export class FeaturesService {
   }
 
   private async toFeatureResponse(feature: FeatureRecord) {
+    const [activity, alignment] = await Promise.all([
+      this.computeActivity(feature.id),
+      this.computeAlignment(feature.id),
+    ]);
+
     return {
       id: feature.id,
       projectId: feature.projectId,
@@ -199,7 +214,60 @@ export class FeaturesService {
       createdById: feature.createdById,
       createdAt: feature.createdAt,
       updatedAt: feature.updatedAt,
-      alignment: await this.computeAlignment(feature.id),
+      activity,
+      alignment,
+    };
+  }
+
+  private async computeActivity(featureId: string): Promise<FeatureActivity> {
+    const [generationRunCount, currentValidSpec, latestFeatureRun] =
+      await Promise.all([
+        this.prismaService.specRun.count({
+          where: {
+            featureId,
+            featureUpdateId: null,
+            runKind: SpecRunKind.generation,
+          },
+        }),
+        this.prismaService.generatedSpec.findFirst({
+          where: {
+            featureId,
+            featureUpdateId: null,
+            valid: true,
+          },
+          select: {
+            version: true,
+          },
+        }),
+        this.prismaService.specRun.findFirst({
+          where: {
+            featureId,
+            featureUpdateId: null,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            genSettings: true,
+            runKind: true,
+            status: true,
+          },
+        }),
+      ]);
+
+    return {
+      currentValidSpecVersion: currentValidSpec?.version ?? null,
+      generationRunCount,
+      latestFeatureRun:
+        latestFeatureRun === null
+          ? null
+          : {
+              runKind: latestFeatureRun.runKind,
+              status: latestFeatureRun.status,
+              usedProjectContext: this.extractIncludeProjectSummary(
+                latestFeatureRun.genSettings,
+              ),
+            },
     };
   }
 
@@ -297,6 +365,18 @@ export class FeaturesService {
 
   private isJsonObject(value: Prisma.JsonValue): value is Prisma.JsonObject {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private extractIncludeProjectSummary(
+    value: Prisma.JsonValue,
+  ): boolean | null {
+    if (!this.isJsonObject(value)) {
+      return null;
+    }
+
+    return typeof value.includeProjectSummary === 'boolean'
+      ? value.includeProjectSummary
+      : null;
   }
 
   private normalizeNullableText(

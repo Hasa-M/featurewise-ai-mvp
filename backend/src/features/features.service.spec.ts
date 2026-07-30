@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { FeatureOrigin, SpecRunStatus } from '@prisma/client';
+import { FeatureOrigin, SpecRunKind, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { PrismaService } from '../database/prisma.service';
@@ -35,6 +35,7 @@ function createPrismaMock(overrides: Partial<Record<string, unknown>> = {}) {
       update: jest.fn().mockResolvedValue(featureRecord),
     },
     specRun: {
+      count: jest.fn().mockResolvedValue(0),
       findFirst: jest.fn().mockResolvedValue(null),
     },
     generatedSpec: {
@@ -135,6 +136,55 @@ describe('FeaturesService', () => {
       },
       orderBy: {
         createdAt: 'desc',
+      },
+    });
+  });
+
+  it('returns direct generation activity without folding in update or consolidation runs', async () => {
+    const prismaMock = createPrismaMock({
+      generatedSpec: {
+        findFirst: jest
+          .fn()
+          .mockImplementation(
+            ({ select }: { select: Record<string, boolean> }) =>
+              Promise.resolve(
+                'version' in select
+                  ? { version: 3 }
+                  : { incorporatedUpdates: [] },
+              ),
+          ),
+      },
+      specRun: {
+        count: jest.fn().mockResolvedValue(4),
+        findFirst: jest.fn().mockResolvedValue({
+          genSettings: {
+            includeProjectSummary: true,
+          },
+          runKind: SpecRunKind.consolidation,
+          status: SpecRunStatus.completed,
+        }),
+      },
+    });
+    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+
+    await expect(
+      service.getFeature(currentUser, featureRecord.id),
+    ).resolves.toMatchObject({
+      activity: {
+        currentValidSpecVersion: 3,
+        generationRunCount: 4,
+        latestFeatureRun: {
+          runKind: SpecRunKind.consolidation,
+          status: SpecRunStatus.completed,
+          usedProjectContext: true,
+        },
+      },
+    });
+    expect(prismaMock.specRun.count).toHaveBeenCalledWith({
+      where: {
+        featureId: featureRecord.id,
+        featureUpdateId: null,
+        runKind: SpecRunKind.generation,
       },
     });
   });

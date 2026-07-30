@@ -11,6 +11,7 @@ export {
   type CreateFeatureInput,
   type Feature,
   type FeatureQuickEditInput,
+  type FeatureUpdateInput,
 } from './model/features';
 export {
   useFeatureActions,

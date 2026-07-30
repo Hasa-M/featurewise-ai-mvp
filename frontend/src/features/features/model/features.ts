@@ -17,6 +17,7 @@ import {
 } from '../api';
 
 export interface Feature {
+  readonly activity: FeatureDto['activity'];
   readonly alignment: FeatureDto['alignment'];
   readonly brief: string | null;
   readonly createdAt: Date;
@@ -96,9 +97,11 @@ export interface CreateFeatureInput extends CreateFeatureDto {
   readonly projectId: string;
 }
 
-export interface FeatureQuickEditInput extends UpdateFeatureDto {
+export interface FeatureUpdateInput extends UpdateFeatureDto {
   readonly featureId: string;
 }
+
+export type FeatureQuickEditInput = FeatureUpdateInput;
 
 export function useCreateFeature(accessToken: string) {
   const queryClient = useQueryClient();
@@ -123,7 +126,7 @@ export function useUpdateFeature(accessToken: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ featureId, ...input }: FeatureQuickEditInput) =>
+    mutationFn: async ({ featureId, ...input }: FeatureUpdateInput) =>
       toFeature(await updateFeature(accessToken, featureId, input)),
     onSuccess: (feature) => {
       queryClient.setQueryData(featureKeys.detail(feature.id), feature);
