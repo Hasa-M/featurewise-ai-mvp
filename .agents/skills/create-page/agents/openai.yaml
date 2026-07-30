@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create page"
+  short_description: "Plan and build standard Featurewise pages"
+  default_prompt: "Use $create-page with a page location and page description to analyze, plan, confirm, and implement a standard Featurewise page."
