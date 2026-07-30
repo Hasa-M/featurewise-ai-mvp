@@ -14,6 +14,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type FormEvent,
 } from 'react';
 import { matchPath, Outlet, useLocation } from 'react-router-dom';
 
@@ -25,7 +26,6 @@ import {
   type Feature,
 } from '@/features/features';
 import {
-  useOrganizationActions,
   useOrganization,
   useProjectActions,
   useProjects,
@@ -41,6 +41,7 @@ import type {
   SidebarGroupItem,
   SidebarNodeItem,
 } from '@/shared/ui/sidebar';
+import { TextInput } from '@/shared/ui/text-input';
 
 import styles from './AppShell.module.css';
 
@@ -141,38 +142,106 @@ function UserMenu({ onLogout, username }: UserMenuProps) {
 }
 
 interface WorkspaceHeaderOptions {
-  readonly onEditOrganization: () => void;
   readonly onLogout: () => void;
   readonly organization: Organization;
+  readonly updateName: (name: string) => Promise<Organization>;
   readonly username: string;
 }
 
 function useWorkspaceHeader({
-  onEditOrganization,
   onLogout,
   organization,
+  updateName,
   username,
 }: WorkspaceHeaderOptions): HeaderProps {
   const [isOpen, setIsOpen] = useState(false);
+  const [draftName, setDraftName] = useState(organization.name);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setDraftName(organization.name);
+      setErrorMessage(null);
+    }
+    setIsOpen(nextOpen);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = draftName.trim();
+
+    if (!name) {
+      setErrorMessage('Enter an organization name.');
+      return;
+    }
+
+    if (name.length > 120) {
+      setErrorMessage('Use 120 characters or fewer.');
+      return;
+    }
+
+    setErrorMessage(null);
+    setIsSaving(true);
+
+    try {
+      await updateName(name);
+      setIsOpen(false);
+    } catch {
+      setErrorMessage('The organization name could not be saved.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return {
     dropdownCardProps: {
       children: (
-        <MenuWrapper aria-label="Organization actions">
-          <MenuItem
-            leadingIcon={<Pencil size={16} strokeWidth={1.75} />}
-            onClick={() => {
-              setIsOpen(false);
-              onEditOrganization();
+        <form className={styles.organizationPanel} onSubmit={handleSubmit}>
+          <div className={styles.organizationHeading}>
+            <OrganizationMark />
+            <div>
+              <h2>Organization settings</h2>
+              <p>Update the name shown across your workspace.</p>
+            </div>
+          </div>
+
+          <TextInput
+            autoComplete="organization"
+            disabled={isSaving}
+            errorMessage={errorMessage}
+            label="Organization name"
+            maxLength={120}
+            onChange={(event) => {
+              setDraftName(event.currentTarget.value);
+              if (errorMessage) setErrorMessage(null);
             }}
-          >
-            Edit organization
-          </MenuItem>
-        </MenuWrapper>
+            value={draftName}
+          />
+
+          <div className={styles.organizationActions}>
+            <Button
+              disabled={isSaving}
+              onClick={() => handleOpenChange(false)}
+              size="small"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={draftName.trim() === organization.name}
+              loading={isSaving}
+              size="small"
+              type="submit"
+            >
+              Save changes
+            </Button>
+          </div>
+        </form>
       ),
       label: organization.name,
       leadingVisual: <OrganizationMark />,
-      onOpenChange: setIsOpen,
+      onOpenChange: handleOpenChange,
       open: isOpen,
       panelLabel: 'Organization settings',
     },
@@ -281,6 +350,7 @@ interface ReadyShellProps {
   readonly projects?: readonly Project[];
   readonly projectsError: boolean;
   readonly projectsPending: boolean;
+  readonly updateName: (name: string) => Promise<Organization>;
   readonly username: string;
 }
 
@@ -291,6 +361,7 @@ function ReadyShell({
   projects = [],
   projectsError,
   projectsPending,
+  updateName,
   username,
 }: ReadyShellProps) {
   const [expandedProjects, setExpandedProjects] = useState<ReadonlySet<string>>(
@@ -299,13 +370,12 @@ function ReadyShell({
   const location = useLocation();
   const queryClient = useQueryClient();
   const pageHeaderProps = useRegisteredPageHeader();
-  const { openEdit: openEditOrganization } = useOrganizationActions();
   const { openEdit: openEditProject } = useProjectActions();
   const featureActions = useFeatureActions();
   const headerProps = useWorkspaceHeader({
-    onEditOrganization: () => openEditOrganization(organization),
     onLogout,
     organization,
+    updateName,
     username,
   });
   const featureQueries = useQueries({
@@ -492,6 +562,7 @@ function AuthenticatedShell({
       projects={projectsQuery.data}
       projectsError={projectsQuery.isError}
       projectsPending={projectsQuery.isPending}
+      updateName={organizationQuery.updateName}
       username={username}
     />
   );

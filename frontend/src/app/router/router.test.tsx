@@ -216,7 +216,7 @@ describe('application routes', () => {
     );
   });
 
-  it('restores a session and updates the organization cache from the header', async () => {
+  it('restores a session and updates the organization from the header dropdown', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const user = userEvent.setup();
     renderRoute('/');
@@ -224,7 +224,6 @@ describe('application routes', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Northstar Labs' }),
     );
-    await user.click(screen.getByRole('menuitem', { name: 'Edit organization' }));
     const input = screen.getByLabelText('Organization name');
     await user.clear(input);
     await user.type(input, 'Renamed workspace');
