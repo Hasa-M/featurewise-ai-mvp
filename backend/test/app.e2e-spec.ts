@@ -562,6 +562,13 @@ describe('Featurewise backend (e2e)', () => {
 
   it('uses public keys throughout the authenticated workspace and feature flow', async () => {
     await request(app.getHttpServer()).get('/auth/me').expect(401);
+    await request(app.getHttpServer())
+      .get('/features/FEAT-1/context')
+      .expect(401);
+    await request(app.getHttpServer())
+      .patch('/features/FEAT-1/context')
+      .send({ content: 'Rejected' })
+      .expect(401);
 
     await request(app.getHttpServer())
       .post('/auth/login')
@@ -802,6 +809,20 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     ).expect(404);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        '/features/FEAT-' + otherFeature.publicNumber + '/context',
+      ),
+      authorizationHeader,
+    ).expect(404);
+    await withAuth(
+      request(app.getHttpServer()).patch(
+        '/features/FEAT-' + otherFeature.publicNumber + '/context',
+      ),
+      authorizationHeader,
+    )
+      .send({ content: 'Rejected' })
+      .expect(404);
 
     await withAuth(
       request(app.getHttpServer()).get('/features/FEAT-1'),
@@ -834,6 +855,44 @@ describe('Featurewise backend (e2e)', () => {
       });
 
     await withAuth(
+      request(app.getHttpServer()).get('/features/FEAT-01/context'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/features/PRJ-1/context'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/features/FEAT-999999/context'),
+      authorizationHeader,
+    ).expect(404);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1/context'),
+      authorizationHeader,
+    )
+      .send({})
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 42 })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 'Valid', unexpected: true })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 'x'.repeat(20001) })
+      .expect(400);
+
+    await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
@@ -848,6 +907,18 @@ describe('Featurewise backend (e2e)', () => {
         expectNoUuid(response.body);
       });
 
+    await withAuth(
+      request(app.getHttpServer()).get('/features/FEAT-1/context'),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body).toMatchObject({
+          publicKey: 'CTX-1',
+          featureKey: 'FEAT-1',
+          content: 'Screenshots and notes go here.',
+        });
+      });
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1'),
       authorizationHeader,

@@ -34,22 +34,24 @@ function createService(
   update = jest.fn(),
 ) {
   const getFeatureRecord = jest.fn().mockResolvedValue(featureRecord);
+  const findUnique = jest.fn().mockResolvedValue(contextResult);
   const service = new ContextService(
     { getFeatureRecord } as unknown as FeaturesService,
     {
       contextArtifact: {
-        findUnique: jest.fn().mockResolvedValue(contextResult),
+        findUnique,
         update,
       },
     } as unknown as PrismaService,
   );
 
-  return { getFeatureRecord, service };
+  return { findUnique, getFeatureRecord, service, update };
 }
 
 describe('ContextService', () => {
   it('reads a Feature ContextArtifact through its public key without exposing UUIDs', async () => {
-    const { getFeatureRecord, service } = createService(contextArtifact);
+    const { findUnique, getFeatureRecord, service } =
+      createService(contextArtifact);
 
     const result = await service.getFeatureContext(currentUser, 5831);
 
@@ -64,6 +66,9 @@ describe('ContextService', () => {
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('featureId');
     expect(getFeatureRecord).toHaveBeenCalledWith(currentUser, 5831);
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { featureId: featureRecord.id },
+    });
   });
 
   it('updates ContextArtifact content by its internally resolved Feature UUID', async () => {
@@ -89,10 +94,14 @@ describe('ContextService', () => {
   });
 
   it('returns 404 when the ContextArtifact invariant is broken', async () => {
-    const { service } = createService(null);
+    const { service, update } = createService(null);
 
     await expect(
       service.getFeatureContext(currentUser, 5831),
     ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.updateFeatureContext(currentUser, 5831, { content: 'New' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(update).not.toHaveBeenCalled();
   });
 });
