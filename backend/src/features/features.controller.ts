@@ -14,6 +14,10 @@ import {
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/current-user-context';
+import {
+  ParseEntityIdentifierPipe,
+  type EntityIdentifier,
+} from '../common/public-identifiers';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { FeaturesService } from './features.service';
@@ -23,13 +27,13 @@ import { FeaturesService } from './features.service';
 export class FeaturesController {
   constructor(private readonly featuresService: FeaturesService) {}
 
-  @Get('projects/:projectId/features')
+  @Get('projects/:projectKey/features')
   async listFeatures(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
-    projectId: string,
+    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
+    projectIdentifier: EntityIdentifier,
   ) {
-    return this.featuresService.listFeatures(currentUser, projectId);
+    return this.featuresService.listFeatures(currentUser, projectIdentifier);
   }
 
   @Post('projects/:projectId/features')
@@ -40,6 +44,21 @@ export class FeaturesController {
     @Body() dto: CreateFeatureDto,
   ) {
     return this.featuresService.createFeature(currentUser, projectId, dto);
+  }
+
+  @Get('projects/:projectKey/features/:featureKey')
+  async getProjectFeature(
+    @CurrentUser() currentUser: CurrentUserContext,
+    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
+    projectIdentifier: EntityIdentifier,
+    @Param('featureKey', new ParseEntityIdentifierPipe('feature'))
+    featureIdentifier: EntityIdentifier,
+  ) {
+    return this.featuresService.getProjectFeature(
+      currentUser,
+      projectIdentifier,
+      featureIdentifier,
+    );
   }
 
   @Get('features/:featureId')

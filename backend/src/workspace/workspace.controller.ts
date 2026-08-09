@@ -11,6 +11,10 @@ import {
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/current-user-context';
+import {
+  ParseEntityIdentifierPipe,
+  type EntityIdentifier,
+} from '../common/public-identifiers';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { WorkspaceService } from './workspace.service';
@@ -52,13 +56,13 @@ export class WorkspaceController {
     return this.workspaceService.listProjects(currentUser, organizationId);
   }
 
-  @Get('projects/:projectId')
+  @Get('projects/:projectKey')
   async getProject(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
-    projectId: string,
+    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
+    projectIdentifier: EntityIdentifier,
   ) {
-    return this.workspaceService.getProject(currentUser, projectId);
+    return this.workspaceService.getProject(currentUser, projectIdentifier);
   }
 
   @Patch('projects/:projectId')

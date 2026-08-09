@@ -4,13 +4,16 @@ import { matchPath, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
 import {
   FeatureActionsProvider,
+  getFeaturePath,
   type FeatureCreateSuccessBehavior,
   type FeatureDeleteSuccessBehavior,
   type Feature,
 } from '@/features/features';
 import {
   adjustProjectFeatureCount,
+  getProjectPath,
   projectKeys,
+  projectsQueryOptions,
   WorkspaceActionsProvider,
   type ProjectSummary,
 } from '@/features/workspace';
@@ -23,6 +26,7 @@ export function EntityActionsRoute() {
   const queryClient = useQueryClient();
 
   if (!accessToken || !user) return <Outlet />;
+  const authenticatedAccessToken = accessToken;
   const organizationId = user.organizationId;
 
   function updateCachedProjectFeatureCount(
@@ -36,6 +40,14 @@ export function EntityActionsRoute() {
     );
   }
 
+  async function resolveProjectPublicKey(projectId: string) {
+    const projects = await queryClient.ensureQueryData(
+      projectsQueryOptions(authenticatedAccessToken, organizationId),
+    );
+
+    return projects.find((project) => project.id === projectId)?.publicKey;
+  }
+
   function handleCreated(
     feature: Feature,
     behavior: FeatureCreateSuccessBehavior,
@@ -43,7 +55,15 @@ export function EntityActionsRoute() {
     updateCachedProjectFeatureCount(feature.projectId, 1);
 
     if (behavior === 'open-created') {
-      void navigate(`/projects/${feature.projectId}/features/${feature.id}`);
+      void resolveProjectPublicKey(feature.projectId).then(
+        (projectPublicKey) => {
+          if (!projectPublicKey) return;
+
+          void navigate(
+            getFeaturePath(projectPublicKey, feature.publicKey),
+          );
+        },
+      );
     }
   }
 
@@ -56,11 +76,20 @@ export function EntityActionsRoute() {
     if (behavior === 'stay') return;
 
     const match = matchPath(
-      '/projects/:projectId/features/:featureId',
+      '/projects/:projectKey/features/:featureKey',
       location.pathname,
     );
-    if (match?.params.featureId === feature.id) {
-      void navigate(`/projects/${feature.projectId}`);
+    if (
+      match?.params.featureKey === feature.id ||
+      match?.params.featureKey === feature.publicKey
+    ) {
+      void resolveProjectPublicKey(feature.projectId).then(
+        (projectPublicKey) => {
+          if (!projectPublicKey) return;
+
+          void navigate(getProjectPath(projectPublicKey));
+        },
+      );
     }
   }
 

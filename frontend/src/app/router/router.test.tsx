@@ -1,7 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import {
+  createMemoryRouter,
+  parsePath,
+  RouterProvider,
+} from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAppQueryClient } from '@/app/query/query-client';
@@ -29,6 +33,7 @@ const project = {
   id: currentUser.projectId,
   name: 'Northstar mobile',
   organizationId: currentUser.organizationId,
+  publicKey: 'PRJ-204',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 
@@ -50,6 +55,7 @@ const feature = {
   includeInProjectContext: false,
   origin: 'brand_new',
   projectId: project.id,
+  publicKey: 'FEAT-5831',
   title: 'Authentication workflow',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
@@ -64,6 +70,7 @@ const includedFeature = {
   id: '55555555-5555-4555-8555-555555555555',
   includeInProjectContext: true,
   origin: 'mapped_existing',
+  publicKey: 'FEAT-5832',
   title: 'Billing controls',
 };
 
@@ -106,16 +113,29 @@ function defaultFetch(
   if (path === `/api/organizations/${organization.id}/projects`) {
     return Promise.resolve(jsonResponse([project]));
   }
-  if (path === `/api/projects/${project.id}`) {
-    if (init?.method === 'PATCH') {
-      return Promise.resolve(
-        jsonResponse({ ...project, name: 'Renamed project' }),
-      );
-    }
+  if (path === `/api/projects/${project.id}` && init?.method === 'PATCH') {
+    return Promise.resolve(
+      jsonResponse({ ...project, name: 'Renamed project' }),
+    );
+  }
+  if (
+    path === `/api/projects/${project.publicKey}` ||
+    path === `/api/projects/${project.id}`
+  ) {
     return Promise.resolve(jsonResponse(project));
   }
-  if (path === `/api/projects/${project.id}/features`) {
+  if (
+    path === `/api/projects/${project.publicKey}/features` ||
+    path === `/api/projects/${project.id}/features`
+  ) {
     return Promise.resolve(jsonResponse([feature]));
+  }
+  if (
+    path ===
+      `/api/projects/${project.publicKey}/features/${feature.publicKey}` ||
+    path === `/api/projects/${project.id}/features/${feature.id}`
+  ) {
+    return Promise.resolve(jsonResponse(feature));
   }
   if (path === `/api/features/${feature.id}`) {
     return Promise.resolve(jsonResponse(feature));
@@ -124,8 +144,12 @@ function defaultFetch(
   return Promise.resolve(jsonResponse({ message: 'Not found' }, 404));
 }
 
-function renderRoute(path: string) {
-  const testRouter = createMemoryRouter(routes, { initialEntries: [path] });
+function renderRoute(path: string, state?: unknown) {
+  const initialEntry =
+    state === undefined ? path : { ...parsePath(path), state };
+  const testRouter = createMemoryRouter(routes, {
+    initialEntries: [initialEntry],
+  });
   const queryClient = createAppQueryClient();
 
   render(
@@ -250,7 +274,8 @@ describe('application routes', () => {
     expect(
       fetchMock.mock.calls.some(
         ([input]) =>
-          requestPath(input) === `/api/projects/${project.id}/features`,
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/features`,
       ),
     ).toBe(false);
 
@@ -272,7 +297,7 @@ describe('application routes', () => {
     await user.click(renamedLink);
     await waitFor(() => {
       expect(testRouter.state.location.pathname).toBe(
-        `/projects/${project.id}`,
+        `/projects/${project.publicKey}`,
       );
     });
   });
@@ -307,7 +332,7 @@ describe('application routes', () => {
     );
     await waitFor(() => {
       expect(testRouter.state.location.pathname).toBe(
-        `/projects/${project.id}/features/${feature.id}`,
+        `/projects/${project.publicKey}/features/${feature.publicKey}`,
       );
     });
     expect(
@@ -322,29 +347,35 @@ describe('application routes', () => {
     expect(
       fetchMock.mock.calls.filter(
         ([input]) =>
-          requestPath(input) === `/api/projects/${project.id}/features`,
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/features`,
       ),
     ).toHaveLength(1);
     expect(
       fetchMock.mock.calls.some(
-        ([input]) => requestPath(input) === `/api/projects/${project.id}`,
+        ([input]) =>
+          requestPath(input) === `/api/projects/${project.publicKey}`,
       ),
     ).toBe(false);
     expect(
       fetchMock.mock.calls.some(
-        ([input]) => requestPath(input) === `/api/features/${feature.id}`,
+        ([input]) =>
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/features/${feature.publicKey}`,
       ),
     ).toBe(false);
 
     await user.click(
       screen.getByRole('link', { name: 'Northstar mobile' }),
     );
-    expect(testRouter.state.location.pathname).toBe(`/projects/${project.id}`);
+    expect(testRouter.state.location.pathname).toBe(
+      `/projects/${project.publicKey}`,
+    );
   });
 
   it('renders feature cards with distinct readiness, membership, and run information', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
-    renderRoute(`/projects/${project.id}`);
+    renderRoute(`/projects/${project.publicKey}`);
 
     expect(
       await screen.findByRole('heading', { name: feature.title }),
@@ -367,7 +398,7 @@ describe('application routes', () => {
   it('normalizes an invalid project tab while preserving other query parameters', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const { testRouter } = renderRoute(
-      `/projects/${project.id}?tab=unknown&view=compact`,
+      `/projects/${project.publicKey}?tab=unknown&view=compact`,
     );
 
     expect(
@@ -390,7 +421,7 @@ describe('application routes', () => {
       (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const path = requestPath(input);
 
-        if (path === `/api/projects/${project.id}/features`) {
+        if (path === `/api/projects/${project.publicKey}/features`) {
           return Promise.resolve(jsonResponse([feature, includedFeature]));
         }
         if (path === `/api/features/${feature.id}` && init?.method === 'PATCH') {
@@ -403,7 +434,7 @@ describe('application routes', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
-    renderRoute(`/projects/${project.id}?tab=context`);
+    renderRoute(`/projects/${project.publicKey}?tab=context`);
 
     const selectAll = await screen.findByRole('checkbox', {
       name: 'Select all features',
@@ -443,7 +474,7 @@ describe('application routes', () => {
         (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
           const path = requestPath(input);
 
-          if (path === `/api/projects/${project.id}/features`) {
+          if (path === `/api/projects/${project.publicKey}/features`) {
             return Promise.resolve(jsonResponse([feature, includedFeature]));
           }
           if (
@@ -470,7 +501,7 @@ describe('application routes', () => {
       ),
     );
     const user = userEvent.setup();
-    renderRoute(`/projects/${project.id}?tab=context`);
+    renderRoute(`/projects/${project.publicKey}?tab=context`);
 
     await user.click(
       await screen.findByRole('checkbox', { name: feature.title }),
@@ -496,7 +527,7 @@ describe('application routes', () => {
   it('normalizes an invalid feature tab while preserving other query parameters', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const { testRouter } = renderRoute(
-      `/projects/${project.id}/features/${feature.id}?tab=unknown&view=compact`,
+      `/projects/${project.publicKey}/features/${feature.publicKey}?tab=unknown&view=compact`,
     );
 
     expect(
@@ -517,12 +548,34 @@ describe('application routes', () => {
     });
   });
 
+  it('replaces a legacy UUID feature URL and preserves navigation state', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const navigationState = { from: 'shared-link' };
+    const { testRouter } = renderRoute(
+      `/projects/${project.id}/features/${feature.id}?tab=context&view=compact`,
+      navigationState,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: feature.title }),
+    ).toBeVisible();
+    await waitFor(() => {
+      expect(testRouter.state.location.pathname).toBe(
+        `/projects/${project.publicKey}/features/${feature.publicKey}`,
+      );
+    });
+    expect(testRouter.state.location.search).toBe(
+      '?tab=context&view=compact',
+    );
+    expect(testRouter.state.location.state).toEqual(navigationState);
+  });
+
   it('deep-links and navigates feature tabs through browser history without refetching', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const user = userEvent.setup();
     const fetchMock = vi.mocked(fetch);
     const { testRouter } = renderRoute(
-      `/projects/${project.id}/features/${feature.id}?tab=generations&view=compact`,
+      `/projects/${project.publicKey}/features/${feature.publicKey}?tab=generations&view=compact`,
     );
 
     expect(
@@ -548,7 +601,9 @@ describe('application routes', () => {
     );
 
     const featureRequestsBeforeSwitch = fetchMock.mock.calls.filter(
-      ([input]) => requestPath(input) === `/api/features/${feature.id}`,
+      ([input]) =>
+        requestPath(input) ===
+        `/api/projects/${project.publicKey}/features/${feature.publicKey}`,
     ).length;
     await user.click(screen.getByRole('tab', { name: 'Updates' }));
 
@@ -562,7 +617,9 @@ describe('application routes', () => {
     );
     expect(
       fetchMock.mock.calls.filter(
-        ([input]) => requestPath(input) === `/api/features/${feature.id}`,
+        ([input]) =>
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/features/${feature.publicKey}`,
       ),
     ).toHaveLength(featureRequestsBeforeSwitch);
 
@@ -620,7 +677,9 @@ describe('application routes', () => {
   it('keeps feature quick edit bounded and creation origin explicit', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const user = userEvent.setup();
-    renderRoute(`/projects/${project.id}/features/${feature.id}`);
+    renderRoute(
+      `/projects/${project.publicKey}/features/${feature.publicKey}`,
+    );
 
     await user.click(
       await screen.findByRole('button', { name: 'Edit feature' }),

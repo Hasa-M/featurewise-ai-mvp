@@ -33,13 +33,13 @@ export const routes: RouteObject[] = [
                 }),
               },
               {
-                path: '/projects/:projectId',
+                path: '/projects/:projectKey',
                 lazy: async () => ({
                   Component: (await import('@/pages/project')).ProjectPage,
                 }),
               },
               {
-                path: '/projects/:projectId/features/:featureId',
+                path: '/projects/:projectKey/features/:featureKey',
                 lazy: async () => ({
                   Component: (await import('@/pages/feature')).FeaturePage,
                 }),

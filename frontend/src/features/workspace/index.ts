@@ -25,3 +25,4 @@ export {
   useProjectActions,
 } from './model/workspace-actions';
 export { WorkspaceActionsProvider } from './ui/WorkspaceActionsProvider';
+export { getProjectPath } from './lib/project-path';

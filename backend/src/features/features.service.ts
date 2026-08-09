@@ -6,12 +6,19 @@ import {
 import { Prisma, SpecRunKind, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
+import {
+  formatPublicKey,
+  toIdentifierWhere,
+  type EntityIdentifier,
+} from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
+import { WorkspaceService } from '../workspace/workspace.service';
 import type { CreateFeatureDto } from './dto/create-feature.dto';
 import type { UpdateFeatureDto } from './dto/update-feature.dto';
 
 interface FeatureRecord {
   readonly id: string;
+  readonly publicNumber: number;
   readonly projectId: string;
   readonly title: string;
   readonly brief: string | null;
@@ -46,14 +53,23 @@ export interface FeatureActivity {
 
 @Injectable()
 export class FeaturesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly workspaceService: WorkspaceService,
+  ) {}
 
-  async listFeatures(currentUser: CurrentUserContext, projectId: string) {
-    this.assertProjectVisible(currentUser, projectId);
+  async listFeatures(
+    currentUser: CurrentUserContext,
+    projectIdentifier: EntityIdentifier,
+  ) {
+    const project = await this.workspaceService.getProjectRecord(
+      currentUser,
+      projectIdentifier,
+    );
 
     const features = await this.prismaService.feature.findMany({
       where: {
-        projectId,
+        projectId: project.id,
         deletedAt: null,
       },
       orderBy: {
@@ -97,6 +113,25 @@ export class FeaturesService {
   async getFeature(currentUser: CurrentUserContext, featureId: string) {
     return this.toFeatureResponse(
       await this.getFeatureRecord(currentUser, featureId),
+    );
+  }
+
+  async getProjectFeature(
+    currentUser: CurrentUserContext,
+    projectIdentifier: EntityIdentifier,
+    featureIdentifier: EntityIdentifier,
+  ) {
+    const project = await this.workspaceService.getProjectRecord(
+      currentUser,
+      projectIdentifier,
+    );
+
+    return this.toFeatureResponse(
+      await this.getFeatureRecordByIdentifier(
+        currentUser,
+        featureIdentifier,
+        project.id,
+      ),
     );
   }
 
@@ -168,11 +203,26 @@ export class FeaturesService {
     currentUser: CurrentUserContext,
     featureId: string,
   ): Promise<FeatureRecord> {
+    return this.getFeatureRecordByIdentifier(
+      currentUser,
+      { kind: 'uuid', value: featureId },
+      currentUser.projectId,
+    );
+  }
+
+  private async getFeatureRecordByIdentifier(
+    currentUser: CurrentUserContext,
+    featureIdentifier: EntityIdentifier,
+    projectId: string,
+  ): Promise<FeatureRecord> {
     const feature = await this.prismaService.feature.findFirst({
       where: {
-        id: featureId,
+        ...toIdentifierWhere(featureIdentifier),
         deletedAt: null,
-        ...this.visibleFeatureScope(currentUser),
+        projectId,
+        project: {
+          organizationId: currentUser.organizationId,
+        },
       },
     });
 
@@ -192,12 +242,6 @@ export class FeaturesService {
     }
   }
 
-  private visibleFeatureScope(currentUser: CurrentUserContext) {
-    return {
-      projectId: currentUser.projectId,
-    };
-  }
-
   private async toFeatureResponse(feature: FeatureRecord) {
     const [activity, alignment] = await Promise.all([
       this.computeActivity(feature.id),
@@ -206,6 +250,7 @@ export class FeaturesService {
 
     return {
       id: feature.id,
+      publicKey: formatPublicKey('feature', feature.publicNumber),
       projectId: feature.projectId,
       title: feature.title,
       brief: feature.brief,

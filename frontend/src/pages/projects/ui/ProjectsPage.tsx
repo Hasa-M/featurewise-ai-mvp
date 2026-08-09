@@ -5,7 +5,11 @@ import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { projectFeaturesQueryOptions } from '@/features/features';
-import { useProjectActions, useProjects } from '@/features/workspace';
+import {
+  getProjectPath,
+  useProjectActions,
+  useProjects,
+} from '@/features/workspace';
 import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
@@ -48,9 +52,13 @@ function ProjectsContent({
   );
   usePageHeaderRegistration(pageHeader);
   const prefetchFeatures = useCallback(
-    (projectId: string) => {
+    (projectId: string, projectPublicKey: string) => {
       void queryClient.prefetchQuery(
-        projectFeaturesQueryOptions(accessToken, projectId),
+        projectFeaturesQueryOptions(
+          accessToken,
+          projectId,
+          projectPublicKey,
+        ),
       );
     },
     [accessToken, queryClient],
@@ -91,9 +99,13 @@ function ProjectsContent({
                       <Link
                         aria-describedby={`project-${project.id}-feature-count`}
                         className={styles.projectLink}
-                        onFocus={() => prefetchFeatures(project.id)}
-                        onPointerEnter={() => prefetchFeatures(project.id)}
-                        to={`/projects/${project.id}`}
+                        onFocus={() =>
+                          prefetchFeatures(project.id, project.publicKey)
+                        }
+                        onPointerEnter={() =>
+                          prefetchFeatures(project.id, project.publicKey)
+                        }
+                        to={getProjectPath(project.publicKey)}
                       >
                         {project.name}
                       </Link>

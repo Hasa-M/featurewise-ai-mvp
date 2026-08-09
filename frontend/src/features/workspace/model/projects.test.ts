@@ -25,10 +25,12 @@ describe('project model', () => {
       id: 'project-1',
       name: 'Northstar',
       organizationId: 'organization-1',
+      publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
 
     expect(project.createdAt).toEqual(new Date('2026-07-18T10:00:00.000Z'));
+    expect(project.publicKey).toBe('PRJ-204');
     expect(project.updatedAt).toEqual(new Date('2026-07-18T11:00:00.000Z'));
   });
 
@@ -39,6 +41,7 @@ describe('project model', () => {
       id: 'project-1',
       name: 'Northstar',
       organizationId: 'organization-1',
+      publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
 
@@ -53,6 +56,7 @@ describe('project model', () => {
       id: 'project-1',
       name: 'Northstar',
       organizationId: 'organization-1',
+      publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
 

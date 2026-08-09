@@ -72,6 +72,7 @@ model User {
 
 model Project {
   id             String                 @id @default(dbgenerated("gen_random_uuid()")) @map("project_id") @db.Uuid
+  publicNumber   Int                    @unique(map: "project_public_number_key") @default(dbgenerated("nextval('project_public_number_seq'::regclass)")) @map("public_number")
   organizationId String                 @unique @map("organization_id") @db.Uuid
   name           String
   createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -96,6 +97,7 @@ model ProjectContextSummary {
 
 model Feature {
   id                      String             @id @default(dbgenerated("gen_random_uuid()")) @map("feature_id") @db.Uuid
+  publicNumber            Int              @unique(map: "feature_public_number_key") @default(dbgenerated("nextval('feature_public_number_seq'::regclass)")) @map("public_number")
   projectId               String             @map("project_id") @db.Uuid
   title                   String
   brief                   String?

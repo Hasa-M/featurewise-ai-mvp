@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import {
   createFeature,
@@ -26,12 +27,14 @@ export interface Feature {
   readonly includeInProjectContext: boolean;
   readonly origin: FeatureDto['origin'];
   readonly projectId: string;
+  readonly publicKey: string;
   readonly title: string;
   readonly updatedAt: Date;
 }
 
 export const featureKeys = {
-  detail: (featureId: string) => ['feature', featureId] as const,
+  detail: (projectIdentifier: string, featureIdentifier: string) =>
+    ['feature', projectIdentifier, featureIdentifier] as const,
   list: (projectId: string) => ['features', projectId] as const,
 };
 
@@ -46,19 +49,31 @@ export function toFeature(dto: FeatureDto): Feature {
 export function projectFeaturesQueryOptions(
   accessToken: string,
   projectId: string,
+  projectIdentifier = projectId,
 ) {
   return queryOptions({
     queryKey: featureKeys.list(projectId),
     queryFn: async () =>
-      (await getProjectFeatures(accessToken, projectId)).map(toFeature),
+      (await getProjectFeatures(accessToken, projectIdentifier)).map(toFeature),
     staleTime: 60 * 1000,
   });
 }
 
-export function featureQueryOptions(accessToken: string, featureId: string) {
+export function featureQueryOptions(
+  accessToken: string,
+  projectIdentifier: string,
+  featureIdentifier: string,
+) {
   return queryOptions({
-    queryKey: featureKeys.detail(featureId),
-    queryFn: async () => toFeature(await getFeature(accessToken, featureId)),
+    queryKey: featureKeys.detail(projectIdentifier, featureIdentifier),
+    queryFn: async () =>
+      toFeature(
+        await getFeature(
+          accessToken,
+          projectIdentifier,
+          featureIdentifier,
+        ),
+      ),
     staleTime: 60 * 1000,
   });
 }
@@ -66,10 +81,15 @@ export function featureQueryOptions(accessToken: string, featureId: string) {
 export function useProjectFeatures(
   accessToken: string,
   projectId: string,
+  projectIdentifier = projectId,
   enabled = true,
 ) {
   return useQuery({
-    ...projectFeaturesQueryOptions(accessToken, projectId),
+    ...projectFeaturesQueryOptions(
+      accessToken,
+      projectId,
+      projectIdentifier,
+    ),
     enabled,
   });
 }
@@ -77,20 +97,41 @@ export function useProjectFeatures(
 export function useFeature(
   accessToken: string,
   projectId: string,
-  featureId: string,
+  projectIdentifier: string,
+  featureIdentifier: string,
+  canonicalProjectKey?: string,
 ) {
   const queryClient = useQueryClient();
   const listKey = featureKeys.list(projectId);
 
-  return useQuery({
-    ...featureQueryOptions(accessToken, featureId),
+  const query = useQuery({
+    ...featureQueryOptions(
+      accessToken,
+      projectIdentifier,
+      featureIdentifier,
+    ),
     initialData: () =>
       queryClient
         .getQueryData<readonly Feature[]>(listKey)
-        ?.find((feature) => feature.id === featureId),
+        ?.find(
+          (feature) =>
+            feature.id === featureIdentifier ||
+            feature.publicKey === featureIdentifier,
+        ),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
   });
+
+  useEffect(() => {
+    if (!query.data || !canonicalProjectKey) return;
+
+    queryClient.setQueryData(
+      featureKeys.detail(canonicalProjectKey, query.data.publicKey),
+      query.data,
+    );
+  }, [canonicalProjectKey, query.data, queryClient]);
+
+  return query;
 }
 
 export interface CreateFeatureInput extends CreateFeatureDto {
@@ -110,7 +151,10 @@ export function useCreateFeature(accessToken: string) {
     mutationFn: async ({ projectId, ...input }: CreateFeatureInput) =>
       toFeature(await createFeature(accessToken, projectId, input)),
     onSuccess: (feature) => {
-      queryClient.setQueryData(featureKeys.detail(feature.id), feature);
+      queryClient.setQueryData(
+        featureKeys.detail(feature.projectId, feature.id),
+        feature,
+      );
       queryClient.setQueryData<readonly Feature[]>(
         featureKeys.list(feature.projectId),
         (current) => [
@@ -129,7 +173,14 @@ export function useUpdateFeature(accessToken: string) {
     mutationFn: async ({ featureId, ...input }: FeatureUpdateInput) =>
       toFeature(await updateFeature(accessToken, featureId, input)),
     onSuccess: (feature) => {
-      queryClient.setQueryData(featureKeys.detail(feature.id), feature);
+      queryClient.setQueriesData<Feature>(
+        { queryKey: ['feature'] },
+        (current) => (current?.id === feature.id ? feature : current),
+      );
+      queryClient.setQueryData(
+        featureKeys.detail(feature.projectId, feature.id),
+        feature,
+      );
       queryClient.setQueryData<readonly Feature[]>(
         featureKeys.list(feature.projectId),
         (current) =>
@@ -155,8 +206,11 @@ export function useDeleteFeature(accessToken: string) {
         (current) => current?.filter((item) => item.id !== feature.id),
       );
       queryClient.removeQueries({
-        queryKey: featureKeys.detail(feature.id),
-        exact: true,
+        predicate: (query) => {
+          const data = query.state.data as Feature | undefined;
+
+          return query.queryKey[0] === 'feature' && data?.id === feature.id;
+        },
       });
     },
   });

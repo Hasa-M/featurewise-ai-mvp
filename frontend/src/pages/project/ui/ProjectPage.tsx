@@ -12,14 +12,22 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import {
+  getFeaturePath,
   useFeatureActions,
   useProjectFeatures,
   useUpdateFeature,
   type Feature,
 } from '@/features/features';
-import { useProject, useProjectActions } from '@/features/workspace';
+import {
+  getProjectPath,
+  useProject,
+  useProjectActions,
+} from '@/features/workspace';
 import { ApiError, getApiErrorMessage } from '@/shared/api';
-import { usePageHeaderRegistration } from '@/shared/model';
+import {
+  useCanonicalPath,
+  usePageHeaderRegistration,
+} from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -30,9 +38,6 @@ import { Tabs, type TabsItems } from '@/shared/ui/tabs';
 import { Tag } from '@/shared/ui/tag';
 
 import styles from './ProjectPage.module.css';
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const PROJECT_TAB_IDS = ['features', 'context'] as const;
 type ProjectTabId = (typeof PROJECT_TAB_IDS)[number];
@@ -79,10 +84,12 @@ function FeatureCard({
   feature,
   onDelete,
   onEdit,
+  projectPublicKey,
 }: {
   readonly feature: Feature;
   readonly onDelete: (feature: Feature) => void;
   readonly onEdit: (feature: Feature) => void;
+  readonly projectPublicKey: string;
 }) {
   const pendingUpdateCount = feature.alignment.pendingUpdates.length;
   const latestRun = feature.activity.latestFeatureRun;
@@ -107,7 +114,7 @@ function FeatureCard({
               <Link
                 aria-describedby={`feature-${feature.id}-brief`}
                 className={styles.featureLink}
-                to={`/projects/${feature.projectId}/features/${feature.id}`}
+                to={getFeaturePath(projectPublicKey, feature.publicKey)}
               >
                 {feature.title}
               </Link>
@@ -206,10 +213,12 @@ function FeatureCards({
   features,
   onDelete,
   onEdit,
+  projectPublicKey,
 }: {
   readonly features: readonly Feature[];
   readonly onDelete: (feature: Feature) => void;
   readonly onEdit: (feature: Feature) => void;
+  readonly projectPublicKey: string;
 }) {
   if (features.length === 0) {
     return (
@@ -227,6 +236,7 @@ function FeatureCards({
           key={feature.id}
           onDelete={onDelete}
           onEdit={onEdit}
+          projectPublicKey={projectPublicKey}
         />
       ))}
     </ul>
@@ -441,15 +451,21 @@ interface ProjectContentProps {
   readonly accessToken: string;
   readonly organizationId: string;
   readonly projectId: string;
+  readonly projectKey: string;
 }
 
 function ProjectContent({
   accessToken,
   organizationId,
   projectId,
+  projectKey,
 }: ProjectContentProps) {
-  const projectQuery = useProject(accessToken, organizationId, projectId);
-  const featuresQuery = useProjectFeatures(accessToken, projectId);
+  const projectQuery = useProject(accessToken, organizationId, projectKey);
+  const featuresQuery = useProjectFeatures(
+    accessToken,
+    projectId,
+    projectKey,
+  );
   const { openEdit: openEditProject } = useProjectActions();
   const featureActions = useFeatureActions();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -458,6 +474,11 @@ function ProjectContent({
     ? requestedTab
     : 'features';
   const projectNotFound = projectQuery.isError && isNotFound(projectQuery.error);
+  useCanonicalPath(
+    projectQuery.data
+      ? getProjectPath(projectQuery.data.publicKey)
+      : undefined,
+  );
   const tabs = useMemo<TabsItems>(
     () => [
       {
@@ -490,7 +511,9 @@ function ProjectContent({
           {activeTab === 'features' ? (
             <Button
               leadingIcon={<Plus size={16} strokeWidth={1.75} />}
-              onClick={() => featureActions.openCreate({ projectId })}
+              onClick={() =>
+                featureActions.openCreate({ projectId: projectQuery.data.id })
+              }
             >
               Add feature
             </Button>
@@ -507,7 +530,9 @@ function ProjectContent({
               label: 'Projects',
             },
             {
-              href: `/projects/${projectId}`,
+              href: getProjectPath(
+                projectQuery.data?.publicKey ?? projectKey,
+              ),
               icon: <FolderKanban size={14} strokeWidth={1.75} />,
               kind: 'item' as const,
               label: projectNotFound
@@ -528,7 +553,7 @@ function ProjectContent({
       activeTab,
       featureActions,
       openEditProject,
-      projectId,
+      projectKey,
       projectNotFound,
       projectQuery.data,
     ],
@@ -608,6 +633,7 @@ function ProjectContent({
             features={featuresQuery.data}
             onDelete={featureActions.openDelete}
             onEdit={featureActions.openEdit}
+            projectPublicKey={projectQuery.data.publicKey}
           />
         ) : (
           <ProjectContextPanel
@@ -622,9 +648,9 @@ function ProjectContent({
 
 export function ProjectPage() {
   const { accessToken, user } = useAuth();
-  const { projectId } = useParams();
+  const { projectKey } = useParams();
 
-  if (!projectId || !UUID_PATTERN.test(projectId)) {
+  if (!projectKey) {
     return (
       <section className={styles.page}>
         <p className='fw-overline'>404</p>
@@ -640,7 +666,8 @@ export function ProjectPage() {
     <ProjectContent
       accessToken={accessToken}
       organizationId={user.organizationId}
-      projectId={projectId}
+      projectId={user.projectId}
+      projectKey={projectKey}
     />
   );
 }

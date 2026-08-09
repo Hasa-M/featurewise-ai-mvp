@@ -16,15 +16,22 @@ workflows remain dedicated Feature-page milestones.
 The authenticated route tree keeps `AppShell` and `PageStructure` mounted above all three lazy child pages:
 
 - `/` renders the Projects list and is also the application home.
-- `/projects/:projectId` renders the selected Project workspace. Its `tab`
+- `/projects/:projectKey` renders the selected Project workspace. Its `tab`
   query parameter supports `features` and `context`; missing or invalid values
   resolve to `features`. The context tab currently persists only Feature
   membership. ProjectContextSummary content editing and recalculation remain
   deferred until their backend workflow is defined.
-- `/projects/:projectId/features/:featureId` renders the selected Feature
+- `/projects/:projectKey/features/:featureKey` renders the selected Feature
   workspace. Its `tab` query parameter supports `context`, `generations`,
   `updates`, and `specifications`; missing or invalid values resolve to
   `context`.
+
+Project and Feature keys are backend-generated public identifiers (`PRJ-*` and
+`FEAT-*`). Central route builders create all new links from response
+`publicKey` values. The read API and route pages also accept legacy UUIDs; once
+resolved, the client replaces a legacy location with its canonical public-key
+path while preserving query parameters, hash, and router state. UUIDs remain
+available for existing write operations and are not derived in the frontend.
 
 `PageStructure` owns the single `main` landmark. Its Header, Sidebar visibility,
 Sidebar width, accordion state, user menu, action providers, and query
@@ -54,7 +61,9 @@ Projects node
   opens shared Feature edit and delete. Expanding the group displays a
   future-navigation empty message.
 
-Selection IDs are stable (`projects`, `project:<id>`, `features:<projectId>`, and `feature:<id>`). The URL determines the current item and the shared Sidebar marks its ancestors.
+Selection IDs are stable (`projects`, `project:<publicKey>`,
+`features:<projectPublicKey>`, and `feature:<featurePublicKey>`). The URL
+determines the current item and the shared Sidebar marks its ancestors.
 
 ## Server-state and communication
 
@@ -64,9 +73,9 @@ One QueryClient is mounted above authentication and routing. Authentication fail
 | --- | --- | --- |
 | Organization | `['organization', organizationId]` | 5 minutes |
 | Project summaries, including active-feature count | `['projects', organizationId]` | 5 minutes |
-| Project | `['project', projectId]` | 5 minutes |
+| Project | `['project', projectIdentifier]` | 5 minutes |
 | Project features | `['features', projectId]` | 1 minute |
-| Feature | `['feature', featureId]` | 1 minute |
+| Feature | `['feature', projectIdentifier, featureIdentifier]` | 1 minute |
 
 Organization and project summaries start concurrently after authentication. The
 project-summary response includes the count of non-deleted Features so the
@@ -84,7 +93,8 @@ count at the app composition boundary.
 
 Project and feature detail queries use fresh collection entries as initial data
 and inherit the collection's update timestamp. Direct deep links fall back to
-the existing detail endpoints. Project feature reads also expose backend-derived
+identifier-compatible Project and nested Feature read endpoints. The nested
+Feature endpoint verifies Project membership. Project feature reads also expose backend-derived
 activity: direct generation-run count, current valid-spec version, and the
 latest feature-target run's kind, status, and project-summary inclusion setting.
 The Project context tab keeps an explicit local membership draft, then

@@ -3,6 +3,7 @@ import { FeatureOrigin, SpecRunKind, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { PrismaService } from '../database/prisma.service';
+import type { WorkspaceService } from '../workspace/workspace.service';
 import { FeaturesService } from './features.service';
 
 const currentUser: CurrentUserContext = {
@@ -14,6 +15,7 @@ const currentUser: CurrentUserContext = {
 
 const featureRecord = {
   id: '00000000-0000-4000-8000-000000000004',
+  publicNumber: 5831,
   projectId: currentUser.projectId,
   title: 'Feature',
   brief: null,
@@ -48,6 +50,29 @@ function createPrismaMock(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+function createWorkspaceMock() {
+  return {
+    getProjectRecord: jest.fn().mockResolvedValue({
+      id: currentUser.projectId,
+      publicNumber: 204,
+      organizationId: currentUser.organizationId,
+      name: 'MVP',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  };
+}
+
+function createService(
+  prismaMock: ReturnType<typeof createPrismaMock>,
+  workspaceMock = createWorkspaceMock(),
+) {
+  return new FeaturesService(
+    prismaMock as unknown as PrismaService,
+    workspaceMock as unknown as WorkspaceService,
+  );
+}
+
 describe('FeaturesService', () => {
   it('creates a feature and its empty ContextArtifact in one transaction', async () => {
     const prismaMock = createPrismaMock();
@@ -80,7 +105,7 @@ describe('FeaturesService', () => {
           },
         }),
     );
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.createFeature(currentUser, currentUser.projectId, {
@@ -119,16 +144,25 @@ describe('FeaturesService', () => {
 
   it('lists features for a visible project', async () => {
     const prismaMock = createPrismaMock();
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const workspaceMock = createWorkspaceMock();
+    const service = createService(prismaMock, workspaceMock);
 
     await expect(
-      service.listFeatures(currentUser, currentUser.projectId),
+      service.listFeatures(currentUser, {
+        kind: 'publicNumber',
+        value: 204,
+      }),
     ).resolves.toEqual([
       expect.objectContaining({
         id: featureRecord.id,
+        publicKey: 'FEAT-5831',
         projectId: currentUser.projectId,
       }),
     ]);
+    expect(workspaceMock.getProjectRecord).toHaveBeenCalledWith(currentUser, {
+      kind: 'publicNumber',
+      value: 204,
+    });
     expect(prismaMock.feature.findMany).toHaveBeenCalledWith({
       where: {
         projectId: currentUser.projectId,
@@ -165,7 +199,7 @@ describe('FeaturesService', () => {
         }),
       },
     });
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.getFeature(currentUser, featureRecord.id),
@@ -191,17 +225,24 @@ describe('FeaturesService', () => {
 
   it('returns 404 when listing features for a project outside the current user visibility', async () => {
     const prismaMock = createPrismaMock();
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const workspaceMock = createWorkspaceMock();
+    workspaceMock.getProjectRecord.mockRejectedValue(
+      new NotFoundException('Project not found'),
+    );
+    const service = createService(prismaMock, workspaceMock);
 
     await expect(
-      service.listFeatures(currentUser, '00000000-0000-4000-8000-000000000099'),
+      service.listFeatures(currentUser, {
+        kind: 'uuid',
+        value: '00000000-0000-4000-8000-000000000099',
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(prismaMock.feature.findMany).not.toHaveBeenCalled();
   });
 
   it('returns 404 when creating a feature for a project outside the current user visibility', async () => {
     const prismaMock = createPrismaMock();
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.createFeature(
@@ -225,7 +266,7 @@ describe('FeaturesService', () => {
         }),
       },
     });
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.deleteFeature(currentUser, featureRecord.id),
@@ -240,7 +281,7 @@ describe('FeaturesService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
       },
     });
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.getFeature(currentUser, featureRecord.id),
@@ -249,7 +290,7 @@ describe('FeaturesService', () => {
 
   it('scopes feature reads by visible project id', async () => {
     const prismaMock = createPrismaMock();
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.getFeature(currentUser, featureRecord.id),
@@ -261,6 +302,65 @@ describe('FeaturesService', () => {
         id: featureRecord.id,
         deletedAt: null,
         projectId: currentUser.projectId,
+        project: {
+          organizationId: currentUser.organizationId,
+        },
+      },
+    });
+  });
+
+  it('resolves a feature public number only under the resolved project', async () => {
+    const prismaMock = createPrismaMock();
+    const workspaceMock = createWorkspaceMock();
+    const service = createService(prismaMock, workspaceMock);
+
+    await expect(
+      service.getProjectFeature(
+        currentUser,
+        { kind: 'publicNumber', value: 204 },
+        { kind: 'publicNumber', value: 5831 },
+      ),
+    ).resolves.toMatchObject({
+      id: featureRecord.id,
+      publicKey: 'FEAT-5831',
+      projectId: currentUser.projectId,
+    });
+    expect(prismaMock.feature.findFirst).toHaveBeenCalledWith({
+      where: {
+        publicNumber: 5831,
+        deletedAt: null,
+        projectId: currentUser.projectId,
+        project: {
+          organizationId: currentUser.organizationId,
+        },
+      },
+    });
+  });
+
+  it('returns 404 when a feature key does not belong to the resolved project', async () => {
+    const prismaMock = createPrismaMock({
+      feature: {
+        ...createPrismaMock().feature,
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    });
+    const service = createService(prismaMock);
+
+    await expect(
+      service.getProjectFeature(
+        currentUser,
+        { kind: 'publicNumber', value: 204 },
+        { kind: 'publicNumber', value: 9999 },
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prismaMock.feature.findFirst).toHaveBeenCalledWith({
+      where: {
+        publicNumber: 9999,
+        deletedAt: null,
+        projectId: currentUser.projectId,
+        project: {
+          organizationId: currentUser.organizationId,
+        },
       },
     });
   });
@@ -272,7 +372,7 @@ describe('FeaturesService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
       },
     });
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.updateFeature(currentUser, featureRecord.id, {
@@ -289,7 +389,7 @@ describe('FeaturesService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
       },
     });
-    const service = new FeaturesService(prismaMock as unknown as PrismaService);
+    const service = createService(prismaMock);
 
     await expect(
       service.deleteFeature(currentUser, featureRecord.id),

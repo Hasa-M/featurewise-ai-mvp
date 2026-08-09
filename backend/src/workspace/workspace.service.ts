@@ -1,9 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
+import {
+  formatPublicKey,
+  toIdentifierWhere,
+  type EntityIdentifier,
+} from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
 import type { UpdateOrganizationDto } from './dto/update-organization.dto';
 import type { UpdateProjectDto } from './dto/update-project.dto';
+
+export interface ProjectRecord {
+  readonly id: string;
+  readonly publicNumber: number;
+  readonly organizationId: string;
+  readonly name: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
 
 @Injectable()
 export class WorkspaceService {
@@ -65,17 +79,31 @@ export class WorkspaceService {
     });
 
     return projects.map(({ _count, ...project }) => ({
-      ...project,
+      ...this.toProjectResponse(project),
       featureCount: _count.features,
     }));
   }
 
-  async getProject(currentUser: CurrentUserContext, projectId: string) {
-    this.assertProjectVisible(currentUser, projectId);
+  async getProject(
+    currentUser: CurrentUserContext,
+    projectIdentifier: EntityIdentifier,
+  ) {
+    return this.toProjectResponse(
+      await this.getProjectRecord(currentUser, projectIdentifier),
+    );
+  }
 
-    const project = await this.prismaService.project.findUnique({
+  async getProjectRecord(
+    currentUser: CurrentUserContext,
+    projectIdentifier: EntityIdentifier,
+  ): Promise<ProjectRecord> {
+    const project = await this.prismaService.project.findFirst({
       where: {
-        id: projectId,
+        organizationId: currentUser.organizationId,
+        AND: [
+          { id: currentUser.projectId },
+          toIdentifierWhere(projectIdentifier),
+        ],
       },
     });
 
@@ -91,9 +119,12 @@ export class WorkspaceService {
     projectId: string,
     dto: UpdateProjectDto,
   ) {
-    await this.getProject(currentUser, projectId);
+    await this.getProjectRecord(currentUser, {
+      kind: 'uuid',
+      value: projectId,
+    });
 
-    return this.prismaService.project.update({
+    const project = await this.prismaService.project.update({
       where: {
         id: projectId,
       },
@@ -101,6 +132,8 @@ export class WorkspaceService {
         name: dto.name.trim(),
       },
     });
+
+    return this.toProjectResponse(project);
   }
 
   private assertOrganizationVisible(
@@ -112,12 +145,14 @@ export class WorkspaceService {
     }
   }
 
-  private assertProjectVisible(
-    currentUser: CurrentUserContext,
-    projectId: string,
-  ): void {
-    if (currentUser.projectId !== projectId) {
-      throw new NotFoundException('Project not found');
-    }
+  private toProjectResponse(project: ProjectRecord) {
+    return {
+      id: project.id,
+      publicKey: formatPublicKey('project', project.publicNumber),
+      organizationId: project.organizationId,
+      name: project.name,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    };
   }
 }

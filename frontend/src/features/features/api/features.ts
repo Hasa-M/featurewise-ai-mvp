@@ -35,6 +35,7 @@ export interface FeatureDto {
   readonly includeInProjectContext: boolean;
   readonly origin: 'brand_new' | 'mapped_existing';
   readonly projectId: string;
+  readonly publicKey: string;
   readonly title: string;
   readonly updatedAt: string;
 }
@@ -52,18 +53,23 @@ export interface UpdateFeatureDto {
 
 export function getProjectFeatures(
   accessToken: string,
-  projectId: string,
+  projectIdentifier: string,
 ): Promise<readonly FeatureDto[]> {
-  return request<readonly FeatureDto[]>(`/projects/${projectId}/features`, {
-    accessToken,
-  });
+  return request<readonly FeatureDto[]>(
+    `/projects/${projectIdentifier}/features`,
+    { accessToken },
+  );
 }
 
 export function getFeature(
   accessToken: string,
-  featureId: string,
+  projectIdentifier: string,
+  featureIdentifier: string,
 ): Promise<FeatureDto> {
-  return request<FeatureDto>(`/features/${featureId}`, { accessToken });
+  return request<FeatureDto>(
+    `/projects/${projectIdentifier}/features/${featureIdentifier}`,
+    { accessToken },
+  );
 }
 
 export function createFeature(

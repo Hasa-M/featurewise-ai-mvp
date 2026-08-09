@@ -21,11 +21,13 @@ import { matchPath, Outlet, useLocation } from 'react-router-dom';
 import { RouterNavigationLink } from '@/app/router/RouterNavigationLink';
 import { useAuth } from '@/features/auth';
 import {
+  getFeaturePath,
   projectFeaturesQueryOptions,
   useFeatureActions,
   type Feature,
 } from '@/features/features';
 import {
+  getProjectPath,
   useOrganization,
   useProjectActions,
   useProjects,
@@ -288,23 +290,23 @@ function ShellStatus({ errorMessage, onRetry }: ShellStatusProps) {
 
 function activeSidebarItem(pathname: string): string {
   const featureMatch = matchPath(
-    '/projects/:projectId/features/:featureId',
+    '/projects/:projectKey/features/:featureKey',
     pathname,
   );
-  if (featureMatch?.params.featureId) {
-    return `feature:${featureMatch.params.featureId}`;
+  if (featureMatch?.params.featureKey) {
+    return `feature:${featureMatch.params.featureKey}`;
   }
 
-  const projectMatch = matchPath('/projects/:projectId', pathname);
-  if (projectMatch?.params.projectId) {
-    return `project:${projectMatch.params.projectId}`;
+  const projectMatch = matchPath('/projects/:projectKey', pathname);
+  if (projectMatch?.params.projectKey) {
+    return `project:${projectMatch.params.projectKey}`;
   }
 
   return pathname === '/' ? 'projects' : '';
 }
 
 function featureGroups(
-  projectId: string,
+  projectPublicKey: string,
   features: readonly Feature[] | undefined,
   onDelete: (feature: Feature) => void,
   onEdit: (feature: Feature) => void,
@@ -312,7 +314,7 @@ function featureGroups(
   return (features ?? []).map((feature) => ({
     children: [],
     emptyMessage: 'No feature sections yet',
-    id: `feature:${feature.id}`,
+    id: `feature:${feature.publicKey}`,
     label: feature.title,
     menuContent: {
       'aria-label': `Open ${feature.title} menu`,
@@ -336,7 +338,7 @@ function featureGroups(
     },
     pageAction: {
       'aria-label': `Go to ${feature.title}`,
-      href: `/projects/${projectId}/features/${feature.id}`,
+      href: getFeaturePath(projectPublicKey, feature.publicKey),
       title: `Go to ${feature.title}`,
     },
     type: 'group',
@@ -380,15 +382,23 @@ function ReadyShell({
   });
   const featureQueries = useQueries({
     queries: projects.map((project) => ({
-      ...projectFeaturesQueryOptions(accessToken, project.id),
-      enabled: expandedProjects.has(project.id),
+      ...projectFeaturesQueryOptions(
+        accessToken,
+        project.id,
+        project.publicKey,
+      ),
+      enabled: expandedProjects.has(project.publicKey),
     })),
   });
 
   const prefetchFeatures = useCallback(
-    (projectId: string) => {
+    (projectId: string, projectPublicKey: string) => {
       void queryClient.prefetchQuery(
-        projectFeaturesQueryOptions(accessToken, projectId),
+        projectFeaturesQueryOptions(
+          accessToken,
+          projectId,
+          projectPublicKey,
+        ),
       );
     },
     [accessToken, queryClient],
@@ -413,18 +423,18 @@ function ReadyShell({
                 title: `Add feature to ${project.name}`,
               },
               children: featureGroups(
-                project.id,
+                project.publicKey,
                 featureQuery?.data,
                 featureActions.openDelete,
                 featureActions.openEdit,
               ),
               emptyMessage,
-              id: `features:${project.id}`,
+              id: `features:${project.publicKey}`,
               label: 'Features',
               type: 'node',
             },
           ],
-          id: `project:${project.id}`,
+          id: `project:${project.publicKey}`,
           label: project.name,
           menuContent: {
             'aria-label': `Open ${project.name} menu`,
@@ -439,9 +449,11 @@ function ReadyShell({
           },
           pageAction: {
             'aria-label': `Go to ${project.name}`,
-            href: `/projects/${project.id}`,
-            onFocus: () => prefetchFeatures(project.id),
-            onPointerEnter: () => prefetchFeatures(project.id),
+            href: getProjectPath(project.publicKey),
+            onFocus: () =>
+              prefetchFeatures(project.id, project.publicKey),
+            onPointerEnter: () =>
+              prefetchFeatures(project.id, project.publicKey),
             title: `Go to ${project.name}`,
           },
           type: 'group',
@@ -479,14 +491,14 @@ function ReadyShell({
 
   const handleItemOpenChange = useCallback((itemId: string, open: boolean) => {
     if (!itemId.startsWith('project:')) return;
-    const projectId = itemId.slice('project:'.length);
+    const projectPublicKey = itemId.slice('project:'.length);
 
     setExpandedProjects((current) => {
       const next = new Set(current);
       if (open) {
-        next.add(projectId);
+        next.add(projectPublicKey);
       } else {
-        next.delete(projectId);
+        next.delete(projectPublicKey);
       }
       return next;
     });

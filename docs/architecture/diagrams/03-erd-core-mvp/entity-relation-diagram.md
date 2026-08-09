@@ -45,6 +45,7 @@ erDiagram
 
     PROJECT {
         uuid projectId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0027)"
         uuid organizationId FK
         text name
         timestamptz createdAt
@@ -61,6 +62,7 @@ erDiagram
 
     FEATURE {
         uuid featureId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0027)"
         uuid projectId FK
         text title
         text brief "short statement; deep context lives in the ContextArtifact"
@@ -162,6 +164,10 @@ erDiagram
 ## Database-level constraints (must exist in the first migration)
 
 ```sql
+-- Project/Feature public numbers are independent, positive, immutable values.
+-- PostgreSQL sequences supply defaults; unique indexes and update-rejection
+-- triggers enforce the durable public URL contract (ADR-0027).
+
 -- ContextArtifact: exactly one owner, and each owner has at most one artifact
 CHECK (num_nonnulls(feature_id, feature_update_id) = 1);
 UNIQUE (feature_id);

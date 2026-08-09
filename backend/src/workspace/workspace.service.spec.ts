@@ -56,34 +56,80 @@ describe('WorkspaceService', () => {
   });
 
   it('returns 404 when the project is outside the current user visibility', async () => {
-    const findUnique = jest.fn();
+    const findFirst = jest.fn().mockResolvedValue(null);
     const service = new WorkspaceService({
       project: {
-        findUnique,
+        findFirst,
       },
     } as unknown as PrismaService);
 
     await expect(
-      service.getProject(currentUser, '00000000-0000-4000-8000-000000000099'),
+      service.getProject(currentUser, {
+        kind: 'uuid',
+        value: '00000000-0000-4000-8000-000000000099',
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(findUnique).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: currentUser.organizationId,
+        AND: [
+          { id: currentUser.projectId },
+          { id: '00000000-0000-4000-8000-000000000099' },
+        ],
+      },
+    });
   });
 
   it('returns 404 when the visible project cannot be found', async () => {
     const service = new WorkspaceService({
       project: {
-        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
       },
     } as unknown as PrismaService);
 
     await expect(
-      service.getProject(currentUser, currentUser.projectId),
+      service.getProject(currentUser, {
+        kind: 'uuid',
+        value: currentUser.projectId,
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('resolves the visible project by public number', async () => {
+    const project = {
+      id: currentUser.projectId,
+      publicNumber: 204,
+      organizationId: currentUser.organizationId,
+      name: 'MVP',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const findFirst = jest.fn().mockResolvedValue(project);
+    const service = new WorkspaceService({
+      project: { findFirst },
+    } as unknown as PrismaService);
+
+    await expect(
+      service.getProject(currentUser, {
+        kind: 'publicNumber',
+        value: 204,
+      }),
+    ).resolves.toMatchObject({
+      id: project.id,
+      publicKey: 'PRJ-204',
+    });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: currentUser.organizationId,
+        AND: [{ id: currentUser.projectId }, { publicNumber: 204 }],
+      },
+    });
   });
 
   it('lists projects for the authenticated organization', async () => {
     const project = {
       id: currentUser.projectId,
+      publicNumber: 204,
       organizationId: currentUser.organizationId,
       name: 'MVP',
       createdAt: new Date(),
@@ -104,6 +150,7 @@ describe('WorkspaceService', () => {
     ).resolves.toEqual([
       {
         id: project.id,
+        publicKey: 'PRJ-204',
         organizationId: project.organizationId,
         name: project.name,
         createdAt: project.createdAt,
@@ -149,19 +196,20 @@ describe('WorkspaceService', () => {
   it('updates the scoped project name', async () => {
     const project = {
       id: currentUser.projectId,
+      publicNumber: 204,
       organizationId: currentUser.organizationId,
       name: 'MVP',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const findUnique = jest.fn().mockResolvedValue(project);
+    const findFirst = jest.fn().mockResolvedValue(project);
     const update = jest.fn().mockResolvedValue({
       ...project,
       name: 'Renamed project',
     });
     const service = new WorkspaceService({
       project: {
-        findUnique,
+        findFirst,
         update,
       },
     } as unknown as PrismaService);
@@ -173,9 +221,10 @@ describe('WorkspaceService', () => {
     ).resolves.toMatchObject({
       name: 'Renamed project',
     });
-    expect(findUnique).toHaveBeenCalledWith({
+    expect(findFirst).toHaveBeenCalledWith({
       where: {
-        id: currentUser.projectId,
+        organizationId: currentUser.organizationId,
+        AND: [{ id: currentUser.projectId }, { id: currentUser.projectId }],
       },
     });
     expect(update).toHaveBeenCalledWith({

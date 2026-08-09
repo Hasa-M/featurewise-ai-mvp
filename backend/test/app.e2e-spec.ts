@@ -44,6 +44,7 @@ interface UserRecord {
 
 interface ProjectRecord {
   readonly id: string;
+  readonly publicNumber: number;
   readonly organizationId: string;
   name: string;
   readonly createdAt: Date;
@@ -52,6 +53,7 @@ interface ProjectRecord {
 
 interface FeatureRecord {
   readonly id: string;
+  readonly publicNumber: number;
   readonly projectId: string;
   title: string;
   brief: string | null;
@@ -88,6 +90,8 @@ interface FeatureCreateData {
 
 class InMemoryPrisma {
   private idCounter = 1;
+  private projectPublicNumberCounter = 1;
+  private featurePublicNumberCounter = 1;
   private readonly organizations: OrganizationRecord[] = [];
   private readonly users: UserRecord[] = [];
   private readonly projects: ProjectRecord[] = [];
@@ -186,6 +190,7 @@ class InMemoryPrisma {
     create: ({ data }: { data: { name: string; organizationId: string } }) => {
       const project: ProjectRecord = {
         id: this.nextId(),
+        publicNumber: this.projectPublicNumberCounter++,
         organizationId: data.organizationId,
         name: data.name,
         createdAt: new Date(),
@@ -215,6 +220,26 @@ class InMemoryPrisma {
       Promise.resolve(
         this.projects.find((project) => project.id === where.id) ?? null,
       ),
+    findFirst: ({
+      where,
+    }: {
+      where: {
+        organizationId: string;
+        AND: ReadonlyArray<{ id?: string; publicNumber?: number }>;
+      };
+    }) =>
+      Promise.resolve(
+        this.projects.find(
+          (project) =>
+            project.organizationId === where.organizationId &&
+            where.AND.every(
+              (condition) =>
+                (condition.id === undefined || project.id === condition.id) &&
+                (condition.publicNumber === undefined ||
+                  project.publicNumber === condition.publicNumber),
+            ),
+        ) ?? null,
+      ),
     update: ({
       where,
       data,
@@ -241,6 +266,7 @@ class InMemoryPrisma {
     create: ({ data }: { data: FeatureCreateData }) => {
       const feature: FeatureRecord = {
         id: this.nextId(),
+        publicNumber: this.featurePublicNumberCounter++,
         projectId: data.projectId,
         title: data.title,
         brief: data.brief,
@@ -278,7 +304,8 @@ class InMemoryPrisma {
       where,
     }: {
       where: {
-        id: string;
+        id?: string;
+        publicNumber?: number;
         projectId: string;
         deletedAt: null;
         project?: { organizationId: string };
@@ -286,7 +313,9 @@ class InMemoryPrisma {
     }) => {
       const feature = this.features.find(
         (candidate) =>
-          candidate.id === where.id &&
+          (where.id === undefined || candidate.id === where.id) &&
+          (where.publicNumber === undefined ||
+            candidate.publicNumber === where.publicNumber) &&
           candidate.projectId === where.projectId &&
           candidate.deletedAt === null,
       );
@@ -436,6 +465,7 @@ function withAuth(
 
 describe('Featurewise backend (e2e)', () => {
   let app: INestApplication<App>;
+  let prisma: InMemoryPrisma;
 
   beforeAll(() => {
     process.env.DATABASE_HOST ??= 'localhost';
@@ -449,7 +479,7 @@ describe('Featurewise backend (e2e)', () => {
   });
 
   beforeEach(async () => {
-    const prisma = new InMemoryPrisma();
+    prisma = new InMemoryPrisma();
     await seedWorkspace(prisma);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -514,6 +544,7 @@ describe('Featurewise backend (e2e)', () => {
     const login = loginResponse.body as LoginResponse;
     const authorizationHeader = `${login.tokenType} ${login.accessToken}`;
     const currentUser = login.user;
+    let projectPublicKey = '';
 
     await withAuth(
       request(app.getHttpServer()).get('/auth/me'),
@@ -557,14 +588,43 @@ describe('Featurewise backend (e2e)', () => {
         const projects = response.body as ReadonlyArray<{
           readonly featureCount: number;
           readonly id: string;
+          readonly publicKey: string;
         }>;
 
         expect(projects).toHaveLength(1);
         expect(projects[0]).toMatchObject({
           featureCount: 0,
           id: currentUser.projectId,
+          publicKey: 'PRJ-1',
+        });
+        projectPublicKey = projects[0]?.publicKey ?? '';
+      });
+
+    await withAuth(
+      request(app.getHttpServer()).get(`/projects/${projectPublicKey}`),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body).toMatchObject({
+          id: currentUser.projectId,
+          publicKey: projectPublicKey,
         });
       });
+
+    await withAuth(
+      request(app.getHttpServer()).get(`/projects/${currentUser.projectId}`),
+      authorizationHeader,
+    ).expect(200);
+
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-01'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-999999'),
+      authorizationHeader,
+    ).expect(404);
 
     await withAuth(
       request(app.getHttpServer()).patch(`/projects/${currentUser.projectId}`),
@@ -576,6 +636,7 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           id: currentUser.projectId,
           name: 'Renamed project',
+          publicKey: projectPublicKey,
         });
       });
 
@@ -601,11 +662,15 @@ describe('Featurewise backend (e2e)', () => {
         includeInProjectContext: true,
       })
       .expect(201);
-    const feature = createFeatureResponse.body as { id: string };
+    const feature = createFeatureResponse.body as {
+      id: string;
+      publicKey: string;
+    };
+    expect(feature.publicKey).toBe('FEAT-1');
 
     await withAuth(
       request(app.getHttpServer()).get(
-        `/projects/${currentUser.projectId}/features`,
+        `/projects/${projectPublicKey}/features`,
       ),
       authorizationHeader,
     )
@@ -613,6 +678,7 @@ describe('Featurewise backend (e2e)', () => {
       .expect((response: Response) => {
         const features = response.body as ReadonlyArray<{
           readonly id: string;
+          readonly publicKey: string;
           readonly alignment: {
             readonly status: string;
             readonly pendingUpdates: readonly unknown[];
@@ -622,6 +688,7 @@ describe('Featurewise backend (e2e)', () => {
         expect(features).toHaveLength(1);
         expect(features[0]).toMatchObject({
           id: feature.id,
+          publicKey: feature.publicKey,
           activity: {
             currentValidSpecVersion: null,
             generationRunCount: 0,
@@ -635,6 +702,68 @@ describe('Featurewise backend (e2e)', () => {
       });
 
     await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${projectPublicKey}/features/${feature.publicKey}`,
+      ),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body).toMatchObject({
+          id: feature.id,
+          publicKey: feature.publicKey,
+          projectId: currentUser.projectId,
+        });
+      });
+
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${currentUser.projectId}/features/${feature.id}`,
+      ),
+      authorizationHeader,
+    ).expect(200);
+
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${projectPublicKey}/features/FEAT-0`,
+      ),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${projectPublicKey}/features/FEAT-999999`,
+      ),
+      authorizationHeader,
+    ).expect(404);
+
+    const otherOrganization = await prisma.organization.create({
+      data: { name: 'Other organization' },
+    });
+    const otherProject = await prisma.project.create({
+      data: {
+        name: 'Other project',
+        organizationId: otherOrganization.id,
+      },
+    });
+    const otherFeature = await prisma.feature.create({
+      data: {
+        brief: null,
+        createdById: currentUser.userId,
+        includeInProjectContext: false,
+        origin: FeatureOrigin.brand_new,
+        projectId: otherProject.id,
+        title: 'Other feature',
+      },
+    });
+
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${projectPublicKey}/features/FEAT-${otherFeature.publicNumber}`,
+      ),
+      authorizationHeader,
+    ).expect(404);
+
+    await withAuth(
       request(app.getHttpServer()).get(`/features/${feature.id}`),
       authorizationHeader,
     )
@@ -642,6 +771,7 @@ describe('Featurewise backend (e2e)', () => {
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
           id: feature.id,
+          publicKey: feature.publicKey,
           title: 'New checkout',
           includeInProjectContext: true,
         });

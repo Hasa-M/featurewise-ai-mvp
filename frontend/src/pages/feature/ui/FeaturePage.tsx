@@ -9,18 +9,22 @@ import { useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
-import { useFeature, useFeatureActions } from '@/features/features';
-import { useProject } from '@/features/workspace';
+import {
+  getFeaturePath,
+  useFeature,
+  useFeatureActions,
+} from '@/features/features';
+import { getProjectPath, useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
-import { usePageHeaderRegistration } from '@/shared/model';
+import {
+  useCanonicalPath,
+  usePageHeaderRegistration,
+} from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Tabs, type TabsItems } from '@/shared/ui/tabs';
 
 import styles from './FeaturePage.module.css';
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const FEATURE_TABS = [
   {
@@ -73,19 +77,27 @@ function isNotFound(error: unknown) {
 
 interface FeatureContentProps {
   readonly accessToken: string;
-  readonly featureId: string;
+  readonly featureKey: string;
   readonly organizationId: string;
   readonly projectId: string;
+  readonly projectKey: string;
 }
 
 function FeatureContent({
   accessToken,
-  featureId,
+  featureKey,
   organizationId,
   projectId,
+  projectKey,
 }: FeatureContentProps) {
-  const projectQuery = useProject(accessToken, organizationId, projectId);
-  const featureQuery = useFeature(accessToken, projectId, featureId);
+  const projectQuery = useProject(accessToken, organizationId, projectKey);
+  const featureQuery = useFeature(
+    accessToken,
+    projectId,
+    projectKey,
+    featureKey,
+    projectQuery.data?.publicKey,
+  );
   const featureActions = useFeatureActions();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
@@ -98,6 +110,14 @@ function FeatureContent({
     targetMismatch ||
     (projectQuery.isError && isNotFound(projectQuery.error)) ||
     (featureQuery.isError && isNotFound(featureQuery.error));
+  useCanonicalPath(
+    projectQuery.data && featureQuery.data && !targetMismatch
+      ? getFeaturePath(
+          projectQuery.data.publicKey,
+          featureQuery.data.publicKey,
+        )
+      : undefined,
+  );
   const pageHeader = useMemo(
     () => ({
       actions: featureQuery.data && !targetMismatch ? (
@@ -128,19 +148,26 @@ function FeatureContent({
               label: 'Projects',
             },
             {
-              href: `/projects/${projectId}`,
+              href: getProjectPath(
+                projectQuery.data?.publicKey ?? projectKey,
+              ),
               icon: <FolderKanban size={14} strokeWidth={1.75} />,
               kind: 'item' as const,
               label: projectQuery.data?.name ?? 'Project',
             },
             {
-              href: `/projects/${projectId}`,
+              href: getProjectPath(
+                projectQuery.data?.publicKey ?? projectKey,
+              ),
               icon: <FolderClosed size={14} strokeWidth={1.75} />,
               kind: 'folder' as const,
               label: 'Features',
             },
             {
-              href: `/projects/${projectId}/features/${featureId}`,
+              href: getFeaturePath(
+                projectQuery.data?.publicKey ?? projectKey,
+                featureQuery.data?.publicKey ?? featureKey,
+              ),
               icon: <FileText size={14} strokeWidth={1.75} />,
               kind: 'item' as const,
               label: notFound
@@ -158,11 +185,12 @@ function FeatureContent({
     }),
     [
       featureActions,
-      featureId,
+      featureKey,
       featureQuery.data,
       notFound,
-      projectId,
+      projectKey,
       projectQuery.data?.name,
+      projectQuery.data?.publicKey,
       targetMismatch,
     ],
   );
@@ -244,14 +272,9 @@ function FeatureContent({
 
 export function FeaturePage() {
   const { accessToken, user } = useAuth();
-  const { featureId, projectId } = useParams();
+  const { featureKey, projectKey } = useParams();
 
-  if (
-    !featureId ||
-    !projectId ||
-    !UUID_PATTERN.test(featureId) ||
-    !UUID_PATTERN.test(projectId)
-  ) {
+  if (!featureKey || !projectKey) {
     return (
       <section className={styles.page}>
         <p className="fw-overline">404</p>
@@ -266,9 +289,10 @@ export function FeaturePage() {
   return (
     <FeatureContent
       accessToken={accessToken}
-      featureId={featureId}
+      featureKey={featureKey}
       organizationId={user.organizationId}
-      projectId={projectId}
+      projectId={user.projectId}
+      projectKey={projectKey}
     />
   );
 }

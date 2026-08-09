@@ -5,6 +5,7 @@ export interface ProjectDto {
   readonly id: string;
   readonly name: string;
   readonly organizationId: string;
+  readonly publicKey: string;
   readonly updatedAt: string;
 }
 
@@ -28,9 +29,9 @@ export function getProjects(
 
 export function getProject(
   accessToken: string,
-  projectId: string,
+  projectIdentifier: string,
 ): Promise<ProjectDto> {
-  return request<ProjectDto>(`/projects/${projectId}`, { accessToken });
+  return request<ProjectDto>(`/projects/${projectIdentifier}`, { accessToken });
 }
 
 export function updateProject(
