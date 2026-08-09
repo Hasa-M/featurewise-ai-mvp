@@ -384,7 +384,6 @@ function ReadyShell({
     queries: projects.map((project) => ({
       ...projectFeaturesQueryOptions(
         accessToken,
-        project.id,
         project.publicKey,
       ),
       enabled: expandedProjects.has(project.publicKey),
@@ -392,13 +391,9 @@ function ReadyShell({
   });
 
   const prefetchFeatures = useCallback(
-    (projectId: string, projectPublicKey: string) => {
+    (projectKey: string) => {
       void queryClient.prefetchQuery(
-        projectFeaturesQueryOptions(
-          accessToken,
-          projectId,
-          projectPublicKey,
-        ),
+        projectFeaturesQueryOptions(accessToken, projectKey),
       );
     },
     [accessToken, queryClient],
@@ -419,7 +414,10 @@ function ReadyShell({
             {
               addAction: {
                 'aria-label': `Add feature to ${project.name}`,
-                onClick: () => featureActions.openCreate({ projectId: project.id }),
+                onClick: () =>
+                  featureActions.openCreate({
+                    projectKey: project.publicKey,
+                  }),
                 title: `Add feature to ${project.name}`,
               },
               children: featureGroups(
@@ -451,9 +449,9 @@ function ReadyShell({
             'aria-label': `Go to ${project.name}`,
             href: getProjectPath(project.publicKey),
             onFocus: () =>
-              prefetchFeatures(project.id, project.publicKey),
+              prefetchFeatures(project.publicKey),
             onPointerEnter: () =>
-              prefetchFeatures(project.id, project.publicKey),
+              prefetchFeatures(project.publicKey),
             title: `Go to ${project.name}`,
           },
           type: 'group',
@@ -531,7 +529,7 @@ export function AppShell() {
     <AuthenticatedShell
       accessToken={accessToken}
       onLogout={signOut}
-      organizationId={user.organizationId}
+      organizationKey={user.organizationKey}
       username={user.username}
     />
   );
@@ -540,18 +538,18 @@ export function AppShell() {
 interface AuthenticatedShellProps {
   readonly accessToken: string;
   readonly onLogout: () => void;
-  readonly organizationId: string;
+  readonly organizationKey: string;
   readonly username: string;
 }
 
 function AuthenticatedShell({
   accessToken,
   onLogout,
-  organizationId,
+  organizationKey,
   username,
 }: AuthenticatedShellProps) {
-  const organizationQuery = useOrganization(accessToken, organizationId);
-  const projectsQuery = useProjects(accessToken, organizationId);
+  const organizationQuery = useOrganization(accessToken, organizationKey);
+  const projectsQuery = useProjects(accessToken, organizationKey);
 
   if (organizationQuery.status === 'loading' || !organizationQuery.organization) {
     if (organizationQuery.status === 'error') {

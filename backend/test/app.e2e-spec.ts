@@ -1,21 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request, { Response, Test as SuperTestRequest } from 'supertest';
-import { App } from 'supertest/types';
+import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import { FeatureOrigin } from '@prisma/client';
 import { argon2id, hash } from 'argon2';
+import request, { Response, Test as SuperTestRequest } from 'supertest';
+import { App } from 'supertest/types';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/database/prisma.service';
 
 const TEST_USERNAME = 'dev.operator';
 const TEST_PASSWORD = 'correct-test-password';
+const UUID_PATTERN =
+  /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}/i;
 
 interface CurrentUserResponse {
-  readonly userId: string;
+  readonly userKey: string;
   readonly username: string;
-  readonly organizationId: string;
-  readonly projectId: string;
+  readonly organizationKey: string;
+  readonly projectKey: string;
 }
 
 interface LoginResponse {
@@ -27,6 +30,7 @@ interface LoginResponse {
 
 interface OrganizationRecord {
   readonly id: string;
+  readonly publicNumber: number;
   name: string;
   readonly createdAt: Date;
   updatedAt: Date;
@@ -34,6 +38,7 @@ interface OrganizationRecord {
 
 interface UserRecord {
   readonly id: string;
+  readonly publicNumber: number;
   readonly organizationId: string;
   readonly username: string;
   readonly passwordHash: string;
@@ -67,6 +72,7 @@ interface FeatureRecord {
 
 interface ContextArtifactRecord {
   readonly id: string;
+  readonly publicNumber: number;
   readonly featureId: string | null;
   readonly featureUpdateId: string | null;
   content: string;
@@ -88,10 +94,19 @@ interface FeatureCreateData {
   };
 }
 
+interface SeededWorkspace {
+  readonly organizationId: string;
+  readonly projectId: string;
+  readonly userId: string;
+}
+
 class InMemoryPrisma {
   private idCounter = 1;
+  private organizationPublicNumberCounter = 1;
+  private userPublicNumberCounter = 1;
   private projectPublicNumberCounter = 1;
   private featurePublicNumberCounter = 1;
+  private contextArtifactPublicNumberCounter = 1;
   private readonly organizations: OrganizationRecord[] = [];
   private readonly users: UserRecord[] = [];
   private readonly projects: ProjectRecord[] = [];
@@ -110,6 +125,7 @@ class InMemoryPrisma {
     create: ({ data }: { data: { name: string } }) => {
       const organization: OrganizationRecord = {
         id: this.nextId(),
+        publicNumber: this.organizationPublicNumberCounter++,
         name: data.name,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -119,10 +135,12 @@ class InMemoryPrisma {
 
       return Promise.resolve(organization);
     },
-    findUnique: ({ where }: { where: { id: string } }) =>
+    findFirst: ({ where }: { where: { id: string; publicNumber: number } }) =>
       Promise.resolve(
         this.organizations.find(
-          (organization) => organization.id === where.id,
+          (organization) =>
+            organization.id === where.id &&
+            organization.publicNumber === where.publicNumber,
         ) ?? null,
       ),
     update: ({
@@ -159,6 +177,7 @@ class InMemoryPrisma {
     }) => {
       const user: UserRecord = {
         id: this.nextId(),
+        publicNumber: this.userPublicNumberCounter++,
         organizationId: data.organizationId,
         username: data.username,
         passwordHash: data.passwordHash,
@@ -171,11 +190,16 @@ class InMemoryPrisma {
 
       return Promise.resolve(user);
     },
-    findUnique: ({ where }: { where: { id?: string; username?: string } }) => {
+    findUnique: ({
+      where,
+    }: {
+      where: { publicNumber?: number; username?: string };
+    }) => {
       const user =
         this.users.find(
           (candidate) =>
-            (where.id !== undefined && candidate.id === where.id) ||
+            (where.publicNumber !== undefined &&
+              candidate.publicNumber === where.publicNumber) ||
             (where.username !== undefined &&
               candidate.username === where.username),
         ) ?? null;
@@ -216,28 +240,21 @@ class InMemoryPrisma {
             },
           })),
       ),
-    findUnique: ({ where }: { where: { id: string } }) =>
-      Promise.resolve(
-        this.projects.find((project) => project.id === where.id) ?? null,
-      ),
     findFirst: ({
       where,
     }: {
       where: {
         organizationId: string;
-        AND: ReadonlyArray<{ id?: string; publicNumber?: number }>;
+        id: string;
+        publicNumber: number;
       };
     }) =>
       Promise.resolve(
         this.projects.find(
           (project) =>
             project.organizationId === where.organizationId &&
-            where.AND.every(
-              (condition) =>
-                (condition.id === undefined || project.id === condition.id) &&
-                (condition.publicNumber === undefined ||
-                  project.publicNumber === condition.publicNumber),
-            ),
+            project.id === where.id &&
+            project.publicNumber === where.publicNumber,
         ) ?? null,
       ),
     update: ({
@@ -283,6 +300,7 @@ class InMemoryPrisma {
       if (data.contextArtifact !== undefined) {
         this.contextArtifacts.push({
           id: this.nextId(),
+          publicNumber: this.contextArtifactPublicNumberCounter++,
           featureId: feature.id,
           featureUpdateId: null,
           content: data.contextArtifact.create.content,
@@ -291,37 +309,37 @@ class InMemoryPrisma {
         });
       }
 
-      return Promise.resolve(feature);
+      return Promise.resolve(this.toFeatureWithPublicRelations(feature));
     },
     findMany: ({ where }: { where: { projectId: string; deletedAt: null } }) =>
       Promise.resolve(
-        this.features.filter(
-          (feature) =>
-            feature.projectId === where.projectId && feature.deletedAt === null,
-        ),
+        this.features
+          .filter(
+            (feature) =>
+              feature.projectId === where.projectId &&
+              feature.deletedAt === null,
+          )
+          .map((feature) => this.toFeatureWithPublicRelations(feature)),
       ),
     findFirst: ({
       where,
     }: {
       where: {
-        id?: string;
-        publicNumber?: number;
+        publicNumber: number;
         projectId: string;
         deletedAt: null;
-        project?: { organizationId: string };
+        project: { organizationId: string };
       };
     }) => {
       const feature = this.features.find(
         (candidate) =>
-          (where.id === undefined || candidate.id === where.id) &&
-          (where.publicNumber === undefined ||
-            candidate.publicNumber === where.publicNumber) &&
+          candidate.publicNumber === where.publicNumber &&
           candidate.projectId === where.projectId &&
           candidate.deletedAt === null,
       );
 
-      if (feature === undefined || where.project === undefined) {
-        return Promise.resolve(feature ?? null);
+      if (feature === undefined) {
+        return Promise.resolve(null);
       }
 
       const project = this.projects.find(
@@ -330,7 +348,7 @@ class InMemoryPrisma {
 
       return Promise.resolve(
         project?.organizationId === where.project.organizationId
-          ? feature
+          ? this.toFeatureWithPublicRelations(feature)
           : null,
       );
     },
@@ -357,18 +375,15 @@ class InMemoryPrisma {
       Object.assign(feature, data);
       feature.updatedAt = new Date();
 
-      return Promise.resolve(feature);
+      return Promise.resolve(this.toFeatureWithPublicRelations(feature));
     },
   };
 
   readonly contextArtifact = {
-    findUnique: ({ where }: { where: { id?: string; featureId?: string } }) =>
+    findUnique: ({ where }: { where: { featureId: string } }) =>
       Promise.resolve(
         this.contextArtifacts.find(
-          (contextArtifact) =>
-            (where.id !== undefined && contextArtifact.id === where.id) ||
-            (where.featureId !== undefined &&
-              contextArtifact.featureId === where.featureId),
+          (contextArtifact) => contextArtifact.featureId === where.featureId,
         ) ?? null,
       ),
     update: ({
@@ -414,10 +429,38 @@ class InMemoryPrisma {
     return `00000000-0000-4000-8000-${suffix}`;
   }
 
+  private toFeatureWithPublicRelations(feature: FeatureRecord) {
+    const project = this.projects.find(
+      (candidate) => candidate.id === feature.projectId,
+    );
+    const creator = this.users.find(
+      (candidate) => candidate.id === feature.createdById,
+    );
+
+    if (project === undefined || creator === undefined) {
+      throw new Error('Feature relations not found');
+    }
+
+    return {
+      ...feature,
+      createdBy: { publicNumber: creator.publicNumber },
+      project: { publicNumber: project.publicNumber },
+    };
+  }
+
   private toUserWithWorkspace(user: UserRecord) {
+    const organization = this.organizations.find(
+      (candidate) => candidate.id === user.organizationId,
+    );
+
+    if (organization === undefined) {
+      throw new Error('User organization not found');
+    }
+
     return {
       ...user,
       organization: {
+        publicNumber: organization.publicNumber,
         projects: this.projects.filter(
           (project) => project.organizationId === user.organizationId,
         ),
@@ -426,13 +469,9 @@ class InMemoryPrisma {
   }
 }
 
-async function seedWorkspace(
-  prisma: InMemoryPrisma,
-): Promise<CurrentUserResponse> {
+async function seedWorkspace(prisma: InMemoryPrisma): Promise<SeededWorkspace> {
   const organization = await prisma.organization.create({
-    data: {
-      name: 'Featurewise Test Organization',
-    },
+    data: { name: 'Featurewise Test Organization' },
   });
   const user = await prisma.user.create({
     data: {
@@ -452,7 +491,6 @@ async function seedWorkspace(
     organizationId: organization.id,
     projectId: project.id,
     userId: user.id,
-    username: user.username,
   };
 }
 
@@ -463,9 +501,14 @@ function withAuth(
   return requestTest.set('Authorization', authorizationHeader);
 }
 
+function expectNoUuid(value: unknown): void {
+  expect(JSON.stringify(value)).not.toMatch(UUID_PATTERN);
+}
+
 describe('Featurewise backend (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: InMemoryPrisma;
+  let seededWorkspace: SeededWorkspace;
 
   beforeAll(() => {
     process.env.DATABASE_HOST ??= 'localhost';
@@ -480,7 +523,7 @@ describe('Featurewise backend (e2e)', () => {
 
   beforeEach(async () => {
     prisma = new InMemoryPrisma();
-    await seedWorkspace(prisma);
+    seededWorkspace = await seedWorkspace(prisma);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -517,7 +560,7 @@ describe('Featurewise backend (e2e)', () => {
       });
   });
 
-  it('runs the real-auth workspace and feature CRUD flow', async () => {
+  it('uses public keys throughout the authenticated workspace and feature flow', async () => {
     await request(app.getHttpServer()).get('/auth/me').expect(401);
 
     await request(app.getHttpServer())
@@ -536,15 +579,25 @@ describe('Featurewise backend (e2e)', () => {
           expiresInSeconds: 3600,
           tokenType: 'Bearer',
           user: {
+            userKey: 'USR-1',
             username: TEST_USERNAME,
+            organizationKey: 'ORG-1',
+            projectKey: 'PRJ-1',
           },
         });
         expect(typeof body.accessToken).toBe('string');
+        expectNoUuid(body);
       });
     const login = loginResponse.body as LoginResponse;
     const authorizationHeader = `${login.tokenType} ${login.accessToken}`;
-    const currentUser = login.user;
-    let projectPublicKey = '';
+
+    const jwtPayload = JSON.parse(
+      Buffer.from(
+        login.accessToken.split('.')[1] ?? '',
+        'base64url',
+      ).toString(),
+    ) as { sub?: unknown };
+    expect(jwtPayload.sub).toBe('USR-1');
 
     await withAuth(
       request(app.getHttpServer()).get('/auth/me'),
@@ -552,70 +605,76 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
-        expect(response.body).toMatchObject(currentUser);
+        expect(response.body).toEqual(login.user);
+        expectNoUuid(response.body);
       });
 
+    const legacyToken = await app
+      .get(JwtService)
+      .signAsync(
+        { sub: seededWorkspace.userId },
+        { expiresIn: 3600, secret: 'featurewise_test_auth_secret' },
+      );
     await withAuth(
-      request(app.getHttpServer()).get(
-        '/organizations/00000000-0000-4000-8000-000000000099',
-      ),
-      authorizationHeader,
-    ).expect(404);
+      request(app.getHttpServer()).get('/auth/me'),
+      `Bearer ${legacyToken}`,
+    ).expect(401);
 
     await withAuth(
-      request(app.getHttpServer()).patch(
-        `/organizations/${currentUser.organizationId}`,
-      ),
+      request(app.getHttpServer()).get('/organizations/ORG-999'),
+      authorizationHeader,
+    ).expect(404);
+    await withAuth(
+      request(app.getHttpServer()).get('/organizations/ORG-01'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/organizations/PRJ-1'),
+      authorizationHeader,
+    ).expect(400);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/organizations/ORG-1'),
       authorizationHeader,
     )
       .send({ name: 'Renamed organization' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: currentUser.organizationId,
+          publicKey: 'ORG-1',
           name: 'Renamed organization',
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).get(
-        `/organizations/${currentUser.organizationId}/projects`,
-      ),
+      request(app.getHttpServer()).get('/organizations/ORG-1/projects'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
-        const projects = response.body as ReadonlyArray<{
-          readonly featureCount: number;
-          readonly id: string;
-          readonly publicKey: string;
-        }>;
-
-        expect(projects).toHaveLength(1);
-        expect(projects[0]).toMatchObject({
-          featureCount: 0,
-          id: currentUser.projectId,
-          publicKey: 'PRJ-1',
-        });
-        projectPublicKey = projects[0]?.publicKey ?? '';
+        expect(response.body).toEqual([
+          expect.objectContaining({
+            publicKey: 'PRJ-1',
+            organizationKey: 'ORG-1',
+            featureCount: 0,
+          }),
+        ]);
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).get(`/projects/${projectPublicKey}`),
+      request(app.getHttpServer()).get('/projects/PRJ-1'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: currentUser.projectId,
-          publicKey: projectPublicKey,
+          publicKey: 'PRJ-1',
+          organizationKey: 'ORG-1',
         });
+        expectNoUuid(response.body);
       });
-
-    await withAuth(
-      request(app.getHttpServer()).get(`/projects/${currentUser.projectId}`),
-      authorizationHeader,
-    ).expect(200);
 
     await withAuth(
       request(app.getHttpServer()).get('/projects/PRJ-01'),
@@ -627,32 +686,29 @@ describe('Featurewise backend (e2e)', () => {
     ).expect(404);
 
     await withAuth(
-      request(app.getHttpServer()).patch(`/projects/${currentUser.projectId}`),
+      request(app.getHttpServer()).patch('/projects/PRJ-1'),
       authorizationHeader,
     )
       .send({ name: 'Renamed project' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: currentUser.projectId,
+          publicKey: 'PRJ-1',
+          organizationKey: 'ORG-1',
           name: 'Renamed project',
-          publicKey: projectPublicKey,
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).post(
-        `/projects/${currentUser.projectId}/features`,
-      ),
+      request(app.getHttpServer()).post('/projects/PRJ-1/features'),
       authorizationHeader,
     )
       .send({ title: 'Invalid origin feature', origin: 'unsupported' })
       .expect(400);
 
     const createFeatureResponse = await withAuth(
-      request(app.getHttpServer()).post(
-        `/projects/${currentUser.projectId}/features`,
-      ),
+      request(app.getHttpServer()).post('/projects/PRJ-1/features'),
       authorizationHeader,
     )
       .send({
@@ -661,78 +717,56 @@ describe('Featurewise backend (e2e)', () => {
         origin: FeatureOrigin.brand_new,
         includeInProjectContext: true,
       })
-      .expect(201);
-    const feature = createFeatureResponse.body as {
-      id: string;
-      publicKey: string;
-    };
+      .expect(201)
+      .expect((response: Response) => expectNoUuid(response.body));
+    const feature = createFeatureResponse.body as { publicKey: string };
     expect(feature.publicKey).toBe('FEAT-1');
 
     await withAuth(
-      request(app.getHttpServer()).get(
-        `/projects/${projectPublicKey}/features`,
-      ),
+      request(app.getHttpServer()).get('/projects/PRJ-1/features'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
-        const features = response.body as ReadonlyArray<{
-          readonly id: string;
-          readonly publicKey: string;
-          readonly alignment: {
-            readonly status: string;
-            readonly pendingUpdates: readonly unknown[];
-          };
-        }>;
-
-        expect(features).toHaveLength(1);
-        expect(features[0]).toMatchObject({
-          id: feature.id,
-          publicKey: feature.publicKey,
-          activity: {
-            currentValidSpecVersion: null,
-            generationRunCount: 0,
-            latestFeatureRun: null,
-          },
-          alignment: {
-            status: 'aligned',
-            pendingUpdates: [],
-          },
-        });
+        expect(response.body).toEqual([
+          expect.objectContaining({
+            publicKey: 'FEAT-1',
+            projectKey: 'PRJ-1',
+            createdByKey: 'USR-1',
+            activity: {
+              currentValidSpecVersion: null,
+              generationRunCount: 0,
+              latestFeatureRun: null,
+            },
+            alignment: {
+              status: 'aligned',
+              pendingUpdates: [],
+            },
+          }),
+        ]);
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).get(
-        `/projects/${projectPublicKey}/features/${feature.publicKey}`,
-      ),
+      request(app.getHttpServer()).get('/projects/PRJ-1/features/FEAT-1'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: feature.id,
-          publicKey: feature.publicKey,
-          projectId: currentUser.projectId,
+          publicKey: 'FEAT-1',
+          projectKey: 'PRJ-1',
+          createdByKey: 'USR-1',
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).get(
-        `/projects/${currentUser.projectId}/features/${feature.id}`,
-      ),
-      authorizationHeader,
-    ).expect(200);
-
-    await withAuth(
-      request(app.getHttpServer()).get(
-        `/projects/${projectPublicKey}/features/FEAT-0`,
-      ),
+      request(app.getHttpServer()).get('/projects/PRJ-1/features/FEAT-0'),
       authorizationHeader,
     ).expect(400);
     await withAuth(
-      request(app.getHttpServer()).get(
-        `/projects/${projectPublicKey}/features/FEAT-999999`,
-      ),
+      request(app.getHttpServer()).get('/projects/PRJ-1/features/FEAT-999999'),
       authorizationHeader,
     ).expect(404);
 
@@ -748,7 +782,7 @@ describe('Featurewise backend (e2e)', () => {
     const otherFeature = await prisma.feature.create({
       data: {
         brief: null,
-        createdById: currentUser.userId,
+        createdById: seededWorkspace.userId,
         includeInProjectContext: false,
         origin: FeatureOrigin.brand_new,
         projectId: otherProject.id,
@@ -758,82 +792,173 @@ describe('Featurewise backend (e2e)', () => {
 
     await withAuth(
       request(app.getHttpServer()).get(
-        `/projects/${projectPublicKey}/features/FEAT-${otherFeature.publicNumber}`,
+        `/projects/PRJ-1/features/FEAT-${otherFeature.publicNumber}`,
+      ),
+      authorizationHeader,
+    ).expect(404);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/features/FEAT-${otherFeature.publicNumber}`,
       ),
       authorizationHeader,
     ).expect(404);
 
     await withAuth(
-      request(app.getHttpServer()).get(`/features/${feature.id}`),
+      request(app.getHttpServer()).get('/features/FEAT-1'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: feature.id,
-          publicKey: feature.publicKey,
+          publicKey: 'FEAT-1',
+          projectKey: 'PRJ-1',
           title: 'New checkout',
           includeInProjectContext: true,
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).get(`/features/${feature.id}/context`),
+      request(app.getHttpServer()).get('/features/FEAT-1/context'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          featureId: feature.id,
+          publicKey: 'CTX-1',
+          featureKey: 'FEAT-1',
+          featureUpdateKey: null,
           content: '',
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).patch(`/features/${feature.id}/context`),
+      request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
       .send({ content: 'Screenshots and notes go here.' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          featureId: feature.id,
+          publicKey: 'CTX-1',
+          featureKey: 'FEAT-1',
           content: 'Screenshots and notes go here.',
         });
+        expectNoUuid(response.body);
       });
 
     await withAuth(
-      request(app.getHttpServer()).patch(`/features/${feature.id}`),
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
       authorizationHeader,
     )
       .send({ title: 'Updated checkout', includeInProjectContext: false })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
-          id: feature.id,
+          publicKey: 'FEAT-1',
+          projectKey: 'PRJ-1',
           title: 'Updated checkout',
           includeInProjectContext: false,
         });
+        expectNoUuid(response.body);
       });
 
-    await withAuth(
-      request(app.getHttpServer()).delete(`/features/${feature.id}`),
-      authorizationHeader,
-    ).expect(204);
-    await withAuth(
-      request(app.getHttpServer()).get(`/features/${feature.id}`),
-      authorizationHeader,
-    ).expect(404);
+    const legacyOrganizationId = seededWorkspace.organizationId;
+    const legacyProjectId = seededWorkspace.projectId;
+    const legacyFeatureId = '00000000-0000-4000-8000-000000000004';
 
     await withAuth(
       request(app.getHttpServer()).get(
-        `/projects/${currentUser.projectId}/features`,
+        `/organizations/${legacyOrganizationId}`,
       ),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch(
+        `/organizations/${legacyOrganizationId}`,
+      ),
+      authorizationHeader,
+    )
+      .send({ name: 'Rejected' })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/organizations/${legacyOrganizationId}/projects`,
+      ),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(`/projects/${legacyProjectId}`),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch(`/projects/${legacyProjectId}`),
+      authorizationHeader,
+    )
+      .send({ name: 'Rejected' })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(`/projects/${legacyProjectId}/features`),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).post(
+        `/projects/${legacyProjectId}/features`,
+      ),
+      authorizationHeader,
+    )
+      .send({ title: 'Rejected', origin: FeatureOrigin.brand_new })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/PRJ-1/features/${legacyFeatureId}`,
+      ),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(`/features/${legacyFeatureId}`),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch(`/features/${legacyFeatureId}`),
+      authorizationHeader,
+    )
+      .send({ title: 'Rejected' })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).delete(`/features/${legacyFeatureId}`),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(`/features/${legacyFeatureId}/context`),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch(
+        `/features/${legacyFeatureId}/context`,
+      ),
+      authorizationHeader,
+    )
+      .send({ content: 'Rejected' })
+      .expect(400);
+
+    await withAuth(
+      request(app.getHttpServer()).delete('/features/FEAT-1'),
+      authorizationHeader,
+    ).expect(204);
+    await withAuth(
+      request(app.getHttpServer()).get('/features/FEAT-1'),
+      authorizationHeader,
+    ).expect(404);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-1/features'),
       authorizationHeader,
     )
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toHaveLength(0);
+        expectNoUuid(response.body);
       });
   });
 

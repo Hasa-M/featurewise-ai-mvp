@@ -4,7 +4,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect } from 'react';
 
 import {
   getProject,
@@ -16,9 +15,8 @@ import {
 
 export interface Project {
   readonly createdAt: Date;
-  readonly id: string;
   readonly name: string;
-  readonly organizationId: string;
+  readonly organizationKey: string;
   readonly publicKey: string;
   readonly updatedAt: Date;
 }
@@ -28,17 +26,15 @@ export interface ProjectSummary extends Project {
 }
 
 export const projectKeys = {
-  detail: (projectIdentifier: string) =>
-    ['project', projectIdentifier] as const,
-  list: (organizationId: string) => ['projects', organizationId] as const,
+  detail: (projectKey: string) => ['project', projectKey] as const,
+  list: (organizationKey: string) => ['projects', organizationKey] as const,
 };
 
 export function toProject(dto: ProjectDto): Project {
   return {
     createdAt: new Date(dto.createdAt),
-    id: dto.id,
     name: dto.name,
-    organizationId: dto.organizationId,
+    organizationKey: dto.organizationKey,
     publicKey: dto.publicKey,
     updatedAt: new Date(dto.updatedAt),
   };
@@ -53,11 +49,11 @@ export function toProjectSummary(dto: ProjectSummaryDto): ProjectSummary {
 
 export function adjustProjectFeatureCount(
   projects: readonly ProjectSummary[] | undefined,
-  projectId: string,
+  projectKey: string,
   difference: number,
 ): readonly ProjectSummary[] | undefined {
   return projects?.map((project) =>
-    project.id === projectId
+    project.publicKey === projectKey
       ? {
           ...project,
           featureCount: Math.max(0, project.featureCount + difference),
@@ -68,64 +64,49 @@ export function adjustProjectFeatureCount(
 
 export function projectsQueryOptions(
   accessToken: string,
-  organizationId: string,
+  organizationKey: string,
 ) {
   return queryOptions({
-    queryKey: projectKeys.list(organizationId),
+    queryKey: projectKeys.list(organizationKey),
     queryFn: async () =>
-      (await getProjects(accessToken, organizationId)).map(toProjectSummary),
+      (await getProjects(accessToken, organizationKey)).map(toProjectSummary),
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function projectQueryOptions(
   accessToken: string,
-  projectIdentifier: string,
+  projectKey: string,
 ) {
   return queryOptions({
-    queryKey: projectKeys.detail(projectIdentifier),
+    queryKey: projectKeys.detail(projectKey),
     queryFn: async () =>
-      toProject(await getProject(accessToken, projectIdentifier)),
+      toProject(await getProject(accessToken, projectKey)),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useProjects(accessToken: string, organizationId: string) {
-  return useQuery(projectsQueryOptions(accessToken, organizationId));
+export function useProjects(accessToken: string, organizationKey: string) {
+  return useQuery(projectsQueryOptions(accessToken, organizationKey));
 }
 
 export function useProject(
   accessToken: string,
-  organizationId: string,
-  projectIdentifier: string,
+  organizationKey: string,
+  projectKey: string,
 ) {
   const queryClient = useQueryClient();
-  const listKey = projectKeys.list(organizationId);
+  const listKey = projectKeys.list(organizationKey);
 
-  const query = useQuery({
-    ...projectQueryOptions(accessToken, projectIdentifier),
+  return useQuery({
+    ...projectQueryOptions(accessToken, projectKey),
     initialData: () =>
       queryClient
         .getQueryData<readonly ProjectSummary[]>(listKey)
-        ?.find(
-          (project) =>
-            project.id === projectIdentifier ||
-            project.publicKey === projectIdentifier,
-        ),
+        ?.find((project) => project.publicKey === projectKey),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
   });
-
-  useEffect(() => {
-    if (!query.data) return;
-
-    queryClient.setQueryData(
-      projectKeys.detail(query.data.publicKey),
-      query.data,
-    );
-  }, [query.data, queryClient]);
-
-  return query;
 }
 
 export function useUpdateProject(accessToken: string) {
@@ -134,26 +115,28 @@ export function useUpdateProject(accessToken: string) {
   return useMutation({
     mutationFn: async ({
       name,
-      projectId,
+      projectKey,
     }: {
       readonly name: string;
-      readonly projectId: string;
-    }) => toProject(await updateProject(accessToken, projectId, { name })),
+      readonly projectKey: string;
+    }) => toProject(await updateProject(accessToken, projectKey, { name })),
     onSuccess: (project) => {
       queryClient.setQueriesData<Project>(
         { queryKey: ['project'] },
-        (current) => (current?.id === project.id ? project : current),
+        (current) =>
+          current?.publicKey === project.publicKey ? project : current,
       );
-      queryClient.setQueryData(projectKeys.detail(project.id), project);
       queryClient.setQueryData(
         projectKeys.detail(project.publicKey),
         project,
       );
       queryClient.setQueryData<readonly ProjectSummary[]>(
-        projectKeys.list(project.organizationId),
+        projectKeys.list(project.organizationKey),
         (current) =>
           current?.map((item) =>
-            item.id === project.id ? { ...item, ...project } : item,
+            item.publicKey === project.publicKey
+              ? { ...item, ...project }
+              : item,
           ),
       );
     },

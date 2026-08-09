@@ -1,20 +1,30 @@
 import { BadRequestException, type PipeTransform } from '@nestjs/common';
 
-export type PublicIdentifierEntity = 'feature' | 'project';
+export const PUBLIC_KEY_PREFIXES = {
+  contextArtifact: 'CTX',
+  feature: 'FEAT',
+  featureUpdate: 'UPD',
+  generatedSpec: 'SPEC',
+  llmCallLog: 'CALL',
+  organization: 'ORG',
+  project: 'PRJ',
+  projectContextSummary: 'PSUM',
+  specRun: 'RUN',
+  storageObject: 'OBJ',
+  user: 'USR',
+} as const;
 
-export type EntityIdentifier =
-  | { readonly kind: 'publicNumber'; readonly value: number }
-  | { readonly kind: 'uuid'; readonly value: string };
+export type PublicIdentifierEntity = keyof typeof PUBLIC_KEY_PREFIXES;
+declare const PUBLIC_NUMBER_BRAND: unique symbol;
+export type PublicNumber = number & {
+  readonly [PUBLIC_NUMBER_BRAND]: 'PublicNumber';
+};
+export interface ParsedPublicNumber {
+  readonly value: PublicNumber;
+}
 
-const UUID_V4_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
 const POSTGRES_INTEGER_MAX = 2_147_483_647;
-
-const PUBLIC_KEY_PREFIXES: Record<PublicIdentifierEntity, string> = {
-  feature: 'FEAT',
-  project: 'PRJ',
-};
 
 export function formatPublicKey(
   entity: PublicIdentifierEntity,
@@ -31,14 +41,10 @@ export function formatPublicKey(
   return `${PUBLIC_KEY_PREFIXES[entity]}-${publicNumber}`;
 }
 
-export function parseEntityIdentifier(
+export function parsePublicKey(
   entity: PublicIdentifierEntity,
   value: string,
-): EntityIdentifier {
-  if (UUID_V4_PATTERN.test(value)) {
-    return { kind: 'uuid', value };
-  }
-
+): PublicNumber {
   const prefix = PUBLIC_KEY_PREFIXES[entity];
   const separatorIndex = value.indexOf('-');
   const suppliedPrefix = value.slice(0, separatorIndex);
@@ -49,31 +55,27 @@ export function parseEntityIdentifier(
     suppliedPrefix !== prefix ||
     !POSITIVE_INTEGER_PATTERN.test(numericPart)
   ) {
-    throw new BadRequestException(`Invalid ${entity} identifier`);
+    throw new BadRequestException(`Invalid ${entity} public key`);
   }
 
   const publicNumber = Number(numericPart);
 
   if (publicNumber > POSTGRES_INTEGER_MAX) {
-    throw new BadRequestException(`Invalid ${entity} identifier`);
+    throw new BadRequestException(`Invalid ${entity} public key`);
   }
 
-  return { kind: 'publicNumber', value: publicNumber };
+  return publicNumber as PublicNumber;
 }
 
-export function toIdentifierWhere(identifier: EntityIdentifier) {
-  return identifier.kind === 'uuid'
-    ? { id: identifier.value }
-    : { publicNumber: identifier.value };
-}
-
-export class ParseEntityIdentifierPipe implements PipeTransform<
+export class ParsePublicKeyPipe implements PipeTransform<
   string,
-  EntityIdentifier
+  ParsedPublicNumber
 > {
   constructor(private readonly entity: PublicIdentifierEntity) {}
 
-  transform(value: string): EntityIdentifier {
-    return parseEntityIdentifier(this.entity, value);
+  transform(value: string): ParsedPublicNumber {
+    return {
+      value: parsePublicKey(this.entity, value),
+    };
   }
 }

@@ -6,10 +6,10 @@ export interface LoginCredentialsDto {
 }
 
 export interface CurrentUserDto {
-  readonly userId: string;
+  readonly userKey: string;
   readonly username: string;
-  readonly organizationId: string;
-  readonly projectId: string;
+  readonly organizationKey: string;
+  readonly projectKey: string;
 }
 
 export interface LoginResponseDto {

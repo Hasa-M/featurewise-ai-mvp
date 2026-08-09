@@ -6,152 +6,129 @@ import { WorkspaceService } from './workspace.service';
 
 const currentUser: CurrentUserContext = {
   organizationId: '00000000-0000-4000-8000-000000000001',
+  organizationKey: 'ORG-12',
   projectId: '00000000-0000-4000-8000-000000000002',
+  projectKey: 'PRJ-204',
   userId: '00000000-0000-4000-8000-000000000003',
+  userKey: 'USR-7',
   username: 'dev.operator',
 };
 
+const organization = {
+  id: currentUser.organizationId,
+  publicNumber: 12,
+  name: 'Featurewise',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const project = {
+  id: currentUser.projectId,
+  publicNumber: 204,
+  organizationId: currentUser.organizationId,
+  name: 'MVP',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 describe('WorkspaceService', () => {
-  it('returns 404 when the organization is outside the current user scope', async () => {
-    const service = new WorkspaceService({} as PrismaService);
+  it('returns 404 when an Organization public number is outside the current user scope', async () => {
+    const findFirst = jest.fn().mockResolvedValue(null);
+    const service = new WorkspaceService({
+      organization: { findFirst },
+    } as unknown as PrismaService);
 
     await expect(
-      service.getOrganization(
-        currentUser,
-        '00000000-0000-4000-8000-000000000099',
-      ),
+      service.getOrganization(currentUser, 999),
     ).rejects.toBeInstanceOf(NotFoundException);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        id: currentUser.organizationId,
+        publicNumber: 999,
+      },
+    });
   });
 
-  it('updates the scoped organization name', async () => {
-    const organization = {
-      id: currentUser.organizationId,
-      name: 'Featurewise',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    const findUnique = jest.fn().mockResolvedValue(organization);
+  it('updates an Organization by public number and returns no UUID identity', async () => {
+    const findFirst = jest.fn().mockResolvedValue(organization);
     const update = jest.fn().mockResolvedValue({
       ...organization,
       name: 'Renamed',
     });
     const service = new WorkspaceService({
-      organization: {
-        findUnique,
-        update,
-      },
+      organization: { findFirst, update },
     } as unknown as PrismaService);
 
-    await expect(
-      service.updateOrganization(currentUser, currentUser.organizationId, {
-        name: '  Renamed  ',
-      }),
-    ).resolves.toMatchObject({
-      name: 'Renamed',
+    const result = await service.updateOrganization(currentUser, 12, {
+      name: '  Renamed  ',
     });
+
+    expect(result).toEqual({
+      publicKey: 'ORG-12',
+      name: 'Renamed',
+      createdAt: organization.createdAt,
+      updatedAt: organization.updatedAt,
+    });
+    expect(result).not.toHaveProperty('id');
     expect(update).toHaveBeenCalledWith({
       where: { id: currentUser.organizationId },
       data: { name: 'Renamed' },
     });
   });
 
-  it('returns 404 when the project is outside the current user visibility', async () => {
-    const findFirst = jest.fn().mockResolvedValue(null);
-    const service = new WorkspaceService({
-      project: {
-        findFirst,
-      },
-    } as unknown as PrismaService);
-
-    await expect(
-      service.getProject(currentUser, {
-        kind: 'uuid',
-        value: '00000000-0000-4000-8000-000000000099',
-      }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    expect(findFirst).toHaveBeenCalledWith({
-      where: {
-        organizationId: currentUser.organizationId,
-        AND: [
-          { id: currentUser.projectId },
-          { id: '00000000-0000-4000-8000-000000000099' },
-        ],
-      },
-    });
-  });
-
-  it('returns 404 when the visible project cannot be found', async () => {
-    const service = new WorkspaceService({
-      project: {
-        findFirst: jest.fn().mockResolvedValue(null),
-      },
-    } as unknown as PrismaService);
-
-    await expect(
-      service.getProject(currentUser, {
-        kind: 'uuid',
-        value: currentUser.projectId,
-      }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('resolves the visible project by public number', async () => {
-    const project = {
-      id: currentUser.projectId,
-      publicNumber: 204,
-      organizationId: currentUser.organizationId,
-      name: 'MVP',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  it('resolves the visible Project by public number and returns public relations only', async () => {
     const findFirst = jest.fn().mockResolvedValue(project);
     const service = new WorkspaceService({
       project: { findFirst },
     } as unknown as PrismaService);
 
-    await expect(
-      service.getProject(currentUser, {
-        kind: 'publicNumber',
-        value: 204,
-      }),
-    ).resolves.toMatchObject({
-      id: project.id,
+    const result = await service.getProject(currentUser, 204);
+
+    expect(result).toEqual({
       publicKey: 'PRJ-204',
+      organizationKey: 'ORG-12',
+      name: project.name,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
     });
+    expect(result).not.toHaveProperty('id');
+    expect(result).not.toHaveProperty('organizationId');
     expect(findFirst).toHaveBeenCalledWith({
       where: {
         organizationId: currentUser.organizationId,
-        AND: [{ id: currentUser.projectId }, { publicNumber: 204 }],
+        id: currentUser.projectId,
+        publicNumber: 204,
       },
     });
   });
 
-  it('lists projects for the authenticated organization', async () => {
-    const project = {
-      id: currentUser.projectId,
-      publicNumber: 204,
-      organizationId: currentUser.organizationId,
-      name: 'MVP',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      _count: {
-        features: 2,
-      },
-    };
-    const findMany = jest.fn().mockResolvedValue([project]);
+  it('returns 404 for an unknown Project public number', async () => {
     const service = new WorkspaceService({
-      project: {
-        findMany,
-      },
+      project: { findFirst: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService);
 
-    await expect(
-      service.listProjects(currentUser, currentUser.organizationId),
-    ).resolves.toEqual([
+    await expect(service.getProject(currentUser, 999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('lists Projects under a public Organization key without exposing UUIDs', async () => {
+    const findMany = jest
+      .fn()
+      .mockResolvedValue([{ ...project, _count: { features: 2 } }]);
+    const service = new WorkspaceService({
+      organization: {
+        findFirst: jest.fn().mockResolvedValue(organization),
+      },
+      project: { findMany },
+    } as unknown as PrismaService);
+
+    const result = await service.listProjects(currentUser, 12);
+
+    expect(result).toEqual([
       {
-        id: project.id,
         publicKey: 'PRJ-204',
-        organizationId: project.organizationId,
+        organizationKey: 'ORG-12',
         name: project.name,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
@@ -159,73 +136,49 @@ describe('WorkspaceService', () => {
       },
     ]);
     expect(findMany).toHaveBeenCalledWith({
-      where: {
-        organizationId: currentUser.organizationId,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
+      where: { organizationId: currentUser.organizationId },
+      orderBy: { createdAt: 'asc' },
       include: {
         _count: {
           select: {
-            features: {
-              where: {
-                deletedAt: null,
-              },
-            },
+            features: { where: { deletedAt: null } },
           },
         },
       },
     });
   });
 
-  it('returns 404 when listing projects for an organization outside the current user visibility', async () => {
+  it('does not list Projects for an inaccessible Organization key', async () => {
     const findMany = jest.fn();
     const service = new WorkspaceService({
-      project: {
-        findMany,
-      },
+      organization: { findFirst: jest.fn().mockResolvedValue(null) },
+      project: { findMany },
     } as unknown as PrismaService);
 
-    await expect(
-      service.listProjects(currentUser, '00000000-0000-4000-8000-000000000099'),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.listProjects(currentUser, 999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(findMany).not.toHaveBeenCalled();
   });
 
-  it('updates the scoped project name', async () => {
-    const project = {
-      id: currentUser.projectId,
-      publicNumber: 204,
-      organizationId: currentUser.organizationId,
-      name: 'MVP',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  it('updates a Project by public number and uses its UUID only for Prisma', async () => {
     const findFirst = jest.fn().mockResolvedValue(project);
     const update = jest.fn().mockResolvedValue({
       ...project,
       name: 'Renamed project',
     });
     const service = new WorkspaceService({
-      project: {
-        findFirst,
-        update,
-      },
+      project: { findFirst, update },
     } as unknown as PrismaService);
 
-    await expect(
-      service.updateProject(currentUser, currentUser.projectId, {
-        name: '  Renamed project  ',
-      }),
-    ).resolves.toMatchObject({
-      name: 'Renamed project',
+    const result = await service.updateProject(currentUser, 204, {
+      name: '  Renamed project  ',
     });
-    expect(findFirst).toHaveBeenCalledWith({
-      where: {
-        organizationId: currentUser.organizationId,
-        AND: [{ id: currentUser.projectId }, { id: currentUser.projectId }],
-      },
+
+    expect(result).toMatchObject({
+      publicKey: 'PRJ-204',
+      organizationKey: 'ORG-12',
+      name: 'Renamed project',
     });
     expect(update).toHaveBeenCalledWith({
       where: { id: currentUser.projectId },

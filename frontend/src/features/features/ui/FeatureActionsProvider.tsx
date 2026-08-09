@@ -32,7 +32,7 @@ import {
 type FeatureAction =
   | {
       readonly kind: 'create';
-      readonly projectId: string;
+      readonly projectKey: string;
       readonly successBehavior: FeatureCreateSuccessBehavior;
     }
   | { readonly feature: Feature; readonly kind: 'edit' }
@@ -77,7 +77,7 @@ function CreateFeatureDialog({
       onSubmit={form.handleSubmit(async (values) => {
         const feature = await mutation.mutateAsync({
           origin: values.origin,
-          projectId: action.projectId,
+          projectKey: action.projectKey,
           title: values.title,
         });
         close();
@@ -171,7 +171,7 @@ function EditFeatureDialog({
       onSubmit={form.handleSubmit(async (values) => {
         await mutation.mutateAsync({
           brief: values.brief.trim() || null,
-          featureId: feature.id,
+          featureKey: feature.publicKey,
           includeInProjectContext: values.includeInProjectContext,
           title: values.title,
         });
@@ -300,8 +300,8 @@ export function FeatureActionsProvider({
   const [action, setAction] = useState<FeatureAction>();
   const value = useMemo<FeatureActionsContextValue>(
     () => ({
-      openCreate: ({ projectId, successBehavior = 'open-created' }) =>
-        setAction({ kind: 'create', projectId, successBehavior }),
+      openCreate: ({ projectKey, successBehavior = 'open-created' }) =>
+        setAction({ kind: 'create', projectKey, successBehavior }),
       openDelete: (
         feature,
         { successBehavior = 'parent-if-current' } = {},

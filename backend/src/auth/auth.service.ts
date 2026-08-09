@@ -7,19 +7,26 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 
+import { formatPublicKey, parsePublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
 import type { LoginRequestDto } from './dto/login-request.dto';
-import type { CurrentUserContext } from './current-user-context';
+import type {
+  CurrentUserContext,
+  CurrentUserResponse,
+} from './current-user-context';
 
 interface UserWithWorkspace {
   readonly id: string;
+  readonly publicNumber: number;
   readonly username: string;
   readonly organizationId: string;
   readonly passwordHash: string;
   readonly isActive: boolean;
   readonly organization: {
+    readonly publicNumber: number;
     readonly projects: ReadonlyArray<{
       readonly id: string;
+      readonly publicNumber: number;
     }>;
   };
 }
@@ -32,7 +39,7 @@ export interface LoginResponse {
   readonly accessToken: string;
   readonly expiresInSeconds: number;
   readonly tokenType: 'Bearer';
-  readonly user: CurrentUserContext;
+  readonly user: CurrentUserResponse;
 }
 
 @Injectable()
@@ -62,7 +69,7 @@ export class AuthService {
     const currentUser = this.toCurrentUserContext(user);
     const accessToken = await this.jwtService.signAsync(
       {
-        sub: user.id,
+        sub: currentUser.userKey,
       } satisfies AuthTokenPayload,
       {
         expiresIn: expiresInSeconds,
@@ -74,20 +81,36 @@ export class AuthService {
       accessToken,
       expiresInSeconds,
       tokenType: 'Bearer',
-      user: currentUser,
+      user: this.toCurrentUserResponse(currentUser),
     };
   }
 
   async authenticateToken(token: string): Promise<CurrentUserContext> {
     const payload = await this.verifyToken(token);
+    let publicNumber: number;
 
-    const user = await this.findUserWithWorkspaceById(payload.sub);
+    try {
+      publicNumber = parsePublicKey('user', payload.sub);
+    } catch {
+      throw new UnauthorizedException('Invalid authentication token');
+    }
+
+    const user = await this.findUserWithWorkspaceByPublicNumber(publicNumber);
 
     if (user === null || !user.isActive) {
       throw new UnauthorizedException('Invalid authentication token');
     }
 
     return this.toCurrentUserContext(user);
+  }
+
+  toCurrentUserResponse(currentUser: CurrentUserContext): CurrentUserResponse {
+    return {
+      userKey: currentUser.userKey,
+      username: currentUser.username,
+      organizationKey: currentUser.organizationKey,
+      projectKey: currentUser.projectKey,
+    };
   }
 
   private async verifyToken(token: string): Promise<AuthTokenPayload> {
@@ -140,12 +163,12 @@ export class AuthService {
     });
   }
 
-  private findUserWithWorkspaceById(
-    id: string,
+  private findUserWithWorkspaceByPublicNumber(
+    publicNumber: number,
   ): Promise<UserWithWorkspace | null> {
     return this.prismaService.user.findUnique({
       where: {
-        id,
+        publicNumber,
       },
       include: this.userWorkspaceInclude(),
     });
@@ -175,8 +198,14 @@ export class AuthService {
 
     return {
       organizationId: user.organizationId,
+      organizationKey: formatPublicKey(
+        'organization',
+        user.organization.publicNumber,
+      ),
       projectId: project.id,
+      projectKey: formatPublicKey('project', project.publicNumber),
       userId: user.id,
+      userKey: formatPublicKey('user', user.publicNumber),
       username: user.username,
     };
   }

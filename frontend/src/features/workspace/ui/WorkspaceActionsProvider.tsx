@@ -59,7 +59,7 @@ function OrganizationDialog({
       onSubmit={form.handleSubmit(async (values) => {
         await mutation.mutateAsync({
           name: values.name,
-          organizationId: organization.id,
+          organizationKey: organization.publicKey,
         });
         close();
       })}
@@ -118,7 +118,10 @@ function ProjectDialog({
       }}
       onReset={form.reset}
       onSubmit={form.handleSubmit(async (values) => {
-        await mutation.mutateAsync({ name: values.name, projectId: project.id });
+        await mutation.mutateAsync({
+          name: values.name,
+          projectKey: project.publicKey,
+        });
         close();
       })}
       open

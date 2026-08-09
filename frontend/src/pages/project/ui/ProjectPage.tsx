@@ -24,10 +24,7 @@ import {
   useProjectActions,
 } from '@/features/workspace';
 import { ApiError, getApiErrorMessage } from '@/shared/api';
-import {
-  useCanonicalPath,
-  usePageHeaderRegistration,
-} from '@/shared/model';
+import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -112,7 +109,7 @@ function FeatureCard({
             </span>
             <h2 className={styles.featureTitle}>
               <Link
-                aria-describedby={`feature-${feature.id}-brief`}
+                aria-describedby={`feature-${feature.publicKey}-brief`}
                 className={styles.featureLink}
                 to={getFeaturePath(projectPublicKey, feature.publicKey)}
               >
@@ -138,7 +135,10 @@ function FeatureCard({
             </div>
           </div>
 
-          <p className={styles.brief} id={`feature-${feature.id}-brief`}>
+          <p
+            className={styles.brief}
+            id={`feature-${feature.publicKey}-brief`}
+          >
             {feature.brief ?? 'No feature brief yet.'}
           </p>
 
@@ -233,7 +233,7 @@ function FeatureCards({
       {features.map((feature) => (
         <FeatureCard
           feature={feature}
-          key={feature.id}
+          key={feature.publicKey}
           onDelete={onDelete}
           onEdit={onEdit}
           projectPublicKey={projectPublicKey}
@@ -260,14 +260,14 @@ function ProjectContextPanel({
       new Set(
         features
           .filter((feature) => feature.includeInProjectContext)
-          .map((feature) => feature.id),
+          .map((feature) => feature.publicKey),
       ),
     [features],
   );
   const serverSignature = features
     .map(
       (feature) =>
-        `${feature.id}:${feature.includeInProjectContext ? 'included' : 'excluded'}`,
+        `${feature.publicKey}:${feature.includeInProjectContext ? 'included' : 'excluded'}`,
     )
     .join('|');
   const previousServerIds = useRef<ReadonlySet<string>>(serverIncludedIds);
@@ -279,9 +279,9 @@ function ProjectContextPanel({
   const isDirty = !sameIds(draftIncludedIds, serverIncludedIds);
   const allSelected =
     features.length > 0 &&
-    features.every((feature) => draftIncludedIds.has(feature.id));
+    features.every((feature) => draftIncludedIds.has(feature.publicKey));
   const someSelected = features.some((feature) =>
-    draftIncludedIds.has(feature.id),
+    draftIncludedIds.has(feature.publicKey),
   );
 
   useEffect(() => {
@@ -301,7 +301,7 @@ function ProjectContextPanel({
   async function saveMembership() {
     const changedFeatures = features.filter(
       (feature) =>
-        draftIncludedIds.has(feature.id) !==
+        draftIncludedIds.has(feature.publicKey) !==
         feature.includeInProjectContext,
     );
 
@@ -314,8 +314,8 @@ function ProjectContextPanel({
       const results = await Promise.allSettled(
         changedFeatures.map((feature) =>
           updateFeatureMutation.mutateAsync({
-            featureId: feature.id,
-            includeInProjectContext: draftIncludedIds.has(feature.id),
+            featureKey: feature.publicKey,
+            includeInProjectContext: draftIncludedIds.has(feature.publicKey),
           }),
         ),
       );
@@ -390,7 +390,7 @@ function ProjectContextPanel({
               onChange={(event) => {
                 replaceDraft(
                   event.currentTarget.checked
-                    ? new Set(features.map((feature) => feature.id))
+                    ? new Set(features.map((feature) => feature.publicKey))
                     : new Set(),
                 );
               }}
@@ -402,16 +402,16 @@ function ProjectContextPanel({
             <div className={styles.checkboxList}>
               {features.map((feature) => (
                 <Checkbox
-                  checked={draftIncludedIds.has(feature.id)}
+                  checked={draftIncludedIds.has(feature.publicKey)}
                   disabled={isSaving}
-                  key={feature.id}
+                  key={feature.publicKey}
                   label={feature.title}
                   onChange={(event) => {
                     const next = new Set(draftIncludedIds);
                     if (event.currentTarget.checked) {
-                      next.add(feature.id);
+                      next.add(feature.publicKey);
                     } else {
-                      next.delete(feature.id);
+                      next.delete(feature.publicKey);
                     }
                     replaceDraft(next);
                   }}
@@ -449,23 +449,17 @@ function ProjectContextPanel({
 
 interface ProjectContentProps {
   readonly accessToken: string;
-  readonly organizationId: string;
-  readonly projectId: string;
+  readonly organizationKey: string;
   readonly projectKey: string;
 }
 
 function ProjectContent({
   accessToken,
-  organizationId,
-  projectId,
+  organizationKey,
   projectKey,
 }: ProjectContentProps) {
-  const projectQuery = useProject(accessToken, organizationId, projectKey);
-  const featuresQuery = useProjectFeatures(
-    accessToken,
-    projectId,
-    projectKey,
-  );
+  const projectQuery = useProject(accessToken, organizationKey, projectKey);
+  const featuresQuery = useProjectFeatures(accessToken, projectKey);
   const { openEdit: openEditProject } = useProjectActions();
   const featureActions = useFeatureActions();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -474,11 +468,6 @@ function ProjectContent({
     ? requestedTab
     : 'features';
   const projectNotFound = projectQuery.isError && isNotFound(projectQuery.error);
-  useCanonicalPath(
-    projectQuery.data
-      ? getProjectPath(projectQuery.data.publicKey)
-      : undefined,
-  );
   const tabs = useMemo<TabsItems>(
     () => [
       {
@@ -512,7 +501,9 @@ function ProjectContent({
             <Button
               leadingIcon={<Plus size={16} strokeWidth={1.75} />}
               onClick={() =>
-                featureActions.openCreate({ projectId: projectQuery.data.id })
+                featureActions.openCreate({
+                  projectKey: projectQuery.data.publicKey,
+                })
               }
             >
               Add feature
@@ -665,8 +656,7 @@ export function ProjectPage() {
   return (
     <ProjectContent
       accessToken={accessToken}
-      organizationId={user.organizationId}
-      projectId={user.projectId}
+      organizationKey={user.organizationKey}
       projectKey={projectKey}
     />
   );

@@ -13,7 +13,6 @@ import {
   adjustProjectFeatureCount,
   getProjectPath,
   projectKeys,
-  projectsQueryOptions,
   WorkspaceActionsProvider,
   type ProjectSummary,
 } from '@/features/workspace';
@@ -26,43 +25,28 @@ export function EntityActionsRoute() {
   const queryClient = useQueryClient();
 
   if (!accessToken || !user) return <Outlet />;
-  const authenticatedAccessToken = accessToken;
-  const organizationId = user.organizationId;
+  const organizationKey = user.organizationKey;
 
   function updateCachedProjectFeatureCount(
-    projectId: string,
+    projectKey: string,
     difference: number,
   ) {
     queryClient.setQueryData<readonly ProjectSummary[]>(
-      projectKeys.list(organizationId),
+      projectKeys.list(organizationKey),
       (current) =>
-        adjustProjectFeatureCount(current, projectId, difference),
+        adjustProjectFeatureCount(current, projectKey, difference),
     );
-  }
-
-  async function resolveProjectPublicKey(projectId: string) {
-    const projects = await queryClient.ensureQueryData(
-      projectsQueryOptions(authenticatedAccessToken, organizationId),
-    );
-
-    return projects.find((project) => project.id === projectId)?.publicKey;
   }
 
   function handleCreated(
     feature: Feature,
     behavior: FeatureCreateSuccessBehavior,
   ) {
-    updateCachedProjectFeatureCount(feature.projectId, 1);
+    updateCachedProjectFeatureCount(feature.projectKey, 1);
 
     if (behavior === 'open-created') {
-      void resolveProjectPublicKey(feature.projectId).then(
-        (projectPublicKey) => {
-          if (!projectPublicKey) return;
-
-          void navigate(
-            getFeaturePath(projectPublicKey, feature.publicKey),
-          );
-        },
+      void navigate(
+        getFeaturePath(feature.projectKey, feature.publicKey),
       );
     }
   }
@@ -71,7 +55,7 @@ export function EntityActionsRoute() {
     feature: Feature,
     behavior: FeatureDeleteSuccessBehavior,
   ) {
-    updateCachedProjectFeatureCount(feature.projectId, -1);
+    updateCachedProjectFeatureCount(feature.projectKey, -1);
 
     if (behavior === 'stay') return;
 
@@ -80,16 +64,9 @@ export function EntityActionsRoute() {
       location.pathname,
     );
     if (
-      match?.params.featureKey === feature.id ||
       match?.params.featureKey === feature.publicKey
     ) {
-      void resolveProjectPublicKey(feature.projectId).then(
-        (projectPublicKey) => {
-          if (!projectPublicKey) return;
-
-          void navigate(getProjectPath(projectPublicKey));
-        },
-      );
+      void navigate(getProjectPath(feature.projectKey));
     }
   }
 

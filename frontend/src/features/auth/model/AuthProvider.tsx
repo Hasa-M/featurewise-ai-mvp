@@ -46,9 +46,9 @@ function removeStoredAccessToken(): void {
 
 function toAuthUser(user: CurrentUserDto): AuthUser {
   return {
-    organizationId: user.organizationId,
-    projectId: user.projectId,
-    userId: user.userId,
+    organizationKey: user.organizationKey,
+    projectKey: user.projectKey,
+    userKey: user.userKey,
     username: user.username,
   };
 }

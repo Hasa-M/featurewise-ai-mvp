@@ -6,11 +6,7 @@ import {
 import { Prisma, SpecRunKind, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
-import {
-  formatPublicKey,
-  toIdentifierWhere,
-  type EntityIdentifier,
-} from '../common/public-identifiers';
+import { formatPublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
 import { WorkspaceService } from '../workspace/workspace.service';
 import type { CreateFeatureDto } from './dto/create-feature.dto';
@@ -27,11 +23,17 @@ interface FeatureRecord {
   readonly createdById: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly createdBy: {
+    readonly publicNumber: number;
+  };
+  readonly project: {
+    readonly publicNumber: number;
+  };
 }
 
 export interface PendingUpdate {
-  readonly featureUpdateId: string;
-  readonly generatedSpecId: string;
+  readonly featureUpdateKey: string;
+  readonly generatedSpecKey: string;
   readonly title: string;
   readonly version: number;
 }
@@ -60,11 +62,11 @@ export class FeaturesService {
 
   async listFeatures(
     currentUser: CurrentUserContext,
-    projectIdentifier: EntityIdentifier,
+    projectPublicNumber: number,
   ) {
     const project = await this.workspaceService.getProjectRecord(
       currentUser,
-      projectIdentifier,
+      projectPublicNumber,
     );
 
     const features = await this.prismaService.feature.findMany({
@@ -75,6 +77,7 @@ export class FeaturesService {
       orderBy: {
         createdAt: 'desc',
       },
+      include: this.featurePublicRelations(),
     });
 
     return Promise.all(
@@ -84,10 +87,13 @@ export class FeaturesService {
 
   async createFeature(
     currentUser: CurrentUserContext,
-    projectId: string,
+    projectPublicNumber: number,
     dto: CreateFeatureDto,
   ) {
-    this.assertProjectVisible(currentUser, projectId);
+    const project = await this.workspaceService.getProjectRecord(
+      currentUser,
+      projectPublicNumber,
+    );
 
     const feature = await this.prismaService.$transaction((transaction) =>
       transaction.feature.create({
@@ -96,7 +102,7 @@ export class FeaturesService {
           createdById: currentUser.userId,
           includeInProjectContext: dto.includeInProjectContext ?? false,
           origin: dto.origin,
-          projectId,
+          projectId: project.id,
           title: dto.title.trim(),
           contextArtifact: {
             create: {
@@ -104,32 +110,36 @@ export class FeaturesService {
             },
           },
         },
+        include: this.featurePublicRelations(),
       }),
     );
 
     return this.toFeatureResponse(feature);
   }
 
-  async getFeature(currentUser: CurrentUserContext, featureId: string) {
+  async getFeature(
+    currentUser: CurrentUserContext,
+    featurePublicNumber: number,
+  ) {
     return this.toFeatureResponse(
-      await this.getFeatureRecord(currentUser, featureId),
+      await this.getFeatureRecord(currentUser, featurePublicNumber),
     );
   }
 
   async getProjectFeature(
     currentUser: CurrentUserContext,
-    projectIdentifier: EntityIdentifier,
-    featureIdentifier: EntityIdentifier,
+    projectPublicNumber: number,
+    featurePublicNumber: number,
   ) {
     const project = await this.workspaceService.getProjectRecord(
       currentUser,
-      projectIdentifier,
+      projectPublicNumber,
     );
 
     return this.toFeatureResponse(
-      await this.getFeatureRecordByIdentifier(
+      await this.getFeatureRecordByPublicNumber(
         currentUser,
-        featureIdentifier,
+        featurePublicNumber,
         project.id,
       ),
     );
@@ -137,10 +147,13 @@ export class FeaturesService {
 
   async updateFeature(
     currentUser: CurrentUserContext,
-    featureId: string,
+    featurePublicNumber: number,
     dto: UpdateFeatureDto,
   ) {
-    await this.getFeatureRecord(currentUser, featureId);
+    const featureRecord = await this.getFeatureRecord(
+      currentUser,
+      featurePublicNumber,
+    );
 
     const data: Prisma.FeatureUpdateInput = {};
 
@@ -158,9 +171,10 @@ export class FeaturesService {
 
     const feature = await this.prismaService.feature.update({
       where: {
-        id: featureId,
+        id: featureRecord.id,
       },
       data,
+      include: this.featurePublicRelations(),
     });
 
     return this.toFeatureResponse(feature);
@@ -168,9 +182,12 @@ export class FeaturesService {
 
   async deleteFeature(
     currentUser: CurrentUserContext,
-    featureId: string,
+    featurePublicNumber: number,
   ): Promise<void> {
-    const feature = await this.getFeatureRecord(currentUser, featureId);
+    const feature = await this.getFeatureRecord(
+      currentUser,
+      featurePublicNumber,
+    );
     const activeRun = await this.prismaService.specRun.findFirst({
       where: {
         featureId: feature.id,
@@ -201,29 +218,30 @@ export class FeaturesService {
 
   async getFeatureRecord(
     currentUser: CurrentUserContext,
-    featureId: string,
+    featurePublicNumber: number,
   ): Promise<FeatureRecord> {
-    return this.getFeatureRecordByIdentifier(
+    return this.getFeatureRecordByPublicNumber(
       currentUser,
-      { kind: 'uuid', value: featureId },
+      featurePublicNumber,
       currentUser.projectId,
     );
   }
 
-  private async getFeatureRecordByIdentifier(
+  private async getFeatureRecordByPublicNumber(
     currentUser: CurrentUserContext,
-    featureIdentifier: EntityIdentifier,
+    featurePublicNumber: number,
     projectId: string,
   ): Promise<FeatureRecord> {
     const feature = await this.prismaService.feature.findFirst({
       where: {
-        ...toIdentifierWhere(featureIdentifier),
+        publicNumber: featurePublicNumber,
         deletedAt: null,
         projectId,
         project: {
           organizationId: currentUser.organizationId,
         },
       },
+      include: this.featurePublicRelations(),
     });
 
     if (feature === null) {
@@ -233,15 +251,6 @@ export class FeaturesService {
     return feature;
   }
 
-  private assertProjectVisible(
-    currentUser: CurrentUserContext,
-    projectId: string,
-  ): void {
-    if (currentUser.projectId !== projectId) {
-      throw new NotFoundException('Project not found');
-    }
-  }
-
   private async toFeatureResponse(feature: FeatureRecord) {
     const [activity, alignment] = await Promise.all([
       this.computeActivity(feature.id),
@@ -249,14 +258,13 @@ export class FeaturesService {
     ]);
 
     return {
-      id: feature.id,
       publicKey: formatPublicKey('feature', feature.publicNumber),
-      projectId: feature.projectId,
+      projectKey: formatPublicKey('project', feature.project.publicNumber),
       title: feature.title,
       brief: feature.brief,
       origin: feature.origin,
       includeInProjectContext: feature.includeInProjectContext,
-      createdById: feature.createdById,
+      createdByKey: formatPublicKey('user', feature.createdBy.publicNumber),
       createdAt: feature.createdAt,
       updatedAt: feature.updatedAt,
       activity,
@@ -339,6 +347,7 @@ export class FeaturesService {
       },
       select: {
         id: true,
+        publicNumber: true,
         title: true,
         generatedSpecs: {
           where: {
@@ -346,6 +355,7 @@ export class FeaturesService {
           },
           select: {
             id: true,
+            publicNumber: true,
             version: true,
           },
           take: 1,
@@ -376,8 +386,14 @@ export class FeaturesService {
 
       return [
         {
-          featureUpdateId: update.id,
-          generatedSpecId: generatedSpec.id,
+          featureUpdateKey: formatPublicKey(
+            'featureUpdate',
+            update.publicNumber,
+          ),
+          generatedSpecKey: formatPublicKey(
+            'generatedSpec',
+            generatedSpec.publicNumber,
+          ),
           title: update.title,
           version: generatedSpec.version,
         },
@@ -422,6 +438,21 @@ export class FeaturesService {
     return typeof value.includeProjectSummary === 'boolean'
       ? value.includeProjectSummary
       : null;
+  }
+
+  private featurePublicRelations() {
+    return {
+      createdBy: {
+        select: {
+          publicNumber: true,
+        },
+      },
+      project: {
+        select: {
+          publicNumber: true,
+        },
+      },
+    } as const;
   }
 
   private normalizeNullableText(

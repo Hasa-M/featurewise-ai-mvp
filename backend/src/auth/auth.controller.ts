@@ -26,6 +26,6 @@ export class AuthController {
   @Get('me')
   @UseGuards(AuthGuard)
   getCurrentUser(@CurrentUser() currentUser: CurrentUserContext) {
-    return currentUser;
+    return this.authService.toCurrentUserResponse(currentUser);
   }
 }

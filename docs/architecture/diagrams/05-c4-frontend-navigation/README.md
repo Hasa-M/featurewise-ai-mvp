@@ -28,10 +28,10 @@ The authenticated route tree keeps `AppShell` and `PageStructure` mounted above 
 
 Project and Feature keys are backend-generated public identifiers (`PRJ-*` and
 `FEAT-*`). Central route builders create all new links from response
-`publicKey` values. The read API and route pages also accept legacy UUIDs; once
-resolved, the client replaces a legacy location with its canonical public-key
-path while preserving query parameters, hash, and router state. UUIDs remain
-available for existing write operations and are not derived in the frontend.
+`publicKey` values. Read and mutation APIs accept only the entity-specific
+public keys. Legacy UUID locations are rejected and are not canonicalized.
+Domain UUIDs remain backend-internal and are never received, stored, derived,
+routed with, or sent by the frontend (ADR-0028).
 
 `PageStructure` owns the single `main` landmark. Its Header, Sidebar visibility,
 Sidebar width, accordion state, user menu, action providers, and query
@@ -71,11 +71,11 @@ One QueryClient is mounted above authentication and routing. Authentication fail
 
 | Resource | Query key | Freshness |
 | --- | --- | --- |
-| Organization | `['organization', organizationId]` | 5 minutes |
-| Project summaries, including active-feature count | `['projects', organizationId]` | 5 minutes |
-| Project | `['project', projectIdentifier]` | 5 minutes |
-| Project features | `['features', projectId]` | 1 minute |
-| Feature | `['feature', projectIdentifier, featureIdentifier]` | 1 minute |
+| Organization | `['organization', organizationKey]` | 5 minutes |
+| Project summaries, including active-feature count | `['projects', organizationKey]` | 5 minutes |
+| Project | `['project', projectKey]` | 5 minutes |
+| Project features | `['features', projectKey]` | 1 minute |
+| Feature | `['feature', projectKey, featureKey]` | 1 minute |
 
 Organization and project summaries start concurrently after authentication. The
 project-summary response includes the count of non-deleted Features so the
@@ -92,9 +92,9 @@ Successful Feature creation and deletion also adjust the cached project-summary
 count at the app composition boundary.
 
 Project and feature detail queries use fresh collection entries as initial data
-and inherit the collection's update timestamp. Direct deep links fall back to
-identifier-compatible Project and nested Feature read endpoints. The nested
-Feature endpoint verifies Project membership. Project feature reads also expose backend-derived
+and inherit the collection's update timestamp. Direct deep links use public-key
+Project and nested Feature read endpoints. The nested Feature endpoint verifies
+Project membership. Project feature reads also expose backend-derived
 activity: direct generation-run count, current valid-spec version, and the
 latest feature-target run's kind, status, and project-summary inclusion setting.
 The Project context tab keeps an explicit local membership draft, then
@@ -149,4 +149,5 @@ C4Component
 - Sidebar trees and cross-boundary handlers are derived with stable memoization.
 - Prefetch is intent-based rather than eager for every feature collection.
 - Cache freshness, not component mount count, determines whether another request is needed.
-- Backend response contracts and visibility rules remain unchanged; further transport optimization requires measurement before an architectural change.
+- Backend visibility rules remain unchanged; further transport optimization
+  requires measurement before an architectural change.

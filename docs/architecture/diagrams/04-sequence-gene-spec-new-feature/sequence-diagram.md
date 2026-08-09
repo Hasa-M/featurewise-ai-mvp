@@ -47,30 +47,34 @@ three.
 
 ## API Contract
 
-- `POST /features/:id/spec-runs` body `{ runKind?: "generation" | "consolidation" }`
-  (default `generation`) → `202 Accepted` + `SpecRun { id, status }`.
+- `POST /features/:featureKey/spec-runs` body `{ runKind?: "generation" | "consolidation" }`
+  (default `generation`) → `202 Accepted` + `SpecRun { publicKey, status }`.
   `422` when: `generation` on a `mapped_existing` Feature, or `consolidation`
   with nothing pending. `409 Conflict` if a non-terminal run exists for this
   target.
-- `POST /feature-updates/:id/spec-runs` (always `generation`) → `202` / `404` /
+- `POST /feature-updates/:featureUpdateKey/spec-runs` (always `generation`) → `202` / `404` /
   `409`; `422` when the parent baseline is not usable.
-- `GET /spec-runs/:id` → the `SpecRun`; when `completed`, the response embeds
+- `GET /spec-runs/:specRunKey` → the `SpecRun`; when `completed`, the response embeds
   the full `GeneratedSpec` object.
-- `GET /features/:id/spec-runs/latest` and
-  `GET /feature-updates/:id/spec-runs/latest` → most recent run for the
+- `GET /features/:featureKey/spec-runs/latest` and
+  `GET /feature-updates/:featureUpdateKey/spec-runs/latest` → most recent run for the
   target, any status. **Recovery endpoint**: after a page reload the frontend
   rediscovers an active run and resumes polling.
-- `POST /generated-specs/:id/validate` → marks the spec valid: freezes its
+- `POST /generated-specs/:generatedSpecKey/validate` → marks the spec valid: freezes its
   content and atomically clears the previously valid spec of the same target
   (ADR-0021). This is the event that can flip the parent Feature to
   `updates_pending`.
-- `GET /features/:id` → includes the computed
+- `GET /features/:featureKey` → includes the computed
   `alignment: { status: "aligned" | "updates_pending", pendingUpdates: [...] }`.
 - The 409 is ultimately enforced by the partial unique indexes on `spec_run`
   (see ERD), not by a check-then-insert — the pre-check is only a fast path.
 - Generation is independent of the client connection. Closing the web app does
   not affect a run. Stopping the backend process kills in-flight runs
   (accepted ADR-0012 tradeoff, mitigated by the sweep).
+- All identifiers in these HTTP paths and response identity fields are the
+  entity-specific public keys from ADR-0028. Controllers resolve them to UUIDs
+  before service and database operations. Snapshot UUID references stay
+  internal and are never returned to the frontend.
 
 ## Diagram — run execution
 
@@ -85,7 +89,8 @@ sequenceDiagram
     participant S3 as Object Storage
     participant LLM as LLM Provider
 
-    U->>API: POST /features/:id/spec-runs { runKind } (or /feature-updates/:id/spec-runs)
+    U->>API: POST /features/:featureKey/spec-runs { runKind } (or /feature-updates/:featureUpdateKey/spec-runs)
+    API->>DB: resolve public target key within existing visibility constraints
     API->>GEN: startRun(target, runKind)
     GEN->>DB: resolve target, check preconditions, find non-terminal run for target
     alt precondition failed (missing target / wrong origin / unusable baseline / nothing to consolidate)
@@ -109,7 +114,7 @@ sequenceDiagram
         GEN->>DB: insert SpecRun (status=queued, runKind, snapshot, promptVersion, schemaVersion)
         Note right of DB: Partial unique indexes make the insert race-safe:<br/>a concurrent duplicate violates the index and maps to 409.
         GEN-->>API: SpecRun created
-        API-->>U: 202 Accepted + SpecRun { id, status: queued }
+        API-->>U: 202 Accepted + SpecRun { publicKey, status: queued }
     end
 
     Note over GEN: Async execution inside the NestJS process (ADR-0012),<br/>wrapped in a top-level guard: any unexpected exception<br/>marks the run failed. No run may stay non-terminal.
@@ -155,7 +160,7 @@ sequenceDiagram
     end
 
     loop poll until terminal status
-        U->>API: GET /spec-runs/:id
+        U->>API: GET /spec-runs/:specRunKey
         API->>DB: read SpecRun (+ GeneratedSpec when completed)
         API-->>U: SpecRun { status } or full SpecRun + GeneratedSpec
     end
@@ -238,8 +243,9 @@ automatically.
 
 ### Polling, recovery, safety net
 
-The frontend polls `GET /spec-runs/:id` until a terminal status; after a
-reload it rediscovers an active run via `GET /<target>/:id/spec-runs/latest`.
+The frontend polls `GET /spec-runs/:specRunKey` until a terminal status;
+after a reload it rediscovers an active run via the target's public-key latest
+run endpoint.
 The stale-run sweep (startup + periodic) marks non-terminal runs older than
 `STALE_RUN_TIMEOUT` as failed, so a stuck run can never block its target with
 eternal 409s.

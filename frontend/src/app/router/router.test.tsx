@@ -14,26 +14,28 @@ import { AuthProvider } from '@/features/auth';
 import { routes } from './router';
 
 const currentUser = {
-  organizationId: '11111111-1111-4111-8111-111111111111',
-  projectId: '22222222-2222-4222-8222-222222222222',
-  userId: '33333333-3333-4333-8333-333333333333',
+  organizationKey: 'ORG-12',
+  projectKey: 'PRJ-204',
+  userKey: 'USR-7',
   username: 'marco',
 };
 
+const legacyProjectUuid = '22222222-2222-4222-8222-222222222222';
+const legacyFeatureUuid = '44444444-4444-4444-8444-444444444444';
+
 const organization = {
   createdAt: '2026-07-18T10:00:00.000Z',
-  id: currentUser.organizationId,
   name: 'Northstar Labs',
+  publicKey: currentUser.organizationKey,
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 
 const project = {
   createdAt: '2026-07-18T10:00:00.000Z',
   featureCount: 1,
-  id: currentUser.projectId,
   name: 'Northstar mobile',
-  organizationId: currentUser.organizationId,
-  publicKey: 'PRJ-204',
+  organizationKey: currentUser.organizationKey,
+  publicKey: currentUser.projectKey,
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 
@@ -50,11 +52,10 @@ const feature = {
   alignment: { pendingUpdates: [], status: 'aligned' },
   brief: null,
   createdAt: '2026-07-18T10:00:00.000Z',
-  createdById: currentUser.userId,
-  id: '44444444-4444-4444-8444-444444444444',
+  createdByKey: currentUser.userKey,
   includeInProjectContext: false,
   origin: 'brand_new',
-  projectId: project.id,
+  projectKey: project.publicKey,
   publicKey: 'FEAT-5831',
   title: 'Authentication workflow',
   updatedAt: '2026-07-18T10:00:00.000Z',
@@ -67,7 +68,6 @@ const includedFeature = {
     generationRunCount: 0,
     latestFeatureRun: null,
   },
-  id: '55555555-5555-4555-8555-555555555555',
   includeInProjectContext: true,
   origin: 'mapped_existing',
   publicKey: 'FEAT-5832',
@@ -102,7 +102,7 @@ function defaultFetch(
     );
   }
   if (path === '/api/auth/me') return Promise.resolve(jsonResponse(currentUser));
-  if (path === `/api/organizations/${organization.id}`) {
+  if (path === `/api/organizations/${organization.publicKey}`) {
     if (init?.method === 'PATCH') {
       return Promise.resolve(
         jsonResponse({ ...organization, name: 'Renamed workspace' }),
@@ -110,35 +110,35 @@ function defaultFetch(
     }
     return Promise.resolve(jsonResponse(organization));
   }
-  if (path === `/api/organizations/${organization.id}/projects`) {
+  if (path === `/api/organizations/${organization.publicKey}/projects`) {
     return Promise.resolve(jsonResponse([project]));
   }
-  if (path === `/api/projects/${project.id}` && init?.method === 'PATCH') {
+  if (path === `/api/projects/${project.publicKey}` && init?.method === 'PATCH') {
     return Promise.resolve(
       jsonResponse({ ...project, name: 'Renamed project' }),
     );
   }
-  if (
-    path === `/api/projects/${project.publicKey}` ||
-    path === `/api/projects/${project.id}`
-  ) {
+  if (path === `/api/projects/${project.publicKey}`) {
     return Promise.resolve(jsonResponse(project));
   }
-  if (
-    path === `/api/projects/${project.publicKey}/features` ||
-    path === `/api/projects/${project.id}/features`
-  ) {
+  if (path === `/api/projects/${project.publicKey}/features`) {
     return Promise.resolve(jsonResponse([feature]));
   }
   if (
     path ===
-      `/api/projects/${project.publicKey}/features/${feature.publicKey}` ||
-    path === `/api/projects/${project.id}/features/${feature.id}`
+    `/api/projects/${project.publicKey}/features/${feature.publicKey}`
   ) {
     return Promise.resolve(jsonResponse(feature));
   }
-  if (path === `/api/features/${feature.id}`) {
+  if (path === `/api/features/${feature.publicKey}`) {
     return Promise.resolve(jsonResponse(feature));
+  }
+  if (
+    path === `/api/projects/${legacyProjectUuid}` ||
+    path ===
+      `/api/projects/${legacyProjectUuid}/features/${legacyFeatureUuid}`
+  ) {
+    return Promise.resolve(jsonResponse({ message: 'Invalid public key' }, 400));
   }
 
   return Promise.resolve(jsonResponse({ message: 'Not found' }, 404));
@@ -424,7 +424,10 @@ describe('application routes', () => {
         if (path === `/api/projects/${project.publicKey}/features`) {
           return Promise.resolve(jsonResponse([feature, includedFeature]));
         }
-        if (path === `/api/features/${feature.id}` && init?.method === 'PATCH') {
+        if (
+          path === `/api/features/${feature.publicKey}` &&
+          init?.method === 'PATCH'
+        ) {
           const body = JSON.parse(String(init.body)) as Record<string, unknown>;
           return Promise.resolve(jsonResponse({ ...feature, ...body }));
         }
@@ -457,7 +460,7 @@ describe('application routes', () => {
     expect(save).toBeDisabled();
     const membershipRequests = fetchMock.mock.calls.filter(
       ([input, init]) =>
-        requestPath(input) === `/api/features/${feature.id}` &&
+        requestPath(input) === `/api/features/${feature.publicKey}` &&
         init?.method === 'PATCH',
     );
     expect(membershipRequests).toHaveLength(1);
@@ -478,7 +481,7 @@ describe('application routes', () => {
             return Promise.resolve(jsonResponse([feature, includedFeature]));
           }
           if (
-            path === `/api/features/${feature.id}` &&
+            path === `/api/features/${feature.publicKey}` &&
             init?.method === 'PATCH'
           ) {
             const body = JSON.parse(String(init.body)) as Record<
@@ -488,7 +491,7 @@ describe('application routes', () => {
             return Promise.resolve(jsonResponse({ ...feature, ...body }));
           }
           if (
-            path === `/api/features/${includedFeature.id}` &&
+            path === `/api/features/${includedFeature.publicKey}` &&
             init?.method === 'PATCH'
           ) {
             return Promise.resolve(
@@ -548,22 +551,22 @@ describe('application routes', () => {
     });
   });
 
-  it('replaces a legacy UUID feature URL and preserves navigation state', async () => {
+  it('rejects a legacy UUID feature URL without canonicalizing it', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const navigationState = { from: 'shared-link' };
     const { testRouter } = renderRoute(
-      `/projects/${project.id}/features/${feature.id}?tab=context&view=compact`,
+      `/projects/${legacyProjectUuid}/features/${legacyFeatureUuid}?tab=context&view=compact`,
       navigationState,
     );
 
     expect(
-      await screen.findByRole('heading', { name: feature.title }),
+      await screen.findByText(
+        'This feature does not exist in the selected project.',
+      ),
     ).toBeVisible();
-    await waitFor(() => {
-      expect(testRouter.state.location.pathname).toBe(
-        `/projects/${project.publicKey}/features/${feature.publicKey}`,
-      );
-    });
+    expect(testRouter.state.location.pathname).toBe(
+      `/projects/${legacyProjectUuid}/features/${legacyFeatureUuid}`,
+    );
     expect(testRouter.state.location.search).toBe(
       '?tab=context&view=compact',
     );

@@ -9,22 +9,21 @@ import {
 
 describe('project model', () => {
   it('uses stable collection and detail keys', () => {
-    expect(projectKeys.list('organization-1')).toEqual([
+    expect(projectKeys.list('ORG-1')).toEqual([
       'projects',
-      'organization-1',
+      'ORG-1',
     ]);
-    expect(projectKeys.detail('project-1')).toEqual([
+    expect(projectKeys.detail('PRJ-1')).toEqual([
       'project',
-      'project-1',
+      'PRJ-1',
     ]);
   });
 
   it('maps transport timestamps at the feature boundary', () => {
     const project = toProject({
       createdAt: '2026-07-18T10:00:00.000Z',
-      id: 'project-1',
       name: 'Northstar',
-      organizationId: 'organization-1',
+      organizationKey: 'ORG-1',
       publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
@@ -38,9 +37,8 @@ describe('project model', () => {
     const project = toProjectSummary({
       createdAt: '2026-07-18T10:00:00.000Z',
       featureCount: 3,
-      id: 'project-1',
       name: 'Northstar',
-      organizationId: 'organization-1',
+      organizationKey: 'ORG-1',
       publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
@@ -53,21 +51,20 @@ describe('project model', () => {
     const project = toProjectSummary({
       createdAt: '2026-07-18T10:00:00.000Z',
       featureCount: 1,
-      id: 'project-1',
       name: 'Northstar',
-      organizationId: 'organization-1',
+      organizationKey: 'ORG-1',
       publicKey: 'PRJ-204',
       updatedAt: '2026-07-18T11:00:00.000Z',
     });
 
     const incremented = adjustProjectFeatureCount(
       [project],
-      project.id,
+      project.publicKey,
       1,
     );
     const decremented = adjustProjectFeatureCount(
       incremented,
-      project.id,
+      project.publicKey,
       -3,
     );
 

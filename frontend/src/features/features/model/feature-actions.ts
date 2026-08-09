@@ -7,7 +7,7 @@ export type FeatureDeleteSuccessBehavior = 'parent-if-current' | 'stay';
 
 export interface FeatureActionsContextValue {
   openCreate(options: {
-    readonly projectId: string;
+    readonly projectKey: string;
     readonly successBehavior?: FeatureCreateSuccessBehavior;
   }): void;
   openDelete(
@@ -33,4 +33,3 @@ export function useFeatureActions() {
 
   return context;
 }
-

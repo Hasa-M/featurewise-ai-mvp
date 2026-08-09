@@ -4,11 +4,11 @@ import { featureKeys, toFeature } from './features';
 
 describe('feature model', () => {
   it('uses stable collection and detail keys', () => {
-    expect(featureKeys.list('project-1')).toEqual(['features', 'project-1']);
-    expect(featureKeys.detail('project-1', 'feature-1')).toEqual([
+    expect(featureKeys.list('PRJ-1')).toEqual(['features', 'PRJ-1']);
+    expect(featureKeys.detail('PRJ-1', 'FEAT-1')).toEqual([
       'feature',
-      'project-1',
-      'feature-1',
+      'PRJ-1',
+      'FEAT-1',
     ]);
   });
 
@@ -26,11 +26,10 @@ describe('feature model', () => {
       alignment: { pendingUpdates: [], status: 'updates_pending' },
       brief: null,
       createdAt: '2026-07-18T10:00:00.000Z',
-      createdById: 'user-1',
-      id: 'feature-1',
+      createdByKey: 'USR-1',
       includeInProjectContext: false,
       origin: 'brand_new',
-      projectId: 'project-1',
+      projectKey: 'PRJ-204',
       publicKey: 'FEAT-5831',
       title: 'Authentication',
       updatedAt: '2026-07-18T11:00:00.000Z',

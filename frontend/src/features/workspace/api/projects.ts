@@ -2,9 +2,8 @@ import { request } from '@/shared/api';
 
 export interface ProjectDto {
   readonly createdAt: string;
-  readonly id: string;
   readonly name: string;
-  readonly organizationId: string;
+  readonly organizationKey: string;
   readonly publicKey: string;
   readonly updatedAt: string;
 }
@@ -19,27 +18,27 @@ export interface UpdateProjectDto {
 
 export function getProjects(
   accessToken: string,
-  organizationId: string,
+  organizationKey: string,
 ): Promise<readonly ProjectSummaryDto[]> {
   return request<readonly ProjectSummaryDto[]>(
-    `/organizations/${organizationId}/projects`,
+    `/organizations/${organizationKey}/projects`,
     { accessToken },
   );
 }
 
 export function getProject(
   accessToken: string,
-  projectIdentifier: string,
+  projectKey: string,
 ): Promise<ProjectDto> {
-  return request<ProjectDto>(`/projects/${projectIdentifier}`, { accessToken });
+  return request<ProjectDto>(`/projects/${projectKey}`, { accessToken });
 }
 
 export function updateProject(
   accessToken: string,
-  projectId: string,
+  projectKey: string,
   input: UpdateProjectDto,
 ): Promise<ProjectDto> {
-  return request<ProjectDto>(`/projects/${projectId}`, {
+  return request<ProjectDto>(`/projects/${projectKey}`, {
     accessToken,
     body: input,
     method: 'PATCH',

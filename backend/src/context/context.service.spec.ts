@@ -7,61 +7,79 @@ import { ContextService } from './context.service';
 
 const currentUser: CurrentUserContext = {
   organizationId: '00000000-0000-4000-8000-000000000001',
+  organizationKey: 'ORG-12',
   projectId: '00000000-0000-4000-8000-000000000002',
+  projectKey: 'PRJ-204',
   userId: '00000000-0000-4000-8000-000000000003',
+  userKey: 'USR-7',
   username: 'dev.operator',
 };
 
-const featureId = '00000000-0000-4000-8000-000000000004';
+const featureRecord = {
+  id: '00000000-0000-4000-8000-000000000004',
+  publicNumber: 5831,
+};
 const contextArtifact = {
   id: '00000000-0000-4000-8000-000000000005',
-  featureId,
+  publicNumber: 19,
+  featureId: featureRecord.id,
   featureUpdateId: null,
   content: 'Current context',
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-describe('ContextService', () => {
-  it('reads the scoped feature ContextArtifact', async () => {
-    const service = new ContextService(
-      {
-        getFeatureRecord: jest.fn().mockResolvedValue({ id: featureId }),
-      } as unknown as FeaturesService,
-      {
-        contextArtifact: {
-          findUnique: jest.fn().mockResolvedValue(contextArtifact),
-        },
-      } as unknown as PrismaService,
-    );
+function createService(
+  contextResult: typeof contextArtifact | null,
+  update = jest.fn(),
+) {
+  const getFeatureRecord = jest.fn().mockResolvedValue(featureRecord);
+  const service = new ContextService(
+    { getFeatureRecord } as unknown as FeaturesService,
+    {
+      contextArtifact: {
+        findUnique: jest.fn().mockResolvedValue(contextResult),
+        update,
+      },
+    } as unknown as PrismaService,
+  );
 
-    await expect(
-      service.getFeatureContext(currentUser, featureId),
-    ).resolves.toEqual(contextArtifact);
+  return { getFeatureRecord, service };
+}
+
+describe('ContextService', () => {
+  it('reads a Feature ContextArtifact through its public key without exposing UUIDs', async () => {
+    const { getFeatureRecord, service } = createService(contextArtifact);
+
+    const result = await service.getFeatureContext(currentUser, 5831);
+
+    expect(result).toEqual({
+      publicKey: 'CTX-19',
+      featureKey: 'FEAT-5831',
+      featureUpdateKey: null,
+      content: contextArtifact.content,
+      createdAt: contextArtifact.createdAt,
+      updatedAt: contextArtifact.updatedAt,
+    });
+    expect(result).not.toHaveProperty('id');
+    expect(result).not.toHaveProperty('featureId');
+    expect(getFeatureRecord).toHaveBeenCalledWith(currentUser, 5831);
   });
 
-  it('updates the scoped feature ContextArtifact content', async () => {
+  it('updates ContextArtifact content by its internally resolved Feature UUID', async () => {
     const update = jest.fn().mockResolvedValue({
       ...contextArtifact,
       content: 'Updated context',
     });
-    const service = new ContextService(
-      {
-        getFeatureRecord: jest.fn().mockResolvedValue({ id: featureId }),
-      } as unknown as FeaturesService,
-      {
-        contextArtifact: {
-          findUnique: jest.fn().mockResolvedValue(contextArtifact),
-          update,
-        },
-      } as unknown as PrismaService,
-    );
+    const { service } = createService(contextArtifact, update);
 
     await expect(
-      service.updateFeatureContext(currentUser, featureId, {
+      service.updateFeatureContext(currentUser, 5831, {
         content: 'Updated context',
       }),
     ).resolves.toMatchObject({
+      publicKey: 'CTX-19',
+      featureKey: 'FEAT-5831',
       content: 'Updated context',
     });
     expect(update).toHaveBeenCalledWith({
@@ -71,19 +89,10 @@ describe('ContextService', () => {
   });
 
   it('returns 404 when the ContextArtifact invariant is broken', async () => {
-    const service = new ContextService(
-      {
-        getFeatureRecord: jest.fn().mockResolvedValue({ id: featureId }),
-      } as unknown as FeaturesService,
-      {
-        contextArtifact: {
-          findUnique: jest.fn().mockResolvedValue(null),
-        },
-      } as unknown as PrismaService,
-    );
+    const { service } = createService(null);
 
     await expect(
-      service.getFeatureContext(currentUser, featureId),
+      service.getFeatureContext(currentUser, 5831),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

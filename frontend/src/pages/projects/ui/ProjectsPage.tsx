@@ -21,14 +21,14 @@ import styles from './ProjectsPage.module.css';
 
 interface ProjectsContentProps {
   readonly accessToken: string;
-  readonly organizationId: string;
+  readonly organizationKey: string;
 }
 
 function ProjectsContent({
   accessToken,
-  organizationId,
+  organizationKey,
 }: ProjectsContentProps) {
-  const projectsQuery = useProjects(accessToken, organizationId);
+  const projectsQuery = useProjects(accessToken, organizationKey);
   const { openEdit } = useProjectActions();
   const queryClient = useQueryClient();
   const pageHeader = useMemo(
@@ -52,13 +52,9 @@ function ProjectsContent({
   );
   usePageHeaderRegistration(pageHeader);
   const prefetchFeatures = useCallback(
-    (projectId: string, projectPublicKey: string) => {
+    (projectKey: string) => {
       void queryClient.prefetchQuery(
-        projectFeaturesQueryOptions(
-          accessToken,
-          projectId,
-          projectPublicKey,
-        ),
+        projectFeaturesQueryOptions(accessToken, projectKey),
       );
     },
     [accessToken, queryClient],
@@ -88,7 +84,7 @@ function ProjectsContent({
       ) : (
         <ul className={styles.list}>
           {projectsQuery.data.map((project) => (
-            <li className={styles.item} key={project.id}>
+            <li className={styles.item} key={project.publicKey}>
               <Card className={styles.card} height='100%' width='100%'>
                 <article className={styles.cardContent}>
                   <div className={styles.cardHeading}>
@@ -97,13 +93,13 @@ function ProjectsContent({
                     </span>
                     <h2 className={styles.projectName}>
                       <Link
-                        aria-describedby={`project-${project.id}-feature-count`}
+                        aria-describedby={`project-${project.publicKey}-feature-count`}
                         className={styles.projectLink}
                         onFocus={() =>
-                          prefetchFeatures(project.id, project.publicKey)
+                          prefetchFeatures(project.publicKey)
                         }
                         onPointerEnter={() =>
-                          prefetchFeatures(project.id, project.publicKey)
+                          prefetchFeatures(project.publicKey)
                         }
                         to={getProjectPath(project.publicKey)}
                       >
@@ -127,7 +123,7 @@ function ProjectsContent({
                   </div>
                   <p
                     className={styles.featureCount}
-                    id={`project-${project.id}-feature-count`}
+                    id={`project-${project.publicKey}-feature-count`}
                   >
                     {featureCountLabel(project.featureCount)}
                   </p>
@@ -149,7 +145,7 @@ export function ProjectsPage() {
   return (
     <ProjectsContent
       accessToken={accessToken}
-      organizationId={user.organizationId}
+      organizationKey={user.organizationKey}
     />
   );
 }

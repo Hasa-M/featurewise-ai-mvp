@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -15,8 +14,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import {
-  ParseEntityIdentifierPipe,
-  type EntityIdentifier,
+  ParsePublicKeyPipe,
+  type ParsedPublicNumber,
 } from '../common/public-identifiers';
 import { CreateFeatureDto } from './dto/create-feature.dto';
 import { UpdateFeatureDto } from './dto/update-feature.dto';
@@ -30,63 +29,80 @@ export class FeaturesController {
   @Get('projects/:projectKey/features')
   async listFeatures(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
-    projectIdentifier: EntityIdentifier,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
   ) {
-    return this.featuresService.listFeatures(currentUser, projectIdentifier);
+    return this.featuresService.listFeatures(
+      currentUser,
+      projectPublicNumber.value,
+    );
   }
 
-  @Post('projects/:projectId/features')
+  @Post('projects/:projectKey/features')
   async createFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
-    projectId: string,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
     @Body() dto: CreateFeatureDto,
   ) {
-    return this.featuresService.createFeature(currentUser, projectId, dto);
+    return this.featuresService.createFeature(
+      currentUser,
+      projectPublicNumber.value,
+      dto,
+    );
   }
 
   @Get('projects/:projectKey/features/:featureKey')
   async getProjectFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
-    projectIdentifier: EntityIdentifier,
-    @Param('featureKey', new ParseEntityIdentifierPipe('feature'))
-    featureIdentifier: EntityIdentifier,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
+    @Param('featureKey', new ParsePublicKeyPipe('feature'))
+    featurePublicNumber: ParsedPublicNumber,
   ) {
     return this.featuresService.getProjectFeature(
       currentUser,
-      projectIdentifier,
-      featureIdentifier,
+      projectPublicNumber.value,
+      featurePublicNumber.value,
     );
   }
 
-  @Get('features/:featureId')
+  @Get('features/:featureKey')
   async getFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureId', new ParseUUIDPipe({ version: '4' }))
-    featureId: string,
+    @Param('featureKey', new ParsePublicKeyPipe('feature'))
+    featurePublicNumber: ParsedPublicNumber,
   ) {
-    return this.featuresService.getFeature(currentUser, featureId);
+    return this.featuresService.getFeature(
+      currentUser,
+      featurePublicNumber.value,
+    );
   }
 
-  @Patch('features/:featureId')
+  @Patch('features/:featureKey')
   async updateFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureId', new ParseUUIDPipe({ version: '4' }))
-    featureId: string,
+    @Param('featureKey', new ParsePublicKeyPipe('feature'))
+    featurePublicNumber: ParsedPublicNumber,
     @Body() dto: UpdateFeatureDto,
   ) {
-    return this.featuresService.updateFeature(currentUser, featureId, dto);
+    return this.featuresService.updateFeature(
+      currentUser,
+      featurePublicNumber.value,
+      dto,
+    );
   }
 
-  @Delete('features/:featureId')
+  @Delete('features/:featureKey')
   @HttpCode(204)
   async deleteFeature(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureId', new ParseUUIDPipe({ version: '4' }))
-    featureId: string,
+    @Param('featureKey', new ParsePublicKeyPipe('feature'))
+    featurePublicNumber: ParsedPublicNumber,
   ): Promise<void> {
-    await this.featuresService.deleteFeature(currentUser, featureId);
+    await this.featuresService.deleteFeature(
+      currentUser,
+      featurePublicNumber.value,
+    );
   }
 }

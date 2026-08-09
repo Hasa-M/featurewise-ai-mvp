@@ -16,10 +16,7 @@ import {
 } from '@/features/features';
 import { getProjectPath, useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
-import {
-  useCanonicalPath,
-  usePageHeaderRegistration,
-} from '@/shared/model';
+import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Tabs, type TabsItems } from '@/shared/ui/tabs';
@@ -78,26 +75,18 @@ function isNotFound(error: unknown) {
 interface FeatureContentProps {
   readonly accessToken: string;
   readonly featureKey: string;
-  readonly organizationId: string;
-  readonly projectId: string;
+  readonly organizationKey: string;
   readonly projectKey: string;
 }
 
 function FeatureContent({
   accessToken,
   featureKey,
-  organizationId,
-  projectId,
+  organizationKey,
   projectKey,
 }: FeatureContentProps) {
-  const projectQuery = useProject(accessToken, organizationId, projectKey);
-  const featureQuery = useFeature(
-    accessToken,
-    projectId,
-    projectKey,
-    featureKey,
-    projectQuery.data?.publicKey,
-  );
+  const projectQuery = useProject(accessToken, organizationKey, projectKey);
+  const featureQuery = useFeature(accessToken, projectKey, featureKey);
   const featureActions = useFeatureActions();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
@@ -105,19 +94,11 @@ function FeatureContent({
     ? requestedTab
     : 'context';
   const targetMismatch =
-    featureQuery.isSuccess && featureQuery.data.projectId !== projectId;
+    featureQuery.isSuccess && featureQuery.data.projectKey !== projectKey;
   const notFound =
     targetMismatch ||
     (projectQuery.isError && isNotFound(projectQuery.error)) ||
     (featureQuery.isError && isNotFound(featureQuery.error));
-  useCanonicalPath(
-    projectQuery.data && featureQuery.data && !targetMismatch
-      ? getFeaturePath(
-          projectQuery.data.publicKey,
-          featureQuery.data.publicKey,
-        )
-      : undefined,
-  );
   const pageHeader = useMemo(
     () => ({
       actions: featureQuery.data && !targetMismatch ? (
@@ -290,8 +271,7 @@ export function FeaturePage() {
     <FeatureContent
       accessToken={accessToken}
       featureKey={featureKey}
-      organizationId={user.organizationId}
-      projectId={user.projectId}
+      organizationKey={user.organizationKey}
       projectKey={projectKey}
     />
   );

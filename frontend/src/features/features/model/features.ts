@@ -4,7 +4,6 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect } from 'react';
 
 import {
   createFeature,
@@ -22,20 +21,19 @@ export interface Feature {
   readonly alignment: FeatureDto['alignment'];
   readonly brief: string | null;
   readonly createdAt: Date;
-  readonly createdById: string;
-  readonly id: string;
+  readonly createdByKey: string;
   readonly includeInProjectContext: boolean;
   readonly origin: FeatureDto['origin'];
-  readonly projectId: string;
+  readonly projectKey: string;
   readonly publicKey: string;
   readonly title: string;
   readonly updatedAt: Date;
 }
 
 export const featureKeys = {
-  detail: (projectIdentifier: string, featureIdentifier: string) =>
-    ['feature', projectIdentifier, featureIdentifier] as const,
-  list: (projectId: string) => ['features', projectId] as const,
+  detail: (projectKey: string, featureKey: string) =>
+    ['feature', projectKey, featureKey] as const,
+  list: (projectKey: string) => ['features', projectKey] as const,
 };
 
 export function toFeature(dto: FeatureDto): Feature {
@@ -48,98 +46,65 @@ export function toFeature(dto: FeatureDto): Feature {
 
 export function projectFeaturesQueryOptions(
   accessToken: string,
-  projectId: string,
-  projectIdentifier = projectId,
+  projectKey: string,
 ) {
   return queryOptions({
-    queryKey: featureKeys.list(projectId),
+    queryKey: featureKeys.list(projectKey),
     queryFn: async () =>
-      (await getProjectFeatures(accessToken, projectIdentifier)).map(toFeature),
+      (await getProjectFeatures(accessToken, projectKey)).map(toFeature),
     staleTime: 60 * 1000,
   });
 }
 
 export function featureQueryOptions(
   accessToken: string,
-  projectIdentifier: string,
-  featureIdentifier: string,
+  projectKey: string,
+  featureKey: string,
 ) {
   return queryOptions({
-    queryKey: featureKeys.detail(projectIdentifier, featureIdentifier),
+    queryKey: featureKeys.detail(projectKey, featureKey),
     queryFn: async () =>
-      toFeature(
-        await getFeature(
-          accessToken,
-          projectIdentifier,
-          featureIdentifier,
-        ),
-      ),
+      toFeature(await getFeature(accessToken, projectKey, featureKey)),
     staleTime: 60 * 1000,
   });
 }
 
 export function useProjectFeatures(
   accessToken: string,
-  projectId: string,
-  projectIdentifier = projectId,
+  projectKey: string,
   enabled = true,
 ) {
   return useQuery({
-    ...projectFeaturesQueryOptions(
-      accessToken,
-      projectId,
-      projectIdentifier,
-    ),
+    ...projectFeaturesQueryOptions(accessToken, projectKey),
     enabled,
   });
 }
 
 export function useFeature(
   accessToken: string,
-  projectId: string,
-  projectIdentifier: string,
-  featureIdentifier: string,
-  canonicalProjectKey?: string,
+  projectKey: string,
+  featureKey: string,
 ) {
   const queryClient = useQueryClient();
-  const listKey = featureKeys.list(projectId);
+  const listKey = featureKeys.list(projectKey);
 
-  const query = useQuery({
-    ...featureQueryOptions(
-      accessToken,
-      projectIdentifier,
-      featureIdentifier,
-    ),
+  return useQuery({
+    ...featureQueryOptions(accessToken, projectKey, featureKey),
     initialData: () =>
       queryClient
         .getQueryData<readonly Feature[]>(listKey)
-        ?.find(
-          (feature) =>
-            feature.id === featureIdentifier ||
-            feature.publicKey === featureIdentifier,
-        ),
+        ?.find((feature) => feature.publicKey === featureKey),
     initialDataUpdatedAt: () =>
       queryClient.getQueryState(listKey)?.dataUpdatedAt,
   });
-
-  useEffect(() => {
-    if (!query.data || !canonicalProjectKey) return;
-
-    queryClient.setQueryData(
-      featureKeys.detail(canonicalProjectKey, query.data.publicKey),
-      query.data,
-    );
-  }, [canonicalProjectKey, query.data, queryClient]);
-
-  return query;
 }
 
 export interface CreateFeatureInput extends CreateFeatureDto {
-  readonly projectId: string;
+  readonly projectKey: string;
 }
 
 export interface FeatureUpdateInput extends UpdateFeatureDto {
-  readonly featureId: string;
+  readonly featureKey: string;
 }
 
 export type FeatureQuickEditInput = FeatureUpdateInput;
@@ -148,18 +113,20 @@ export function useCreateFeature(accessToken: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ projectId, ...input }: CreateFeatureInput) =>
-      toFeature(await createFeature(accessToken, projectId, input)),
+    mutationFn: async ({ projectKey, ...input }: CreateFeatureInput) =>
+      toFeature(await createFeature(accessToken, projectKey, input)),
     onSuccess: (feature) => {
       queryClient.setQueryData(
-        featureKeys.detail(feature.projectId, feature.id),
+        featureKeys.detail(feature.projectKey, feature.publicKey),
         feature,
       );
       queryClient.setQueryData<readonly Feature[]>(
-        featureKeys.list(feature.projectId),
+        featureKeys.list(feature.projectKey),
         (current) => [
           feature,
-          ...(current?.filter((item) => item.id !== feature.id) ?? []),
+          ...(current?.filter(
+            (item) => item.publicKey !== feature.publicKey,
+          ) ?? []),
         ],
       );
     },
@@ -170,22 +137,23 @@ export function useUpdateFeature(accessToken: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ featureId, ...input }: FeatureUpdateInput) =>
-      toFeature(await updateFeature(accessToken, featureId, input)),
+    mutationFn: async ({ featureKey, ...input }: FeatureUpdateInput) =>
+      toFeature(await updateFeature(accessToken, featureKey, input)),
     onSuccess: (feature) => {
       queryClient.setQueriesData<Feature>(
         { queryKey: ['feature'] },
-        (current) => (current?.id === feature.id ? feature : current),
+        (current) =>
+          current?.publicKey === feature.publicKey ? feature : current,
       );
       queryClient.setQueryData(
-        featureKeys.detail(feature.projectId, feature.id),
+        featureKeys.detail(feature.projectKey, feature.publicKey),
         feature,
       );
       queryClient.setQueryData<readonly Feature[]>(
-        featureKeys.list(feature.projectId),
+        featureKeys.list(feature.projectKey),
         (current) =>
           current?.map((item) =>
-            item.id === feature.id ? feature : item,
+            item.publicKey === feature.publicKey ? feature : item,
           ),
       );
     },
@@ -197,19 +165,23 @@ export function useDeleteFeature(accessToken: string) {
 
   return useMutation({
     mutationFn: async (feature: Feature) => {
-      await deleteFeature(accessToken, feature.id);
+      await deleteFeature(accessToken, feature.publicKey);
       return feature;
     },
     onSuccess: (feature) => {
       queryClient.setQueryData<readonly Feature[]>(
-        featureKeys.list(feature.projectId),
-        (current) => current?.filter((item) => item.id !== feature.id),
+        featureKeys.list(feature.projectKey),
+        (current) =>
+          current?.filter((item) => item.publicKey !== feature.publicKey),
       );
       queryClient.removeQueries({
         predicate: (query) => {
           const data = query.state.data as Feature | undefined;
 
-          return query.queryKey[0] === 'feature' && data?.id === feature.id;
+          return (
+            query.queryKey[0] === 'feature' &&
+            data?.publicKey === feature.publicKey
+          );
         },
       });
     },

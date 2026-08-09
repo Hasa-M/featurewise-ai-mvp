@@ -44,18 +44,20 @@ enum LlmCallOutcome {
 }
 
 model Organization {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @map("organization_id") @db.Uuid
-  name      String
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  projects  Project[]
-  users     User[]
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @map("organization_id") @db.Uuid
+  publicNumber Int       @unique(map: "organization_public_number_key") @default(dbgenerated("nextval('organization_public_number_seq'::regclass)")) @map("public_number")
+  name         String
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  projects     Project[]
+  users        User[]
 
   @@map("organization")
 }
 
 model User {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  publicNumber   Int          @unique(map: "user_public_number_key") @default(dbgenerated("nextval('user_public_number_seq'::regclass)")) @map("public_number")
   organizationId String       @unique @map("organization_id") @db.Uuid
   username       String       @unique
   passwordHash   String       @map("password_hash")
@@ -85,12 +87,13 @@ model Project {
 }
 
 model ProjectContextSummary {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @map("summary_id") @db.Uuid
-  projectId String   @unique @map("project_id") @db.Uuid
-  content   String   @default("")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("summary_id") @db.Uuid
+  publicNumber Int      @unique(map: "project_context_summary_public_number_key") @default(dbgenerated("nextval('project_context_summary_public_number_seq'::regclass)")) @map("public_number")
+  projectId    String   @unique @map("project_id") @db.Uuid
+  content      String   @default("")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_context_summary")
 }
@@ -121,6 +124,7 @@ model Feature {
 
 model FeatureUpdate {
   id              String             @id @default(dbgenerated("gen_random_uuid()")) @map("feature_update_id") @db.Uuid
+  publicNumber    Int                @unique(map: "feature_update_public_number_key") @default(dbgenerated("nextval('feature_update_public_number_seq'::regclass)")) @map("public_number")
   featureId       String             @map("feature_id") @db.Uuid
   title           String
   brief           String?
@@ -141,6 +145,7 @@ model FeatureUpdate {
 
 model ContextArtifact {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @map("context_artifact_id") @db.Uuid
+  publicNumber    Int             @unique(map: "context_artifact_public_number_key") @default(dbgenerated("nextval('context_artifact_public_number_seq'::regclass)")) @map("public_number")
   featureId       String?         @unique @map("feature_id") @db.Uuid
   featureUpdateId String?         @unique @map("feature_update_id") @db.Uuid
   content         String          @default("")
@@ -155,6 +160,7 @@ model ContextArtifact {
 
 model StorageObject {
   id                String          @id @default(dbgenerated("gen_random_uuid()")) @map("storage_object_id") @db.Uuid
+  publicNumber      Int             @unique(map: "storage_object_public_number_key") @default(dbgenerated("nextval('storage_object_public_number_seq'::regclass)")) @map("public_number")
   contextArtifactId String          @map("context_artifact_id") @db.Uuid
   s3Key             String          @unique @map("s3_key")
   assetType         AssetType       @map("asset_type")
@@ -171,6 +177,7 @@ model StorageObject {
 
 model SpecRun {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @map("spec_run_id") @db.Uuid
+  publicNumber    Int             @unique(map: "spec_run_public_number_key") @default(dbgenerated("nextval('spec_run_public_number_seq'::regclass)")) @map("public_number")
   featureId       String          @map("feature_id") @db.Uuid
   featureUpdateId String?         @map("feature_update_id") @db.Uuid
   runKind         SpecRunKind     @map("run_kind")
@@ -199,6 +206,7 @@ model SpecRun {
 
 model GeneratedSpec {
   id                   String          @id @default(dbgenerated("gen_random_uuid()")) @map("generated_spec_id") @db.Uuid
+  publicNumber         Int             @unique(map: "generated_spec_public_number_key") @default(dbgenerated("nextval('generated_spec_public_number_seq'::regclass)")) @map("public_number")
   featureId            String          @map("feature_id") @db.Uuid
   featureUpdateId      String?         @map("feature_update_id") @db.Uuid
   specRunId            String?         @unique @map("spec_run_id") @db.Uuid
@@ -225,6 +233,7 @@ model GeneratedSpec {
 
 model LlmCallLog {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @map("llm_call_id") @db.Uuid
+  publicNumber   Int            @unique(map: "llm_call_log_public_number_key") @default(dbgenerated("nextval('llm_call_log_public_number_seq'::regclass)")) @map("public_number")
   specRunId      String         @map("spec_run_id") @db.Uuid
   purpose        LlmCallPurpose
   attempt        Int

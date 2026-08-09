@@ -28,6 +28,7 @@ erDiagram
 
     ORGANIZATION {
         uuid organizationId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         text name
         timestamptz createdAt
         timestamptz updatedAt
@@ -35,6 +36,7 @@ erDiagram
 
     USER {
         uuid userId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid organizationId FK
         text username UK
         text passwordHash "Argon2id via standard library (ADR-0015)"
@@ -45,7 +47,7 @@ erDiagram
 
     PROJECT {
         uuid projectId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0027)"
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid organizationId FK
         text name
         timestamptz createdAt
@@ -54,6 +56,7 @@ erDiagram
 
     PROJECT_CONTEXT_SUMMARY {
         uuid summaryId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid projectId FK "unique - at most one summary per project"
         text content
         timestamptz createdAt
@@ -62,7 +65,7 @@ erDiagram
 
     FEATURE {
         uuid featureId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0027)"
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid projectId FK
         text title
         text brief "short statement; deep context lives in the ContextArtifact"
@@ -77,6 +80,7 @@ erDiagram
 
     FEATURE_UPDATE {
         uuid featureUpdateId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid featureId FK "parent - exactly one nesting level (ADR-0020)"
         text title
         text brief
@@ -89,6 +93,7 @@ erDiagram
 
     CONTEXT_ARTIFACT {
         uuid contextArtifactId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid featureId FK "nullable + unique (exclusive owner arc)"
         uuid featureUpdateId FK "nullable + unique (exclusive owner arc)"
         text content "the editable effective working context"
@@ -98,6 +103,7 @@ erDiagram
 
     STORAGE_OBJECT {
         uuid storageObjectId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid contextArtifactId FK
         text s3Key UK "immutable, never overwritten (ADR-0017)"
         text assetType "image | file"
@@ -110,6 +116,7 @@ erDiagram
 
     SPEC_RUN {
         uuid specRunId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid featureId FK "always set (scope; parent feature for update runs)"
         uuid featureUpdateId FK "nullable - set when the target is an update"
         text runKind "generation | consolidation (ADR-0021)"
@@ -128,6 +135,7 @@ erDiagram
 
     GENERATED_SPEC {
         uuid generatedSpecId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid featureId FK "always set - equals the run or parent target"
         uuid featureUpdateId FK "nullable - equals the run or parent target"
         uuid specRunId FK "nullable - set only when produced by a run"
@@ -144,6 +152,7 @@ erDiagram
 
     LLM_CALL_LOG {
         uuid llmCallId PK
+        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid specRunId FK
         text purpose "generation | schema_repair"
         int attempt
@@ -164,9 +173,9 @@ erDiagram
 ## Database-level constraints (must exist in the first migration)
 
 ```sql
--- Project/Feature public numbers are independent, positive, immutable values.
+-- Every domain table has an independent, positive, immutable public number.
 -- PostgreSQL sequences supply defaults; unique indexes and update-rejection
--- triggers enforce the durable public URL contract (ADR-0027).
+-- triggers enforce the durable external identity contract (ADR-0028).
 
 -- ContextArtifact: exactly one owner, and each owner has at most one artifact
 CHECK (num_nonnulls(feature_id, feature_update_id) = 1);

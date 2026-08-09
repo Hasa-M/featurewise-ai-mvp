@@ -1,19 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import {
-  ParseEntityIdentifierPipe,
-  type EntityIdentifier,
+  ParsePublicKeyPipe,
+  type ParsedPublicNumber,
 } from '../common/public-identifiers';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -24,54 +16,67 @@ import { WorkspaceService } from './workspace.service';
 export class WorkspaceController {
   constructor(private readonly workspaceService: WorkspaceService) {}
 
-  @Get('organizations/:organizationId')
+  @Get('organizations/:organizationKey')
   async getOrganization(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
+    @Param('organizationKey', new ParsePublicKeyPipe('organization'))
+    organizationPublicNumber: ParsedPublicNumber,
   ) {
-    return this.workspaceService.getOrganization(currentUser, organizationId);
+    return this.workspaceService.getOrganization(
+      currentUser,
+      organizationPublicNumber.value,
+    );
   }
 
-  @Patch('organizations/:organizationId')
+  @Patch('organizations/:organizationKey')
   async updateOrganization(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
+    @Param('organizationKey', new ParsePublicKeyPipe('organization'))
+    organizationPublicNumber: ParsedPublicNumber,
     @Body() dto: UpdateOrganizationDto,
   ) {
     return this.workspaceService.updateOrganization(
       currentUser,
-      organizationId,
+      organizationPublicNumber.value,
       dto,
     );
   }
 
-  @Get('organizations/:organizationId/projects')
+  @Get('organizations/:organizationKey/projects')
   async listProjects(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('organizationId', new ParseUUIDPipe({ version: '4' }))
-    organizationId: string,
+    @Param('organizationKey', new ParsePublicKeyPipe('organization'))
+    organizationPublicNumber: ParsedPublicNumber,
   ) {
-    return this.workspaceService.listProjects(currentUser, organizationId);
+    return this.workspaceService.listProjects(
+      currentUser,
+      organizationPublicNumber.value,
+    );
   }
 
   @Get('projects/:projectKey')
   async getProject(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectKey', new ParseEntityIdentifierPipe('project'))
-    projectIdentifier: EntityIdentifier,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
   ) {
-    return this.workspaceService.getProject(currentUser, projectIdentifier);
+    return this.workspaceService.getProject(
+      currentUser,
+      projectPublicNumber.value,
+    );
   }
 
-  @Patch('projects/:projectId')
+  @Patch('projects/:projectKey')
   async updateProject(
     @CurrentUser() currentUser: CurrentUserContext,
-    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
-    projectId: string,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
     @Body() dto: UpdateProjectDto,
   ) {
-    return this.workspaceService.updateProject(currentUser, projectId, dto);
+    return this.workspaceService.updateProject(
+      currentUser,
+      projectPublicNumber.value,
+      dto,
+    );
   }
 }

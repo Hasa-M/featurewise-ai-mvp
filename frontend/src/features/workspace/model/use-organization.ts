@@ -13,7 +13,7 @@ import {
 
 export interface Organization {
   readonly createdAt: Date;
-  readonly id: string;
+  readonly publicKey: string;
   readonly name: string;
   readonly updatedAt: Date;
 }
@@ -21,14 +21,14 @@ export interface Organization {
 export type OrganizationStatus = 'loading' | 'ready' | 'error';
 
 export const organizationKeys = {
-  detail: (organizationId: string) =>
-    ['organization', organizationId] as const,
+  detail: (organizationKey: string) =>
+    ['organization', organizationKey] as const,
 };
 
 export function toOrganization(dto: OrganizationDto): Organization {
   return {
     createdAt: new Date(dto.createdAt),
-    id: dto.id,
+    publicKey: dto.publicKey,
     name: dto.name,
     updatedAt: new Date(dto.updatedAt),
   };
@@ -36,12 +36,12 @@ export function toOrganization(dto: OrganizationDto): Organization {
 
 export function organizationQueryOptions(
   accessToken: string,
-  organizationId: string,
+  organizationKey: string,
 ) {
   return queryOptions({
-    queryKey: organizationKeys.detail(organizationId),
+    queryKey: organizationKeys.detail(organizationKey),
     queryFn: async () =>
-      toOrganization(await getOrganization(accessToken, organizationId)),
+      toOrganization(await getOrganization(accessToken, organizationKey)),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -54,20 +54,20 @@ function getErrorMessage(error: unknown): string {
 
 export function useOrganization(
   accessToken: string,
-  organizationId: string,
+  organizationKey: string,
 ) {
   const queryClient = useQueryClient();
   const query = useQuery(
-    organizationQueryOptions(accessToken, organizationId),
+    organizationQueryOptions(accessToken, organizationKey),
   );
   const mutation = useMutation({
     mutationFn: async (name: string) =>
       toOrganization(
-        await updateOrganization(accessToken, organizationId, { name }),
+        await updateOrganization(accessToken, organizationKey, { name }),
       ),
     onSuccess: (organization) => {
       queryClient.setQueryData(
-        organizationKeys.detail(organizationId),
+        organizationKeys.detail(organizationKey),
         organization,
       );
     },
@@ -88,17 +88,17 @@ export function useUpdateOrganization(accessToken: string) {
   return useMutation({
     mutationFn: async ({
       name,
-      organizationId,
+      organizationKey,
     }: {
       readonly name: string;
-      readonly organizationId: string;
+      readonly organizationKey: string;
     }) =>
       toOrganization(
-        await updateOrganization(accessToken, organizationId, { name }),
+        await updateOrganization(accessToken, organizationKey, { name }),
       ),
     onSuccess: (organization) => {
       queryClient.setQueryData(
-        organizationKeys.detail(organization.id),
+        organizationKeys.detail(organization.publicKey),
         organization,
       );
     },

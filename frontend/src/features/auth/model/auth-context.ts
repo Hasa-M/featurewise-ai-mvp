@@ -1,10 +1,10 @@
 import { createContext } from 'react';
 
 export interface AuthUser {
-  readonly userId: string;
+  readonly userKey: string;
   readonly username: string;
-  readonly organizationId: string;
-  readonly projectId: string;
+  readonly organizationKey: string;
+  readonly projectKey: string;
 }
 
 export type AuthStatus = 'initializing' | 'authenticated' | 'anonymous';

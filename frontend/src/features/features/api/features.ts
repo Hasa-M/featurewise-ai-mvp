@@ -21,8 +21,8 @@ export interface FeatureDto {
   };
   readonly alignment: {
     readonly pendingUpdates: readonly {
-      readonly featureUpdateId: string;
-      readonly generatedSpecId: string;
+      readonly featureUpdateKey: string;
+      readonly generatedSpecKey: string;
       readonly title: string;
       readonly version: number;
     }[];
@@ -30,11 +30,10 @@ export interface FeatureDto {
   };
   readonly brief: string | null;
   readonly createdAt: string;
-  readonly createdById: string;
-  readonly id: string;
+  readonly createdByKey: string;
   readonly includeInProjectContext: boolean;
   readonly origin: 'brand_new' | 'mapped_existing';
-  readonly projectId: string;
+  readonly projectKey: string;
   readonly publicKey: string;
   readonly title: string;
   readonly updatedAt: string;
@@ -53,31 +52,31 @@ export interface UpdateFeatureDto {
 
 export function getProjectFeatures(
   accessToken: string,
-  projectIdentifier: string,
+  projectKey: string,
 ): Promise<readonly FeatureDto[]> {
   return request<readonly FeatureDto[]>(
-    `/projects/${projectIdentifier}/features`,
+    `/projects/${projectKey}/features`,
     { accessToken },
   );
 }
 
 export function getFeature(
   accessToken: string,
-  projectIdentifier: string,
-  featureIdentifier: string,
+  projectKey: string,
+  featureKey: string,
 ): Promise<FeatureDto> {
   return request<FeatureDto>(
-    `/projects/${projectIdentifier}/features/${featureIdentifier}`,
+    `/projects/${projectKey}/features/${featureKey}`,
     { accessToken },
   );
 }
 
 export function createFeature(
   accessToken: string,
-  projectId: string,
+  projectKey: string,
   input: CreateFeatureDto,
 ): Promise<FeatureDto> {
-  return request<FeatureDto>(`/projects/${projectId}/features`, {
+  return request<FeatureDto>(`/projects/${projectKey}/features`, {
     accessToken,
     body: input,
     method: 'POST',
@@ -86,10 +85,10 @@ export function createFeature(
 
 export function updateFeature(
   accessToken: string,
-  featureId: string,
+  featureKey: string,
   input: UpdateFeatureDto,
 ): Promise<FeatureDto> {
-  return request<FeatureDto>(`/features/${featureId}`, {
+  return request<FeatureDto>(`/features/${featureKey}`, {
     accessToken,
     body: input,
     method: 'PATCH',
@@ -98,9 +97,9 @@ export function updateFeature(
 
 export function deleteFeature(
   accessToken: string,
-  featureId: string,
+  featureKey: string,
 ): Promise<void> {
-  return request<void>(`/features/${featureId}`, {
+  return request<void>(`/features/${featureKey}`, {
     accessToken,
     method: 'DELETE',
   });

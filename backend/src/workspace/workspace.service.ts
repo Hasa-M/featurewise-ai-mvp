@@ -1,11 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
-import {
-  formatPublicKey,
-  toIdentifierWhere,
-  type EntityIdentifier,
-} from '../common/public-identifiers';
+import { formatPublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
 import type { UpdateOrganizationDto } from './dto/update-organization.dto';
 import type { UpdateProjectDto } from './dto/update-project.dto';
@@ -19,48 +15,59 @@ export interface ProjectRecord {
   readonly updatedAt: Date;
 }
 
+interface OrganizationRecord {
+  readonly id: string;
+  readonly publicNumber: number;
+  readonly name: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
 @Injectable()
 export class WorkspaceService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getOrganization(
     currentUser: CurrentUserContext,
-    organizationId: string,
+    organizationPublicNumber: number,
   ) {
-    this.assertOrganizationVisible(currentUser, organizationId);
-
-    const organization = await this.prismaService.organization.findUnique({
-      where: { id: organizationId },
-    });
-
-    if (organization === null) {
-      throw new NotFoundException('Organization not found');
-    }
-
-    return organization;
+    return this.toOrganizationResponse(
+      await this.getOrganizationRecord(currentUser, organizationPublicNumber),
+    );
   }
 
   async updateOrganization(
     currentUser: CurrentUserContext,
-    organizationId: string,
+    organizationPublicNumber: number,
     dto: UpdateOrganizationDto,
   ) {
-    await this.getOrganization(currentUser, organizationId);
+    const organization = await this.getOrganizationRecord(
+      currentUser,
+      organizationPublicNumber,
+    );
 
-    return this.prismaService.organization.update({
-      where: { id: organizationId },
+    const updatedOrganization = await this.prismaService.organization.update({
+      where: { id: organization.id },
       data: {
         name: dto.name.trim(),
       },
     });
+
+    return this.toOrganizationResponse(updatedOrganization);
   }
 
-  async listProjects(currentUser: CurrentUserContext, organizationId: string) {
-    this.assertOrganizationVisible(currentUser, organizationId);
+  async listProjects(
+    currentUser: CurrentUserContext,
+    organizationPublicNumber: number,
+  ) {
+    const organization = await this.getOrganizationRecord(
+      currentUser,
+      organizationPublicNumber,
+    );
 
     const projects = await this.prismaService.project.findMany({
       where: {
-        organizationId,
+        organizationId: organization.id,
       },
       orderBy: {
         createdAt: 'asc',
@@ -79,31 +86,33 @@ export class WorkspaceService {
     });
 
     return projects.map(({ _count, ...project }) => ({
-      ...this.toProjectResponse(project),
+      ...this.toProjectResponse(
+        project,
+        formatPublicKey('organization', organization.publicNumber),
+      ),
       featureCount: _count.features,
     }));
   }
 
   async getProject(
     currentUser: CurrentUserContext,
-    projectIdentifier: EntityIdentifier,
+    projectPublicNumber: number,
   ) {
     return this.toProjectResponse(
-      await this.getProjectRecord(currentUser, projectIdentifier),
+      await this.getProjectRecord(currentUser, projectPublicNumber),
+      currentUser.organizationKey,
     );
   }
 
   async getProjectRecord(
     currentUser: CurrentUserContext,
-    projectIdentifier: EntityIdentifier,
+    projectPublicNumber: number,
   ): Promise<ProjectRecord> {
     const project = await this.prismaService.project.findFirst({
       where: {
         organizationId: currentUser.organizationId,
-        AND: [
-          { id: currentUser.projectId },
-          toIdentifierWhere(projectIdentifier),
-        ],
+        id: currentUser.projectId,
+        publicNumber: projectPublicNumber,
       },
     });
 
@@ -116,40 +125,57 @@ export class WorkspaceService {
 
   async updateProject(
     currentUser: CurrentUserContext,
-    projectId: string,
+    projectPublicNumber: number,
     dto: UpdateProjectDto,
   ) {
-    await this.getProjectRecord(currentUser, {
-      kind: 'uuid',
-      value: projectId,
-    });
+    const projectRecord = await this.getProjectRecord(
+      currentUser,
+      projectPublicNumber,
+    );
 
     const project = await this.prismaService.project.update({
       where: {
-        id: projectId,
+        id: projectRecord.id,
       },
       data: {
         name: dto.name.trim(),
       },
     });
 
-    return this.toProjectResponse(project);
+    return this.toProjectResponse(project, currentUser.organizationKey);
   }
 
-  private assertOrganizationVisible(
+  private async getOrganizationRecord(
     currentUser: CurrentUserContext,
-    organizationId: string,
-  ): void {
-    if (currentUser.organizationId !== organizationId) {
+    organizationPublicNumber: number,
+  ): Promise<OrganizationRecord> {
+    const organization = await this.prismaService.organization.findFirst({
+      where: {
+        id: currentUser.organizationId,
+        publicNumber: organizationPublicNumber,
+      },
+    });
+
+    if (organization === null) {
       throw new NotFoundException('Organization not found');
     }
+
+    return organization;
   }
 
-  private toProjectResponse(project: ProjectRecord) {
+  private toOrganizationResponse(organization: OrganizationRecord) {
     return {
-      id: project.id,
+      publicKey: formatPublicKey('organization', organization.publicNumber),
+      name: organization.name,
+      createdAt: organization.createdAt,
+      updatedAt: organization.updatedAt,
+    };
+  }
+
+  private toProjectResponse(project: ProjectRecord, organizationKey: string) {
+    return {
       publicKey: formatPublicKey('project', project.publicNumber),
-      organizationId: project.organizationId,
+      organizationKey,
       name: project.name,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
