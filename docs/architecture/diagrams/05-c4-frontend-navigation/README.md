@@ -7,8 +7,9 @@ This document describes the Phase 1 authenticated platform navigation implemente
 The navigation exposes Projects, a selected project's Features, and a Feature
 workspace with Context, Generations, Updates, and Specifications tabs.
 Organization/project metadata and Feature create, quick-edit, and delete
-actions are shared across the shell and route pages. The tab shell is
-implemented; context editing, generation, update, specification, and validation
+actions are shared across the shell and route pages. The Feature Context tab
+implements the separate Brief, editable Prompt, selected-file, and exact-Context
+Files archive surfaces. Generation, update, specification, and validation
 workflows remain dedicated Feature-page milestones.
 
 ## Routes and persistent layout
@@ -76,6 +77,8 @@ One QueryClient is mounted above authentication and routing. Authentication fail
 | Project | `['project', projectKey]` | 5 minutes |
 | Project features | `['features', projectKey]` | 1 minute |
 | Feature | `['feature', projectKey, featureKey]` | 1 minute |
+| Feature Context | `['feature-context', featureKey]` | 1 minute, polling while files prepare |
+| Context Files archive | `['feature-context-archive', featureKey, search]` | 15 seconds |
 
 Organization and project summaries start concurrently after authentication. The
 project-summary response includes the count of non-deleted Features so the
@@ -97,7 +100,11 @@ Project and nested Feature read endpoints. The nested Feature endpoint verifies
 Project membership. Project feature reads also expose backend-derived
 activity: direct generation-run count, current valid-spec version, and the
 latest feature-target run's kind, status, and project-summary inclusion setting.
-The Project context tab keeps an explicit local membership draft, then
+The Feature Context slice separately caches Prompt and selected-file state,
+polls only while an upload is pending or processing, and invalidates both its
+detail and archive queries after upload, selection, or deletion. Browser bytes
+go directly to a backend-authorized S3 presigned POST and never pass through the
+shared REST client. The Project context tab keeps an explicit local membership draft, then
 pessimistically PATCHes only changed Features; successful responses update the
 shared detail and collection caches. No navigation aggregate, GraphQL endpoint,
 polling, or frontend persistence is introduced.
@@ -120,11 +127,12 @@ C4Component
     Component(pageHeader, "PageHeader registration", "React context", "Connects lazy route breadcrumbs and actions to the persistent shell")
     Component(pages, "Navigation pages", "Lazy React modules", "Projects, Project, and Feature destinations")
     Component(query, "TanStack QueryClient", "In-memory server-state cache", "Caches, deduplicates, retries, seeds, and prefetches REST data")
-    Component(slices, "Workspace and Features slices", "Typed API/model boundaries", "Own DTOs, mappings, query options, and hooks")
+    Component(slices, "Workspace, Features, and Context slices", "Typed API/model boundaries", "Own DTOs, mappings, query options, uploads, and hooks")
     Component(http, "Shared HTTP client", "Fetch wrapper", "Adds API base URL, bearer token, JSON parsing, and normalized errors")
   }
 
   Container(api, "Backend API", "NestJS REST/JSON", "Owns visibility and business data")
+  Container(storage, "Private AWS S3", "Object storage", "Stores immutable Context originals and prepared derivatives")
 
   Rel(user, router, "Activates links", "Browser history")
   Rel(router, shell, "Renders authenticated layout")
@@ -138,7 +146,9 @@ C4Component
   Rel(auth, query, "Clears on logout/session failure")
   Rel(query, slices, "Executes stable query options")
   Rel(slices, http, "Calls typed endpoint functions")
-  Rel(http, api, "GET/PATCH", "HTTPS REST/JSON + bearer token")
+  Rel(http, api, "GET/POST/PATCH/DELETE", "HTTPS REST/JSON + bearer token")
+  Rel(slices, storage, "Uploads bytes", "Backend-authorized presigned POST")
+  Rel(api, storage, "Confirms, prepares, signs access, and cleans up", "AWS SDK")
 ```
 
 ## Performance boundaries

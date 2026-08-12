@@ -4,7 +4,7 @@ Date: 2026-06-13
 
 Status: accepted
 
-Amended by: ADR-0020, ADR-0021
+Amended by: ADR-0020, ADR-0021, ADR-0029
 
 ## Context
 
@@ -19,6 +19,12 @@ Each `SpecRun` is an immutable snapshot of the effective feature context used du
 Only the current `ContextArtifact` remains editable. Snapshots are historical records and are not editable by users.
 
 Uploaded files are stored under immutable S3 keys — uploads never overwrite an existing key — so snapshots reference keys and remain byte-stable without file duplication.
+
+ADR-0029 strengthens this reference: snapshots include only selected, ready
+files and record the exact S3 version ID, checksum, size, MIME type, preparation
+version, and original/model-input keys. Snapshot creation atomically marks each
+file as used. Unselecting a file later does not change the snapshot, and a used
+file cannot be physically purged.
 
 Heavy external sources (e.g. codebases) are not copied; the snapshot stores a stable reference such as a commit, tag, or branch link.
 

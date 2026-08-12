@@ -4,7 +4,7 @@ Date: 2026-06-14
 
 Status: accepted
 
-Amended by: ADR-0020, ADR-0021
+Amended by: ADR-0020, ADR-0021, ADR-0029
 
 ## Context
 
@@ -53,7 +53,12 @@ On backend startup, all non-terminal runs older than `STALE_RUN_TIMEOUT` are mar
 
 ### Image handling
 
-The backend downloads image artifacts from S3, downscales them to a maximum dimension (~1500 px), and sends them base64-inline to the provider. Rationale: token cost depends on image resolution, not on delivery method; inline delivery keeps the bucket fully private and avoids presigned URL lifetime handling.
+The backend sends image artifacts base64-inline to the provider. ADR-0029 moves
+the deterministic downscale to attachment preparation: the original remains
+untouched and an immutable model derivative is capped at approximately 1500 px.
+SpecRun preparation downloads the exact derivative version recorded by the
+snapshot. Inline delivery keeps the bucket fully private and avoids presigned
+URL lifetime handling.
 
 ### LLM call log
 

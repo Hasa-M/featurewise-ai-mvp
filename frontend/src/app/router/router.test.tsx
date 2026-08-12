@@ -74,6 +74,16 @@ const includedFeature = {
   title: 'Billing controls',
 };
 
+const featureContext = {
+  createdAt: '2026-07-18T10:00:00.000Z',
+  featureKey: feature.publicKey,
+  featureUpdateKey: null,
+  files: [],
+  promptContent: '',
+  publicKey: 'CTX-19',
+  updatedAt: '2026-07-18T10:00:00.000Z',
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
@@ -132,6 +142,9 @@ function defaultFetch(
   }
   if (path === `/api/features/${feature.publicKey}`) {
     return Promise.resolve(jsonResponse(feature));
+  }
+  if (path === `/api/features/${feature.publicKey}/context`) {
+    return Promise.resolve(jsonResponse(featureContext));
   }
   if (
     path === `/api/projects/${legacyProjectUuid}` ||
@@ -541,9 +554,20 @@ describe('application routes', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.getByRole('tabpanel')).toHaveTextContent(
-      'Context data entry will be added in the next milestone.',
-    );
+    expect(
+      await screen.findByRole('heading', { name: 'Feature intent' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Project and implementation context',
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Selected model inputs' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Files archive' }),
+    ).toBeVisible();
     await waitFor(() => {
       expect(testRouter.state.location.search).toBe(
         '?tab=context&view=compact',

@@ -121,7 +121,7 @@ describe('FeaturesService', () => {
         origin: FeatureOrigin.brand_new,
         projectId: currentUser.projectId,
         title: 'New capability',
-        contextArtifact: { create: { content: '' } },
+        contextArtifact: { create: { promptContent: '' } },
       },
       include: publicRelations,
     });

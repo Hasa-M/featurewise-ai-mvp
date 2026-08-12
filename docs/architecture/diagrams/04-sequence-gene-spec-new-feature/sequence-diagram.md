@@ -101,7 +101,7 @@ sequenceDiagram
         API-->>U: 409 Conflict
     else target valid, no active run
         GEN->>CTX: buildContextSnapshot(target, runKind)
-        CTX->>DB: read target ContextArtifact (+ StorageObject keys)
+        CTX->>DB: lock target ContextArtifact's selected, ready StorageObjects
         opt generation run on a FeatureUpdate
             CTX->>DB: read parent Feature ContextArtifact (baseline)
             CTX->>DB: read parent Feature valid GeneratedSpec (if any)
@@ -110,8 +110,8 @@ sequenceDiagram
             CTX->>DB: read feature valid GeneratedSpec (if any)
             CTX->>DB: read validated update specs pending incorporation
         end
-        CTX-->>GEN: snapshot (texts + spec contents copied, immutable S3 keys, external refs, summary flag)
-        GEN->>DB: insert SpecRun (status=queued, runKind, snapshot, promptVersion, schemaVersion)
+        CTX-->>GEN: snapshot (Brief + Prompt + spec contents copied, exact S3 versions, external refs, summary flag)
+        GEN->>DB: insert SpecRun + set file firstUsedAt (same transaction, status=queued)
         Note right of DB: Partial unique indexes make the insert race-safe:<br/>a concurrent duplicate violates the index and maps to 409.
         GEN-->>API: SpecRun created
         API-->>U: 202 Accepted + SpecRun { publicKey, status: queued }
@@ -123,9 +123,9 @@ sequenceDiagram
     opt genSettings.includeProjectSummary = true
         GEN->>DB: read current ProjectContextSummary
     end
-    GEN->>S3: fetch image artifacts by snapshot keys
-    S3-->>GEN: image binaries
-    GEN->>GEN: downscale + base64 images, select template by runKind + target<br/>(feature | feature-update | feature-consolidation), assemble prompt (template vX)
+    GEN->>S3: fetch exact model-input versions recorded by snapshot
+    S3-->>GEN: document/image/text binaries
+    GEN->>GEN: map prepared images, PDFs, spreadsheets, and named text/code files;<br/>select template and assemble prompt (template vX)
 
     GEN->>DB: status = calling_llm
     loop up to 3 attempts (transient errors only: timeout / 429 / 5xx)

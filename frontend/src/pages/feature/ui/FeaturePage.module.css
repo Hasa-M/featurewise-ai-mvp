@@ -23,3 +23,7 @@
   background: var(--surface-card);
   box-shadow: var(--shadow-sm);
 }
+
+.contextPanel {
+  width: 100%;
+}

@@ -4,7 +4,7 @@ Date: 2026-06-13
 
 Status: accepted
 
-Amended by: ADR-0020
+Amended by: ADR-0020, ADR-0029
 
 ## Context
 
@@ -18,13 +18,18 @@ In addition there is the need to a project context summary that the user could u
 
 Each `Feature` has one editable `ContextArtifact`.
 
-The `ContextArtifact` represents the effective working context for that feature, including product notes, design information, code/context notes, execution rules, uploaded files, screenshots, and other relevant inputs.
+The `ContextArtifact` represents the effective working context for that feature.
+Its editable textual Prompt is `promptContent`; uploaded files are independent
+selected inputs rather than part of that string. The owning Feature or
+FeatureUpdate `brief` remains a separate short intent description.
 
 For phase 1:
 
 - `ContextArtifact` belongs to exactly one owner: a `Feature` OR a `FeatureUpdate` (exclusive);
 - each `Feature` and each `FeatureUpdate` has exactly one `ContextArtifact`;
 - uploaded files (`StorageObject`) hang off the `ContextArtifact`, not the `Feature`;
+- ready files can be selected for the current Context or unselected into that
+  ContextArtifact's Files archive (ADR-0029);
 - the user edits only the current effective `ContextArtifact`;
 - project context is not modeled as editable context artifacts.
 

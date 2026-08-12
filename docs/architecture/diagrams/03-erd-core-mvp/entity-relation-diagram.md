@@ -96,7 +96,7 @@ erDiagram
         int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid featureId FK "nullable + unique (exclusive owner arc)"
         uuid featureUpdateId FK "nullable + unique (exclusive owner arc)"
-        text content "the editable effective working context"
+        text promptContent "editable textual Prompt; distinct from Brief and files"
         timestamptz createdAt
         timestamptz updatedAt
     }
@@ -105,13 +105,28 @@ erDiagram
         uuid storageObjectId PK
         int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
         uuid contextArtifactId FK
-        text s3Key UK "immutable, never overwritten (ADR-0017)"
+        uuid createdById FK
+        text status "pending_upload | processing | ready | failed"
+        boolean selected "ready file included in the current Context"
+        text uploadKey UK "immutable staging key"
+        text s3Key UK "immutable final-original key"
+        text s3VersionId "nullable until confirmed"
         text assetType "image | file"
         text mimeType
         bigint sizeBytes
         text originalFilename
-        text extractedText "nullable (ADR-0011)"
+        text checksumSha256
+        text preparedS3Key UK "nullable immutable derivative"
+        text preparedS3VersionId "nullable"
+        text preparedMimeType "nullable"
+        bigint preparedSizeBytes "nullable"
+        text preparedChecksumSha256 "nullable"
+        text preparationVersion "nullable"
+        timestamptz firstUsedAt "nullable; prevents permanent deletion"
+        timestamptz purgeRequestedAt "nullable"
+        timestamptz uploadExpiresAt
         timestamptz createdAt
+        timestamptz updatedAt
     }
 
     SPEC_RUN {
@@ -213,8 +228,8 @@ CREATE UNIQUE INDEX one_valid_spec_per_update ON generated_spec (feature_update_
   parent baseline_. `consolidation` (feature target, any origin) requires at
   least one validated update spec not yet incorporated by the feature's
   current valid spec.
-- **Usable baseline** = parent ContextArtifact content is non-empty, OR at
-  least one StorageObject exists on it, OR the parent Feature has a valid
+- **Usable baseline** = parent ContextArtifact promptContent is non-empty, OR at
+  least one selected ready StorageObject exists on it, OR the parent Feature has a valid
   GeneratedSpec.
 - An empty ContextArtifact is created automatically, in the same transaction,
   when a Feature or FeatureUpdate is created — that is how the "exactly one"
@@ -231,9 +246,12 @@ CREATE UNIQUE INDEX one_valid_spec_per_update ON generated_spec (feature_update_
   (run-produced) or its parent's target (manual versions).
 - **Alignment is computed, never stored** (see below).
 - A Feature or FeatureUpdate with a non-terminal SpecRun cannot be deleted.
-- StorageObject rows are immutable; replacing a file means a new row and a new
-  S3 key. S3 objects are **never deleted** in phase 1 because SpecRun
-  snapshots reference keys (ADR-0017).
+- A ready StorageObject's identity, original bytes, and prepared bytes are
+  immutable. `selected` is mutable: unselected files appear in that exact
+  ContextArtifact's Files archive and can be selected again without uploading.
+- A ready file can be permanently purged only while unselected and when
+  `firstUsedAt IS NULL`. Snapshot creation locks selected file rows, copies
+  exact S3 versions into the snapshot, and sets firstUsedAt atomically.
 - Soft delete (`deletedAt`) exists only on Feature and FeatureUpdate. Runs,
   specs, and logs are immutable history and are never deleted.
 
@@ -264,13 +282,27 @@ drop out of the computation. The API exposes
     "target": "feature | feature_update",
     "runKind": "generation | consolidation",
     "featureContext": {
-        "content": "copied text of the (parent) Feature ContextArtifact",
+        "promptContent": "copied textual Prompt of the (parent) ContextArtifact",
         "storageObjects": [
             {
-                "s3Key": "...",
+                "storageObjectId": "...",
                 "assetType": "image",
-                "mimeType": "...",
-                "originalFilename": "..."
+                "originalFilename": "...",
+                "original": {
+                    "s3Key": "...",
+                    "s3VersionId": "...",
+                    "mimeType": "...",
+                    "sizeBytes": 123,
+                    "checksumSha256": "..."
+                },
+                "modelInput": {
+                    "s3Key": "...",
+                    "s3VersionId": "...",
+                    "mimeType": "...",
+                    "sizeBytes": 123,
+                    "checksumSha256": "...",
+                    "preparationVersion": "original | document-pdf-v1 | image-v1"
+                }
             }
         ],
         "externalRefs": ["e.g. repo@commit, figma link"]
@@ -311,6 +343,6 @@ Field usage per run kind:
 - ProjectContextSummary has a defined shape but **no write path yet**; its
   generation/update flow needs its own ADR before the entity is more than a
   manually edited text field.
-- `normalizedContent` from the old ERD is intentionally dropped for phase 1:
-  prompts use `ContextArtifact.content` plus `StorageObject.extractedText`
-  directly.
+- Brief, `ContextArtifact.promptContent`, and selected files remain separate
+  model inputs. There is no phase-1 `normalizedContent` or `extractedText`
+  database duplicate (ADR-0029).
