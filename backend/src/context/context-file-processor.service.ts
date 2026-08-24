@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
@@ -21,6 +22,12 @@ import {
 const IMAGE_PREPARATION_VERSION = 'image-v1';
 const DOCUMENT_PREPARATION_VERSION = 'document-pdf-v1';
 const ORIGINAL_PREPARATION_VERSION = 'original';
+
+export function createLibreOfficeUserInstallationArgument(
+  profileDirectory: string,
+): string {
+  return `-env:UserInstallation=${pathToFileURL(profileDirectory).href}`;
+}
 
 @Injectable()
 export class ContextFileProcessorService implements OnApplicationBootstrap {
@@ -304,7 +311,7 @@ export class ContextFileProcessorService implements OnApplicationBootstrap {
         '--nodefault',
         '--nolockcheck',
         '--nofirststartwizard',
-        `-env:UserInstallation=file://${profileDirectory}`,
+        createLibreOfficeUserInstallationArgument(profileDirectory),
         '--convert-to',
         'pdf',
         '--outdir',

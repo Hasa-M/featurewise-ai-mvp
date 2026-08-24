@@ -405,9 +405,10 @@ export function FeatureContextPanel({
                   label={file.filename}
                   description={formatFileSize(file.sizeBytes)}
                   onChange={(event) => {
+                    const { checked } = event.currentTarget;
                     setArchiveSelection((current) => {
                       const next = new Set(current);
-                      if (event.currentTarget.checked) next.add(file.publicKey);
+                      if (checked) next.add(file.publicKey);
                       else next.delete(file.publicKey);
                       return next;
                     });
