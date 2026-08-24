@@ -2,6 +2,15 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+aws_file_uri() {
+  local path="$1"
+
+  if command -v cygpath >/dev/null 2>&1; then
+    printf 'file://%s' "$(cygpath -m "$path")"
+  else
+    printf 'file://%s' "$path"
+  fi
+}
 aws_profile="${AWS_PROFILE:-featurewise-dev}"
 aws_region="${AWS_REGION:-eu-south-1}"
 aws_account_id="$(aws --profile "${aws_profile}" sts get-caller-identity --query Account --output text)"
@@ -49,23 +58,23 @@ aws --profile "${aws_profile}" --region "${aws_region}" \
 aws --profile "${aws_profile}" --region "${aws_region}" \
   s3api put-bucket-cors \
   --bucket "${s3_bucket}" \
-  --cors-configuration "file://${script_dir}/cors.json"
+  --cors-configuration "$(aws_file_uri "${script_dir}/cors.json")"
 
 aws --profile "${aws_profile}" --region "${aws_region}" \
   s3api put-bucket-lifecycle-configuration \
   --bucket "${s3_bucket}" \
-  --lifecycle-configuration "file://${script_dir}/lifecycle.json"
+  --lifecycle-configuration "$(aws_file_uri "${script_dir}/lifecycle.json")"
 
 aws --profile "${aws_profile}" --region "${aws_region}" \
   s3api put-bucket-policy \
   --bucket "${s3_bucket}" \
-  --policy "file://${temporary_dir}/bucket-policy.json"
+  --policy "$(aws_file_uri "${temporary_dir}/bucket-policy.json")"
 
 if [[ -n "${FEATUREWISE_RUNTIME_IAM_USER:-}" ]]; then
   aws --profile "${aws_profile}" iam put-user-policy \
     --user-name "${FEATUREWISE_RUNTIME_IAM_USER}" \
     --policy-name FeaturewiseContextStorage \
-    --policy-document "file://${temporary_dir}/runtime-policy.json"
+    --policy-document "$(aws_file_uri "${temporary_dir}/runtime-policy.json")"
 else
   echo "Runtime policy (set FEATUREWISE_RUNTIME_IAM_USER to attach it automatically):"
   sed "s/__BUCKET__/${s3_bucket}/g" "${script_dir}/runtime-policy.template.json"
