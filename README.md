@@ -71,16 +71,3 @@ Jira / Linear / Docs / Figma / Code
        Humans / Codex / Claude /
        Cursor / other agents
 ```
-
-## Analysis output
-
-```text
-Finding
-├── category
-├── severity
-├── description
-├── why it matters
-├── evidence
-├── suggested resolutions
-└── review state
-```
