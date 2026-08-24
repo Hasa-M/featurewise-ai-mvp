@@ -57,3 +57,30 @@ Evidence-backed findings
 Human or AI review / resolution
         ↓
 Implementation
+```
+
+## Product direction
+
+```text
+Jira / Linear / Docs / Figma / Code
+                  ↓
+             Featurewise
+                  ↓
+        validated product intent
+                  ↓
+       Humans / Codex / Claude /
+       Cursor / other agents
+```
+
+## Analysis output
+
+```text
+Finding
+├── category
+├── severity
+├── description
+├── why it matters
+├── evidence
+├── suggested resolutions
+└── review state
+```
