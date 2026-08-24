@@ -106,7 +106,7 @@ export class FeaturesService {
           title: dto.title.trim(),
           contextArtifact: {
             create: {
-              content: '',
+              promptContent: '',
             },
           },
         },

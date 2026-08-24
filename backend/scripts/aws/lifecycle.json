@@ -1,0 +1,12 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-featurewise-staging",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "dev/staging/" },
+      "Expiration": { "Days": 1 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 1 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

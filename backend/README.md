@@ -2,10 +2,11 @@
 
 NestJS + TypeScript REST API for the Featurewise local-first MVP.
 
-This first scaffold intentionally contains only the application shell and
-`GET /health`. Domain modules, Prisma, migrations, auth, S3, and LLM generation
-will be added after the architecture docs are used as the implementation source
-of truth.
+The modular-monolith API currently includes authentication, Organization and
+Project ownership, Features, editable Context Prompt content, and private S3
+Context file attachments. Spec generation remains a later implementation
+milestone; its accepted lifecycle and snapshot contracts are documented in the
+architecture ADRs.
 
 ## Commands
 
@@ -15,6 +16,7 @@ npm run start:dev
 npm run build
 npm test
 npm run test:e2e
+npx prisma migrate deploy
 ```
 
 The server listens on `PORT` when set, otherwise `3000`.
@@ -44,3 +46,51 @@ Content-Type: application/json
 
 Set `Authorization: Bearer <accessToken>` on protected API requests. `GET
 /health` and `POST /auth/login` remain public.
+
+## Private Context file storage
+
+Context files use a real private, versioned AWS S3 bucket in local development.
+The browser uploads directly with a 15-minute backend-authorized presigned POST;
+NestJS controls metadata, confirmation, preparation, selection, archive access,
+and cleanup.
+
+Required outside the application:
+
+1. An AWS account and AWS CLI v2. On macOS: `brew install awscli`.
+2. A named profile. Prefer SSO:
+
+   ```bash
+   aws configure sso --profile featurewise-dev
+   aws sso login --profile featurewise-dev
+   ```
+
+   If SSO is unavailable, configure a dedicated IAM user with `aws configure
+   --profile featurewise-dev`. Never put AWS access keys in this repository or
+   the backend `.env`.
+3. LibreOffice for DOC/DOCX/PPT/PPTX/ODT/ODP to PDF preparation. On macOS:
+
+   ```bash
+   brew install --cask libreoffice
+   ```
+
+From `backend/`, bootstrap the development bucket in Milan:
+
+```bash
+AWS_PROFILE=featurewise-dev ./scripts/aws/bootstrap-context-storage.sh
+```
+
+The command is idempotent. It creates/configures
+`featurewise-dev-<account-id>-eu-south-1` with full public-access blocking,
+bucket-owner-enforced ownership, SSE-S3, versioning, localhost CORS, TLS-only
+access, and a one-day lifecycle only for `dev/staging/`. Confirmed originals
+and prepared derivatives do not expire.
+
+The profile used to bootstrap needs S3 administration rights. By default the
+script prints the least-privilege runtime policy. Set
+`FEATUREWISE_RUNTIME_IAM_USER=<name>` to attach that inline policy to an
+existing dedicated IAM user. A profile using that runtime identity needs only
+the printed policy; the application uses the normal AWS SDK credential chain.
+
+Copy the reported bucket/profile/region values into `.env` together with the
+storage defaults from `.env.example`. No Terraform, Lambda, queue, worker,
+MinIO, LocalStack, public bucket, or customer-managed KMS key is required.

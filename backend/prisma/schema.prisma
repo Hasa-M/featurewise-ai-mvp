@@ -16,6 +16,13 @@ enum AssetType {
   file
 }
 
+enum StorageObjectStatus {
+  pending_upload
+  processing
+  ready
+  failed
+}
+
 enum SpecRunKind {
   generation
   consolidation
@@ -68,6 +75,7 @@ model User {
   features       Feature[]
   featureUpdates FeatureUpdate[]
   specRuns       SpecRun[]
+  storageObjects StorageObject[]
 
   @@map("user")
 }
@@ -148,7 +156,7 @@ model ContextArtifact {
   publicNumber    Int             @unique(map: "context_artifact_public_number_key") @default(dbgenerated("nextval('context_artifact_public_number_seq'::regclass)")) @map("public_number")
   featureId       String?         @unique @map("feature_id") @db.Uuid
   featureUpdateId String?         @unique @map("feature_update_id") @db.Uuid
-  content         String          @default("")
+  promptContent   String          @default("") @map("prompt_content")
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
   feature         Feature?        @relation(fields: [featureId], references: [id], onDelete: Cascade)
@@ -159,19 +167,47 @@ model ContextArtifact {
 }
 
 model StorageObject {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @map("storage_object_id") @db.Uuid
-  publicNumber      Int             @unique(map: "storage_object_public_number_key") @default(dbgenerated("nextval('storage_object_public_number_seq'::regclass)")) @map("public_number")
-  contextArtifactId String          @map("context_artifact_id") @db.Uuid
-  s3Key             String          @unique @map("s3_key")
-  assetType         AssetType       @map("asset_type")
-  mimeType          String          @map("mime_type")
-  sizeBytes         BigInt          @map("size_bytes")
-  originalFilename  String          @map("original_filename")
-  extractedText     String?         @map("extracted_text")
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  contextArtifact   ContextArtifact @relation(fields: [contextArtifactId], references: [id], onDelete: Restrict)
+  id                     String              @id @default(dbgenerated("gen_random_uuid()")) @map("storage_object_id") @db.Uuid
+  publicNumber           Int                 @unique(map: "storage_object_public_number_key") @default(dbgenerated("nextval('storage_object_public_number_seq'::regclass)")) @map("public_number")
+  contextArtifactId      String              @map("context_artifact_id") @db.Uuid
+  createdById            String              @map("created_by") @db.Uuid
+  status                 StorageObjectStatus @default(pending_upload)
+  selected               Boolean             @default(true)
+  uploadKey              String              @unique @map("upload_key")
+  uploadVersionId        String?             @map("upload_version_id")
+  s3Key                  String              @unique @map("s3_key")
+  s3VersionId            String?             @map("s3_version_id")
+  etag                   String?
+  assetType              AssetType           @map("asset_type")
+  mimeType               String              @map("mime_type")
+  sizeBytes              BigInt              @map("size_bytes")
+  originalFilename       String              @map("original_filename")
+  checksumSha256         String              @map("checksum_sha256")
+  preparedS3Key          String?             @unique @map("prepared_s3_key")
+  preparedS3VersionId    String?             @map("prepared_s3_version_id")
+  preparedMimeType       String?             @map("prepared_mime_type")
+  preparedSizeBytes      BigInt?             @map("prepared_size_bytes")
+  preparedChecksumSha256 String?             @map("prepared_checksum_sha256")
+  preparationVersion     String?             @map("preparation_version")
+  failureCode            String?             @map("failure_code")
+  failureMessage         String?             @map("failure_message")
+  uploadExpiresAt        DateTime             @map("upload_expires_at") @db.Timestamptz(6)
+  confirmedAt            DateTime?            @map("confirmed_at") @db.Timestamptz(6)
+  readyAt                DateTime?            @map("ready_at") @db.Timestamptz(6)
+  failedAt               DateTime?            @map("failed_at") @db.Timestamptz(6)
+  unselectedAt           DateTime?            @map("unselected_at") @db.Timestamptz(6)
+  firstUsedAt            DateTime?            @map("first_used_at") @db.Timestamptz(6)
+  purgeRequestedAt       DateTime?            @map("purge_requested_at") @db.Timestamptz(6)
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contextArtifact        ContextArtifact      @relation(fields: [contextArtifactId], references: [id], onDelete: Restrict)
+  createdBy              User                 @relation(fields: [createdById], references: [id], onDelete: Restrict)
 
-  @@index([contextArtifactId])
+  @@index([contextArtifactId, status, selected])
+  @@index([status, uploadExpiresAt])
+  @@index([status, failedAt])
+  @@index([purgeRequestedAt])
+  @@index([createdById])
   @@map("storage_object")
 }
 

@@ -6,6 +6,9 @@ This folder contains architecture documentation for Featurewise MVP.
 
 ADRs are stored in `adr/`.
 
+ADR-0029 defines Context file upload, validation, preparation, archive
+selection, deletion, and immutable SpecRun snapshot behavior.
+
 ## Diagrams
 
 Each diagram has its own folder under `diagrams/`.

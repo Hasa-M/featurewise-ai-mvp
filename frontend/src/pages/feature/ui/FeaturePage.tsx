@@ -9,6 +9,7 @@ import { useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
+import { FeatureContextPanel } from '@/features/context';
 import {
   getFeaturePath,
   useFeature,
@@ -52,8 +53,7 @@ const FEATURE_TABS = [
 
 type FeatureTabId = (typeof FEATURE_TABS)[number]['id'];
 
-const FEATURE_TAB_COPY: Record<FeatureTabId, string> = {
-  context: 'Context data entry will be added in the next milestone.',
+const FEATURE_TAB_COPY: Record<Exclude<FeatureTabId, 'context'>, string> = {
   generations:
     'Generation history and controls will be added in a later milestone.',
   updates: 'Feature updates will be added in a later milestone.',
@@ -240,12 +240,20 @@ function FeatureContent({
       />
       <div
         aria-labelledby={activeTabItem.tabId}
-        className={styles.placeholder}
+        className={activeTab === 'context' ? styles.contextPanel : styles.placeholder}
         id={activeTabItem.panelId}
         role="tabpanel"
         tabIndex={0}
       >
-        {FEATURE_TAB_COPY[activeTab]}
+        {activeTab === 'context' ? (
+          <FeatureContextPanel
+            accessToken={accessToken}
+            brief={featureQuery.data.brief}
+            featureKey={featureQuery.data.publicKey}
+          />
+        ) : (
+          FEATURE_TAB_COPY[activeTab]
+        )}
       </div>
     </section>
   );

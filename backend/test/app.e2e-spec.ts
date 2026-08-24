@@ -75,7 +75,7 @@ interface ContextArtifactRecord {
   readonly publicNumber: number;
   readonly featureId: string | null;
   readonly featureUpdateId: string | null;
-  content: string;
+  promptContent: string;
   readonly createdAt: Date;
   updatedAt: Date;
 }
@@ -89,7 +89,7 @@ interface FeatureCreateData {
   readonly createdById: string;
   readonly contextArtifact?: {
     readonly create: {
-      readonly content: string;
+      readonly promptContent: string;
     };
   };
 }
@@ -303,7 +303,7 @@ class InMemoryPrisma {
           publicNumber: this.contextArtifactPublicNumberCounter++,
           featureId: feature.id,
           featureUpdateId: null,
-          content: data.contextArtifact.create.content,
+          promptContent: data.contextArtifact.create.promptContent,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -391,7 +391,7 @@ class InMemoryPrisma {
       data,
     }: {
       where: { id: string };
-      data: { content: string };
+      data: { promptContent: string };
     }) => {
       const contextArtifact = this.contextArtifacts.find(
         (candidate) => candidate.id === where.id,
@@ -401,11 +401,16 @@ class InMemoryPrisma {
         throw new Error('ContextArtifact not found');
       }
 
-      contextArtifact.content = data.content;
+      contextArtifact.promptContent = data.promptContent;
       contextArtifact.updatedAt = new Date();
 
       return Promise.resolve(contextArtifact);
     },
+  };
+
+  readonly storageObject = {
+    findMany: jest.fn().mockResolvedValue([]),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
   };
 
   readonly specRun = {
@@ -567,7 +572,7 @@ describe('Featurewise backend (e2e)', () => {
       .expect(401);
     await request(app.getHttpServer())
       .patch('/features/FEAT-1/context')
-      .send({ content: 'Rejected' })
+      .send({ promptContent: 'Rejected' })
       .expect(401);
 
     await request(app.getHttpServer())
@@ -821,7 +826,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ content: 'Rejected' })
+      .send({ promptContent: 'Rejected' })
       .expect(404);
 
     await withAuth(
@@ -849,7 +854,7 @@ describe('Featurewise backend (e2e)', () => {
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
           featureUpdateKey: null,
-          content: '',
+          promptContent: '',
         });
         expectNoUuid(response.body);
       });
@@ -877,32 +882,32 @@ describe('Featurewise backend (e2e)', () => {
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ content: 42 })
+      .send({ promptContent: 42 })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ content: 'Valid', unexpected: true })
+      .send({ promptContent: 'Valid', unexpected: true })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ content: 'x'.repeat(20001) })
+      .send({ promptContent: 'x'.repeat(20001) })
       .expect(400);
 
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ content: 'Screenshots and notes go here.' })
+      .send({ promptContent: 'Screenshots and notes go here.' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          content: 'Screenshots and notes go here.',
+          promptContent: 'Screenshots and notes go here.',
         });
         expectNoUuid(response.body);
       });
@@ -916,7 +921,7 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          content: 'Screenshots and notes go here.',
+          promptContent: 'Screenshots and notes go here.',
         });
       });
     await withAuth(
@@ -1011,7 +1016,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ content: 'Rejected' })
+      .send({ promptContent: 'Rejected' })
       .expect(400);
 
     await withAuth(

@@ -33,6 +33,7 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: 'unit',
           css: true,
           environment: 'jsdom',
           setupFiles: './src/test/setup.ts',
