@@ -24,6 +24,17 @@
   box-shadow: var(--shadow-sm);
 }
 
-.contextPanel {
+.placeholder h2,
+.placeholder p {
+  margin: 0;
+}
+
+.placeholder section {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+}
+
+.contentPanel {
   width: 100%;
 }

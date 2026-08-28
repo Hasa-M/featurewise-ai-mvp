@@ -70,7 +70,6 @@ describe('FeatureContextPanel', () => {
     render(
       <FeatureContextPanel
         accessToken='access-token'
-        brief={null}
         featureKey='feature-1'
       />,
     );

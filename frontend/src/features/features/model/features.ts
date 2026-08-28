@@ -17,15 +17,11 @@ import {
 } from '../api';
 
 export interface Feature {
-  readonly activity: FeatureDto['activity'];
-  readonly alignment: FeatureDto['alignment'];
-  readonly brief: string | null;
   readonly createdAt: Date;
   readonly createdByKey: string;
-  readonly includeInProjectContext: boolean;
-  readonly origin: FeatureDto['origin'];
   readonly projectKey: string;
   readonly publicKey: string;
+  readonly specificationContent: string;
   readonly title: string;
   readonly updatedAt: Date;
 }
@@ -38,8 +34,12 @@ export const featureKeys = {
 
 export function toFeature(dto: FeatureDto): Feature {
   return {
-    ...dto,
     createdAt: new Date(dto.createdAt),
+    createdByKey: dto.createdByKey,
+    projectKey: dto.projectKey,
+    publicKey: dto.publicKey,
+    specificationContent: dto.specificationContent,
+    title: dto.title,
     updatedAt: new Date(dto.updatedAt),
   };
 }

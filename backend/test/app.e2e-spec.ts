@@ -510,6 +510,23 @@ function expectNoUuid(value: unknown): void {
   expect(JSON.stringify(value)).not.toMatch(UUID_PATTERN);
 }
 
+const publicFeatureKeys = [
+  'createdAt',
+  'createdByKey',
+  'projectKey',
+  'publicKey',
+  'specificationContent',
+  'title',
+  'updatedAt',
+];
+
+function expectPublicFeatureContract(value: unknown): void {
+  expect(value).toBeInstanceOf(Object);
+  expect(Object.keys(value as Record<string, unknown>).sort()).toEqual(
+    publicFeatureKeys,
+  );
+}
+
 describe('Featurewise backend (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: InMemoryPrisma;
@@ -712,11 +729,23 @@ describe('Featurewise backend (e2e)', () => {
         expectNoUuid(response.body);
       });
 
+    for (const legacyInput of [
+      { brief: 'Legacy brief' },
+      { origin: FeatureOrigin.brand_new },
+      { includeInProjectContext: true },
+    ]) {
+      await withAuth(
+        request(app.getHttpServer()).post('/projects/PRJ-1/features'),
+        authorizationHeader,
+      )
+        .send({ title: 'Legacy feature', ...legacyInput })
+        .expect(400);
+    }
     await withAuth(
       request(app.getHttpServer()).post('/projects/PRJ-1/features'),
       authorizationHeader,
     )
-      .send({ title: 'Invalid origin feature', origin: 'unsupported' })
+      .send({ title: 'Invalid feature', specificationContent: null })
       .expect(400);
 
     const createFeatureResponse = await withAuth(
@@ -725,12 +754,17 @@ describe('Featurewise backend (e2e)', () => {
     )
       .send({
         title: 'New checkout',
-        brief: 'Reduce friction in the checkout flow.',
-        origin: FeatureOrigin.brand_new,
-        includeInProjectContext: true,
+        specificationContent: 'Reduce friction in the checkout flow.',
       })
       .expect(201)
-      .expect((response: Response) => expectNoUuid(response.body));
+      .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
+        expect(response.body).toMatchObject({
+          specificationContent: 'Reduce friction in the checkout flow.',
+          title: 'New checkout',
+        });
+        expectNoUuid(response.body);
+      });
     const feature = createFeatureResponse.body as { publicKey: string };
     expect(feature.publicKey).toBe('FEAT-1');
 
@@ -740,23 +774,17 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
-        expect(response.body).toEqual([
-          expect.objectContaining({
-            publicKey: 'FEAT-1',
-            projectKey: 'PRJ-1',
-            createdByKey: 'USR-1',
-            activity: {
-              currentValidSpecVersion: null,
-              generationRunCount: 0,
-              latestFeatureRun: null,
-            },
-            alignment: {
-              status: 'aligned',
-              pendingUpdates: [],
-            },
-          }),
-        ]);
-        expectNoUuid(response.body);
+        const body = response.body as unknown[];
+
+        expect(body).toHaveLength(1);
+        expectPublicFeatureContract(body[0]);
+        expect(body[0]).toMatchObject({
+          publicKey: 'FEAT-1',
+          projectKey: 'PRJ-1',
+          createdByKey: 'USR-1',
+          specificationContent: 'Reduce friction in the checkout flow.',
+        });
+        expectNoUuid(body);
       });
 
     await withAuth(
@@ -765,6 +793,7 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
@@ -835,11 +864,12 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
           title: 'New checkout',
-          includeInProjectContext: true,
+          specificationContent: 'Reduce friction in the checkout flow.',
         });
         expectNoUuid(response.body);
       });
@@ -924,18 +954,47 @@ describe('Featurewise backend (e2e)', () => {
           promptContent: 'Screenshots and notes go here.',
         });
       });
+    for (const legacyInput of [
+      { brief: 'Legacy brief' },
+      { origin: FeatureOrigin.brand_new },
+      { includeInProjectContext: false },
+    ]) {
+      await withAuth(
+        request(app.getHttpServer()).patch('/features/FEAT-1'),
+        authorizationHeader,
+      )
+        .send(legacyInput)
+        .expect(400);
+    }
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1'),
       authorizationHeader,
     )
-      .send({ title: 'Updated checkout', includeInProjectContext: false })
+      .send({ specificationContent: null })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({ title: null })
+      .expect(400);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({
+        title: 'Updated checkout',
+        specificationContent: 'Updated checkout specification.',
+      })
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
           title: 'Updated checkout',
-          includeInProjectContext: false,
+          specificationContent: 'Updated checkout specification.',
         });
         expectNoUuid(response.body);
       });
@@ -984,7 +1043,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ title: 'Rejected', origin: FeatureOrigin.brand_new })
+      .send({ title: 'Rejected' })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).get(

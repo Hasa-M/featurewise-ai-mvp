@@ -1,12 +1,9 @@
-import { FeatureOrigin } from '@prisma/client';
 import {
-  IsBoolean,
-  IsEnum,
   IsNotEmpty,
-  IsOptional,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateFeatureDto {
@@ -16,15 +13,8 @@ export class CreateFeatureDto {
   @MaxLength(180)
   readonly title!: string;
 
-  @IsOptional()
+  @ValidateIf((_object: object, value: unknown) => value !== undefined)
   @IsString()
   @MaxLength(2000)
-  readonly brief?: string | null;
-
-  @IsEnum(FeatureOrigin)
-  readonly origin!: FeatureOrigin;
-
-  @IsOptional()
-  @IsBoolean()
-  readonly includeInProjectContext?: boolean;
+  readonly specificationContent?: string;
 }

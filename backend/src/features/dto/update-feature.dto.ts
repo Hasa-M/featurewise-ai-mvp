@@ -1,26 +1,21 @@
 import {
-  IsBoolean,
   IsNotEmpty,
-  IsOptional,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpdateFeatureDto {
-  @IsOptional()
+  @ValidateIf((_object: object, value: unknown) => value !== undefined)
   @IsString()
   @IsNotEmpty()
   @Matches(/\S/)
   @MaxLength(180)
   readonly title?: string;
 
-  @IsOptional()
+  @ValidateIf((_object: object, value: unknown) => value !== undefined)
   @IsString()
   @MaxLength(2000)
-  readonly brief?: string | null;
-
-  @IsOptional()
-  @IsBoolean()
-  readonly includeInProjectContext?: boolean;
+  readonly specificationContent?: string;
 }

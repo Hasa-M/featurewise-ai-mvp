@@ -19,4 +19,5 @@ export {
   type FeatureDeleteSuccessBehavior,
 } from './model/feature-actions';
 export { FeatureActionsProvider } from './ui/FeatureActionsProvider';
+export { FeatureSpecificationPanel } from './ui/FeatureSpecificationPanel';
 export { getFeaturePath } from './lib/feature-path';

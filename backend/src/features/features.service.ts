@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, SpecRunKind, SpecRunStatus } from '@prisma/client';
+import { FeatureOrigin, Prisma, SpecRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey } from '../common/public-identifiers';
@@ -18,8 +18,6 @@ interface FeatureRecord {
   readonly projectId: string;
   readonly title: string;
   readonly brief: string | null;
-  readonly origin: string;
-  readonly includeInProjectContext: boolean;
   readonly createdById: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -29,28 +27,6 @@ interface FeatureRecord {
   readonly project: {
     readonly publicNumber: number;
   };
-}
-
-export interface PendingUpdate {
-  readonly featureUpdateKey: string;
-  readonly generatedSpecKey: string;
-  readonly title: string;
-  readonly version: number;
-}
-
-export interface FeatureAlignment {
-  readonly status: 'aligned' | 'updates_pending';
-  readonly pendingUpdates: PendingUpdate[];
-}
-
-export interface FeatureActivity {
-  readonly currentValidSpecVersion: number | null;
-  readonly generationRunCount: number;
-  readonly latestFeatureRun: {
-    readonly runKind: SpecRunKind;
-    readonly status: SpecRunStatus;
-    readonly usedProjectContext: boolean | null;
-  } | null;
 }
 
 @Injectable()
@@ -80,9 +56,7 @@ export class FeaturesService {
       include: this.featurePublicRelations(),
     });
 
-    return Promise.all(
-      features.map((feature) => this.toFeatureResponse(feature)),
-    );
+    return features.map((feature) => this.toFeatureResponse(feature));
   }
 
   async createFeature(
@@ -98,10 +72,10 @@ export class FeaturesService {
     const feature = await this.prismaService.$transaction((transaction) =>
       transaction.feature.create({
         data: {
-          brief: this.normalizeNullableText(dto.brief),
+          brief: this.toLegacyBrief(dto.specificationContent),
           createdById: currentUser.userId,
-          includeInProjectContext: dto.includeInProjectContext ?? false,
-          origin: dto.origin,
+          includeInProjectContext: false,
+          origin: FeatureOrigin.brand_new,
           projectId: project.id,
           title: dto.title.trim(),
           contextArtifact: {
@@ -161,12 +135,8 @@ export class FeaturesService {
       data.title = dto.title.trim();
     }
 
-    if (dto.brief !== undefined) {
-      data.brief = this.normalizeNullableText(dto.brief);
-    }
-
-    if (dto.includeInProjectContext !== undefined) {
-      data.includeInProjectContext = dto.includeInProjectContext;
+    if (dto.specificationContent !== undefined) {
+      data.brief = this.toLegacyBrief(dto.specificationContent);
     }
 
     const feature = await this.prismaService.feature.update({
@@ -202,7 +172,7 @@ export class FeaturesService {
 
     if (activeRun !== null) {
       throw new ConflictException(
-        'Feature cannot be deleted while a spec run is active',
+        'Feature cannot be deleted while a run is active',
       );
     }
 
@@ -251,193 +221,16 @@ export class FeaturesService {
     return feature;
   }
 
-  private async toFeatureResponse(feature: FeatureRecord) {
-    const [activity, alignment] = await Promise.all([
-      this.computeActivity(feature.id),
-      this.computeAlignment(feature.id),
-    ]);
-
+  private toFeatureResponse(feature: FeatureRecord) {
     return {
       publicKey: formatPublicKey('feature', feature.publicNumber),
       projectKey: formatPublicKey('project', feature.project.publicNumber),
       title: feature.title,
-      brief: feature.brief,
-      origin: feature.origin,
-      includeInProjectContext: feature.includeInProjectContext,
+      specificationContent: feature.brief ?? '',
       createdByKey: formatPublicKey('user', feature.createdBy.publicNumber),
       createdAt: feature.createdAt,
       updatedAt: feature.updatedAt,
-      activity,
-      alignment,
     };
-  }
-
-  private async computeActivity(featureId: string): Promise<FeatureActivity> {
-    const [generationRunCount, currentValidSpec, latestFeatureRun] =
-      await Promise.all([
-        this.prismaService.specRun.count({
-          where: {
-            featureId,
-            featureUpdateId: null,
-            runKind: SpecRunKind.generation,
-          },
-        }),
-        this.prismaService.generatedSpec.findFirst({
-          where: {
-            featureId,
-            featureUpdateId: null,
-            valid: true,
-          },
-          select: {
-            version: true,
-          },
-        }),
-        this.prismaService.specRun.findFirst({
-          where: {
-            featureId,
-            featureUpdateId: null,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          select: {
-            genSettings: true,
-            runKind: true,
-            status: true,
-          },
-        }),
-      ]);
-
-    return {
-      currentValidSpecVersion: currentValidSpec?.version ?? null,
-      generationRunCount,
-      latestFeatureRun:
-        latestFeatureRun === null
-          ? null
-          : {
-              runKind: latestFeatureRun.runKind,
-              status: latestFeatureRun.status,
-              usedProjectContext: this.extractIncludeProjectSummary(
-                latestFeatureRun.genSettings,
-              ),
-            },
-    };
-  }
-
-  private async computeAlignment(featureId: string): Promise<FeatureAlignment> {
-    const validFeatureSpec = await this.prismaService.generatedSpec.findFirst({
-      where: {
-        featureId,
-        featureUpdateId: null,
-        valid: true,
-      },
-      select: {
-        incorporatedUpdates: true,
-      },
-    });
-    const updateSpecs = await this.prismaService.featureUpdate.findMany({
-      where: {
-        featureId,
-        deletedAt: null,
-        generatedSpecs: {
-          some: {
-            valid: true,
-          },
-        },
-      },
-      select: {
-        id: true,
-        publicNumber: true,
-        title: true,
-        generatedSpecs: {
-          where: {
-            valid: true,
-          },
-          select: {
-            id: true,
-            publicNumber: true,
-            version: true,
-          },
-          take: 1,
-        },
-      },
-    });
-
-    if (updateSpecs.length === 0) {
-      return {
-        pendingUpdates: [],
-        status: 'aligned',
-      };
-    }
-
-    const incorporatedSpecIds =
-      validFeatureSpec === null
-        ? new Set<string>()
-        : this.extractIncorporatedSpecIds(validFeatureSpec.incorporatedUpdates);
-    const pendingUpdates = updateSpecs.flatMap<PendingUpdate>((update) => {
-      const generatedSpec = update.generatedSpecs[0];
-
-      if (
-        generatedSpec === undefined ||
-        incorporatedSpecIds.has(generatedSpec.id)
-      ) {
-        return [];
-      }
-
-      return [
-        {
-          featureUpdateKey: formatPublicKey(
-            'featureUpdate',
-            update.publicNumber,
-          ),
-          generatedSpecKey: formatPublicKey(
-            'generatedSpec',
-            generatedSpec.publicNumber,
-          ),
-          title: update.title,
-          version: generatedSpec.version,
-        },
-      ];
-    });
-
-    return {
-      pendingUpdates,
-      status: pendingUpdates.length > 0 ? 'updates_pending' : 'aligned',
-    };
-  }
-
-  private extractIncorporatedSpecIds(value: Prisma.JsonValue): Set<string> {
-    if (!Array.isArray(value)) {
-      return new Set<string>();
-    }
-
-    const specIds = value.flatMap((item) => {
-      if (!this.isJsonObject(item)) {
-        return [];
-      }
-
-      const generatedSpecId = item.generatedSpecId;
-
-      return typeof generatedSpecId === 'string' ? [generatedSpecId] : [];
-    });
-
-    return new Set(specIds);
-  }
-
-  private isJsonObject(value: Prisma.JsonValue): value is Prisma.JsonObject {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-  }
-
-  private extractIncludeProjectSummary(
-    value: Prisma.JsonValue,
-  ): boolean | null {
-    if (!this.isJsonObject(value)) {
-      return null;
-    }
-
-    return typeof value.includeProjectSummary === 'boolean'
-      ? value.includeProjectSummary
-      : null;
   }
 
   private featurePublicRelations() {
@@ -455,10 +248,8 @@ export class FeaturesService {
     } as const;
   }
 
-  private normalizeNullableText(
-    value: string | null | undefined,
-  ): string | null {
-    if (value === undefined || value === null) {
+  private toLegacyBrief(value: string | undefined): string | null {
+    if (value === undefined) {
       return null;
     }
 

@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 2 complete; Phase 3 ready
+Status: Phase 3 complete; Phase 4 ready
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -12,8 +12,9 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
 
 - Branch: `refactor/specification-analysis-engine`, based on `main` at `8930865`.
 - Phase 1: **complete on 2026-08-28; committed as `0910c6b`**.
-- Phase 2: **complete on 2026-08-28; user-approved for commit**.
-- Phase 3: **ready**. It is the next allowed implementation phase on this branch after user confirmation.
+- Phase 2: **complete on 2026-08-28; committed as `d354b53`**.
+- Phase 3: **complete on 2026-08-28; uncommitted pending user review**.
+- Phase 4: **ready**. It is the next allowed implementation phase on this branch after Phase 3 is reviewed and committed.
 - Later phases: pending and unchanged.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
@@ -29,6 +30,23 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
   Prisma, migration, package, Phase 1 architecture, or generated-file diff exists.
 - Runtime tests/builds were not run because Phase 2 changes documentation and skill
   guidance only.
+- Phase 3 implementation note: the public Feature API and Console now use
+  `specificationContent`; the backend service alone maps it to the legacy `brief`
+  column and supplies fixed legacy creation values. Generated-spec activity,
+  alignment, origin, and project-context membership are absent from the public
+  contract and active UI. The Feature workspace is now Specification, Context,
+  and Analyses, with a request-free Analyses unavailable state.
+- Phase 3 verification: backend unit tests passed (52/52), backend end-to-end tests
+  passed (2/2), and backend lint and build passed. Frontend tests passed (335/335),
+  and frontend lint and build passed with the existing oversized rich-text chunk
+  warning. `git diff --check` and the forbidden-path audit passed; there is no
+  Prisma, migration, dependency/package, Phase 1 ADR/diagram, or Phase 2
+  agent/skill-guidance diff.
+- Phase 3 manual smoke limitation: Docker Desktop's engine socket is unavailable
+  and PostgreSQL is not listening on `localhost:5433`, so the local backend cannot
+  start for the requested browser create/edit/list/open/delete workflow. The same
+  workflow and routing/cache behavior are covered by backend e2e and frontend
+  router tests.
 
 
 ## 1. Outcome and locked decisions
@@ -536,7 +554,7 @@ Dependencies: Phase 1, because instructions must cite accepted ADRs.
 
 ### Phase 3 — `refactor(product): center features on specification analysis`
 
-Status: **ready; do not start until Phase 2 is confirmed**
+Status: **complete on 2026-08-28; uncommitted pending user review**
 
 Purpose: cut the public backend/Console product contract over before the destructive schema replacement, using a short-lived compatibility mapping to old columns.
 
@@ -573,6 +591,8 @@ Checks:
 Dependencies: Phase 2.
 
 ### Phase 4 — `refactor(db): replace generated specs with analysis findings`
+
+Status: **ready; do not start until Phase 3 is reviewed and committed**
 
 Purpose: make persistence match the accepted domain and remove the compatibility layer.
 
@@ -718,22 +738,14 @@ No unresolved decision blocks the first implementation task. The following must 
 
 ## 14. Exact suggested next implementation task
 
-After the user reviews and commits Phase 2, implement Phase 3 on the existing
+After the user reviews and commits Phase 3, implement Phase 4 on the existing
 `refactor/specification-analysis-engine` branch. Do not create a commit
 automatically.
 
-The next task is exactly:
+The next task is exactly the Phase 4 database/domain replacement documented
+above: add the guarded forward migration and target Prisma model, remove the
+temporary Feature service compatibility mapping and obsolete FeatureUpdates
+runtime boundary, preserve the context-file lifecycle, and add analysis
+persistence without implementing analyzer execution or deferred HTTP endpoints.
 
-1. Cut the public Feature API and Console contract over to
-   `specificationContent`, using only the documented temporary service mapping
-   required by the old database schema.
-2. Remove origin, project-context membership, generated-spec activity, and
-   alignment fields from public DTOs, frontend models, forms, projections, and
-   fixtures without changing Prisma yet.
-3. Change the Feature workspace to `Specification | Context | Analyses`, with
-   Specification as the default and an honest unavailable/empty Analyses state
-   that makes no placeholder request.
-4. Run the Phase 3 backend and frontend contract, unit, e2e, lint, build, and
-   manual Feature workflow checks listed above.
-
-Stop after Phase 3 and request confirmation before Phase 4.
+Stop after Phase 4 and request confirmation before Phase 5.

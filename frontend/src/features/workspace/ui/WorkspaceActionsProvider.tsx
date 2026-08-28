@@ -107,7 +107,7 @@ function ProjectDialog({
 
   return (
     <FormModal
-      description='Rename the project without changing its features or generated specs.'
+      description='Rename the project without changing its features or context.'
       errorMessage={
         mutation.error
           ? getApiErrorMessage(mutation.error, 'The project could not be saved.')

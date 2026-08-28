@@ -4,10 +4,9 @@ import {
   FolderKanban,
   Pencil,
   Plus,
-  Sparkles,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
@@ -15,7 +14,6 @@ import {
   getFeaturePath,
   useFeatureActions,
   useProjectFeatures,
-  useUpdateFeature,
   type Feature,
 } from '@/features/features';
 import {
@@ -23,16 +21,14 @@ import {
   useProject,
   useProjectActions,
 } from '@/features/workspace';
-import { ApiError, getApiErrorMessage } from '@/shared/api';
+import { ApiError } from '@/shared/api';
 import { usePageHeaderRegistration } from '@/shared/model';
 import { Breadcrumb } from '@/shared/ui/breadcrumb';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { Checkbox } from '@/shared/ui/checkbox';
 import { MenuItem } from '@/shared/ui/menu';
 import { MenuPopover } from '@/shared/ui/menu-popover';
 import { Tabs, type TabsItems } from '@/shared/ui/tabs';
-import { Tag } from '@/shared/ui/tag';
 
 import styles from './ProjectPage.module.css';
 
@@ -54,29 +50,6 @@ function isNotFound(error: unknown) {
   );
 }
 
-function formatOperationalLabel(value: string) {
-  const label = value.replaceAll('_', ' ');
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function featureOriginLabel(origin: Feature['origin']) {
-  return origin === 'brand_new' ? 'Brand new' : 'Mapped existing';
-}
-
-function generationCountLabel(count: number) {
-  return `${count} ${count === 1 ? 'generation' : 'generations'}`;
-}
-
-function pendingUpdateLabel(count: number) {
-  return count === 1 ? '1 update pending' : `${count} updates pending`;
-}
-
-function sameIds(left: ReadonlySet<string>, right: ReadonlySet<string>) {
-  return (
-    left.size === right.size && [...left].every((value) => right.has(value))
-  );
-}
-
 function FeatureCard({
   feature,
   onDelete,
@@ -88,17 +61,6 @@ function FeatureCard({
   readonly onEdit: (feature: Feature) => void;
   readonly projectPublicKey: string;
 }) {
-  const pendingUpdateCount = feature.alignment.pendingUpdates.length;
-  const latestRun = feature.activity.latestFeatureRun;
-  const contextUsage =
-    latestRun === null
-      ? 'No feature run yet'
-      : latestRun.usedProjectContext === null
-        ? 'Project context usage unavailable'
-        : latestRun.usedProjectContext
-          ? 'Project context used in latest run'
-          : 'Project context not used in latest run';
-
   return (
     <li className={styles.featureItem}>
       <Card className={styles.featureCard} height='100%' width='100%'>
@@ -109,7 +71,7 @@ function FeatureCard({
             </span>
             <h2 className={styles.featureTitle}>
               <Link
-                aria-describedby={`feature-${feature.publicKey}-brief`}
+                aria-describedby={`feature-${feature.publicKey}-specification`}
                 className={styles.featureLink}
                 to={getFeaturePath(projectPublicKey, feature.publicKey)}
               >
@@ -136,66 +98,11 @@ function FeatureCard({
           </div>
 
           <p
-            className={styles.brief}
-            id={`feature-${feature.publicKey}-brief`}
+            className={styles.specification}
+            id={`feature-${feature.publicKey}-specification`}
           >
-            {feature.brief ?? 'No feature brief yet.'}
+            {feature.specificationContent || 'No feature specification yet.'}
           </p>
-
-          <div className={styles.tags}>
-            <Tag className={styles.originTag}>
-              {featureOriginLabel(feature.origin)}
-            </Tag>
-            <Tag
-              className={
-                feature.alignment.status === 'aligned'
-                  ? styles.readyTag
-                  : styles.attentionTag
-              }
-            >
-              {feature.alignment.status === 'aligned'
-                ? 'Aligned'
-                : pendingUpdateLabel(pendingUpdateCount)}
-            </Tag>
-            <Tag
-              className={
-                feature.includeInProjectContext
-                  ? styles.contextIncludedTag
-                  : styles.contextExcludedTag
-              }
-            >
-              {feature.includeInProjectContext
-                ? 'Included in project context'
-                : 'Not in project context'}
-            </Tag>
-          </div>
-
-          <dl className={styles.metrics}>
-            <div>
-              <dt>Generation history</dt>
-              <dd>{generationCountLabel(feature.activity.generationRunCount)}</dd>
-            </div>
-            <div>
-              <dt>Validated specification</dt>
-              <dd>
-                {feature.activity.currentValidSpecVersion === null
-                  ? 'None'
-                  : `Version ${feature.activity.currentValidSpecVersion}`}
-              </dd>
-            </div>
-            <div>
-              <dt>Latest feature run</dt>
-              <dd>
-                {latestRun === null
-                  ? 'None'
-                  : `${formatOperationalLabel(latestRun.runKind)} · ${formatOperationalLabel(latestRun.status)}`}
-              </dd>
-            </div>
-            <div>
-              <dt>Project context usage</dt>
-              <dd>{contextUsage}</dd>
-            </div>
-          </dl>
 
           <time
             className={styles.updatedAt}
@@ -243,207 +150,24 @@ function FeatureCards({
   );
 }
 
-type SaveFeedback =
-  | { readonly kind: 'error'; readonly message: string }
-  | { readonly kind: 'success'; readonly message: string };
-
-function ProjectContextPanel({
-  accessToken,
-  features,
-}: {
-  readonly accessToken: string;
-  readonly features: readonly Feature[];
-}) {
-  const updateFeatureMutation = useUpdateFeature(accessToken);
-  const serverIncludedIds = useMemo(
-    () =>
-      new Set(
-        features
-          .filter((feature) => feature.includeInProjectContext)
-          .map((feature) => feature.publicKey),
-      ),
-    [features],
-  );
-  const serverSignature = features
-    .map(
-      (feature) =>
-        `${feature.publicKey}:${feature.includeInProjectContext ? 'included' : 'excluded'}`,
-    )
-    .join('|');
-  const previousServerIds = useRef<ReadonlySet<string>>(serverIncludedIds);
-  const [draftIncludedIds, setDraftIncludedIds] = useState<ReadonlySet<string>>(
-    serverIncludedIds,
-  );
-  const [feedback, setFeedback] = useState<SaveFeedback>();
-  const [isSaving, setIsSaving] = useState(false);
-  const isDirty = !sameIds(draftIncludedIds, serverIncludedIds);
-  const allSelected =
-    features.length > 0 &&
-    features.every((feature) => draftIncludedIds.has(feature.publicKey));
-  const someSelected = features.some((feature) =>
-    draftIncludedIds.has(feature.publicKey),
-  );
-
-  useEffect(() => {
-    setDraftIncludedIds((current) =>
-      sameIds(current, previousServerIds.current)
-        ? serverIncludedIds
-        : current,
-    );
-    previousServerIds.current = serverIncludedIds;
-  }, [serverIncludedIds, serverSignature]);
-
-  function replaceDraft(next: ReadonlySet<string>) {
-    setFeedback(undefined);
-    setDraftIncludedIds(next);
-  }
-
-  async function saveMembership() {
-    const changedFeatures = features.filter(
-      (feature) =>
-        draftIncludedIds.has(feature.publicKey) !==
-        feature.includeInProjectContext,
-    );
-
-    if (changedFeatures.length === 0) return;
-
-    setFeedback(undefined);
-    setIsSaving(true);
-
-    try {
-      const results = await Promise.allSettled(
-        changedFeatures.map((feature) =>
-          updateFeatureMutation.mutateAsync({
-            featureKey: feature.publicKey,
-            includeInProjectContext: draftIncludedIds.has(feature.publicKey),
-          }),
-        ),
-      );
-      const failedResults = results.filter(
-        (result): result is PromiseRejectedResult =>
-          result.status === 'rejected',
-      );
-
-      // TODO(project-context): request ProjectContextSummary recalculation here
-      // once its backend update contract and overwrite semantics are defined.
-      if (failedResults.length > 0) {
-        setFeedback({
-          kind: 'error',
-          message: getApiErrorMessage(
-            failedResults[0].reason,
-            failedResults.length === 1
-              ? 'One feature could not be updated. Your remaining change is still selected.'
-              : `${failedResults.length} features could not be updated. Their changes remain selected.`,
-          ),
-        });
-      } else {
-        setFeedback({
-          kind: 'success',
-          message: 'Project context membership saved.',
-        });
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
+function ProjectContextPanel() {
   return (
-    <div className={styles.contextLayout}>
-      <section
-        aria-labelledby='project-context-editor-title'
-        className={styles.contextPlaceholder}
-      >
-        <span aria-hidden='true' className={styles.contextIcon}>
-          <Sparkles size={22} strokeWidth={1.75} />
-        </span>
-        <div>
-          <p className='fw-overline'>Coming later</p>
-          <h2 id='project-context-editor-title'>Project context editor</h2>
-          <p>
-            Loading, manually editing, and recalculating the generated project
-            context will be added when its backend workflow is defined.
-          </p>
-        </div>
-      </section>
-
-      <aside
-        aria-labelledby='context-membership-title'
-        className={styles.contextSidebar}
-      >
-        <div className={styles.sidebarHeading}>
-          <h2 id='context-membership-title'>Features in project context</h2>
-          <p>
-            Choose which features contribute knowledge to the future project
-            summary.
-          </p>
-        </div>
-
-        <fieldset className={styles.checkboxGroup} disabled={isSaving}>
-          <legend className={styles.srOnly}>Project context membership</legend>
-          <div className={styles.selectAll}>
-            <Checkbox
-              checked={allSelected}
-              disabled={features.length === 0 || isSaving}
-              indeterminate={someSelected && !allSelected}
-              label='Select all features'
-              labelWeight='medium'
-              onChange={(event) => {
-                replaceDraft(
-                  event.currentTarget.checked
-                    ? new Set(features.map((feature) => feature.publicKey))
-                    : new Set(),
-                );
-              }}
-            />
-          </div>
-          {features.length === 0 ? (
-            <p className={styles.emptyMembership}>No features to select.</p>
-          ) : (
-            <div className={styles.checkboxList}>
-              {features.map((feature) => (
-                <Checkbox
-                  checked={draftIncludedIds.has(feature.publicKey)}
-                  disabled={isSaving}
-                  key={feature.publicKey}
-                  label={feature.title}
-                  onChange={(event) => {
-                    const next = new Set(draftIncludedIds);
-                    if (event.currentTarget.checked) {
-                      next.add(feature.publicKey);
-                    } else {
-                      next.delete(feature.publicKey);
-                    }
-                    replaceDraft(next);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </fieldset>
-
-        <div className={styles.saveArea}>
-          {feedback ? (
-            <p
-              className={
-                feedback.kind === 'error'
-                  ? styles.errorFeedback
-                  : styles.successFeedback
-              }
-              role={feedback.kind === 'error' ? 'alert' : 'status'}
-            >
-              {feedback.message}
-            </p>
-          ) : null}
-          <Button
-            disabled={!isDirty || isSaving}
-            loading={isSaving}
-            onClick={() => void saveMembership()}
-          >
-            Save selection
-          </Button>
-        </div>
-      </aside>
-    </div>
+    <section
+      aria-labelledby='project-context-editor-title'
+      className={styles.contextPlaceholder}
+    >
+      <span aria-hidden='true' className={styles.contextIcon}>
+        <FileText size={22} strokeWidth={1.75} />
+      </span>
+      <div>
+        <p className='fw-overline'>Unavailable</p>
+        <h2 id='project-context-editor-title'>Project context is not available yet</h2>
+        <p>
+          Editable project-level context will appear here when its backend
+          contract is implemented.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -536,8 +260,8 @@ function ProjectContent({
       ),
       subtitle: projectQuery.data
         ? activeTab === 'features'
-          ? 'Review feature readiness, activity, and project context membership.'
-          : 'Choose which features contribute to the project context.'
+          ? 'Open a feature to edit its specification and supporting context.'
+          : 'Project-level context editing is not available yet.'
         : undefined,
     }),
     [
@@ -627,10 +351,7 @@ function ProjectContent({
             projectPublicKey={projectQuery.data.publicKey}
           />
         ) : (
-          <ProjectContextPanel
-            accessToken={accessToken}
-            features={featuresQuery.data}
-          />
+          <ProjectContextPanel />
         )}
       </div>
     </section>

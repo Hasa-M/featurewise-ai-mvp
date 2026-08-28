@@ -3,10 +3,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { getApiErrorMessage } from '@/shared/api';
-import { Checkbox } from '@/shared/ui/checkbox';
 import { ConfirmModal } from '@/shared/ui/confirm-modal';
 import { FormModal } from '@/shared/ui/form-modal';
-import { RadioCard, RadioGroup } from '@/shared/ui/radio-group';
 import { TextArea } from '@/shared/ui/text-area';
 import { TextInput } from '@/shared/ui/text-input';
 
@@ -58,13 +56,13 @@ function CreateFeatureDialog({
 }) {
   const mutation = useCreateFeature(accessToken);
   const form = useForm<FeatureCreateValues>({
-    defaultValues: { title: '' },
+    defaultValues: { specificationContent: '', title: '' },
     resolver: zodResolver(featureCreateSchema),
   });
 
   return (
     <FormModal
-      description='Create the feature identity now, then add intent and context in its workspace.'
+      description='Create the feature and optionally add its canonical specification. Supporting context remains in its workspace.'
       errorMessage={
         mutation.error
           ? getApiErrorMessage(mutation.error, 'The feature could not be created.')
@@ -76,8 +74,8 @@ function CreateFeatureDialog({
       onReset={form.reset}
       onSubmit={form.handleSubmit(async (values) => {
         const feature = await mutation.mutateAsync({
-          origin: values.origin,
           projectKey: action.projectKey,
+          specificationContent: values.specificationContent,
           title: values.title,
         });
         close();
@@ -108,29 +106,22 @@ function CreateFeatureDialog({
       />
       <Controller
         control={form.control}
-        name='origin'
+        name='specificationContent'
         render={({ field, fieldState }) => (
-          <RadioGroup
-            description={
-              fieldState.error?.message ??
-              'Origin controls which generation workflow is available and cannot be changed later.'
-            }
+          <TextArea
             disabled={mutation.isPending}
-            label='Feature origin'
-            onValueChange={field.onChange}
-            value={field.value ?? null}
-          >
-            <RadioCard
-              description='A capability that Featurewise will specify directly.'
-              label='Brand new'
-              value='brand_new'
-            />
-            <RadioCard
-              description='A capability that already exists and needs a captured baseline.'
-              label='Mapped existing'
-              value='mapped_existing'
-            />
-          </RadioGroup>
+            errorMessage={fieldState.error?.message}
+            helperText='You can continue editing this in the Feature workspace.'
+            label='Feature specification'
+            maxLength={2000}
+            name={field.name}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            placeholder='Describe the intended behavior, requirements, and acceptance criteria.'
+            rows={6}
+            showCharacterCount
+            value={field.value}
+          />
         )}
       />
     </FormModal>
@@ -149,8 +140,6 @@ function EditFeatureDialog({
   const mutation = useUpdateFeature(accessToken);
   const form = useForm<FeatureQuickEditValues>({
     defaultValues: {
-      brief: feature.brief ?? '',
-      includeInProjectContext: feature.includeInProjectContext,
       title: feature.title,
     },
     resolver: zodResolver(featureQuickEditSchema),
@@ -158,7 +147,7 @@ function EditFeatureDialog({
 
   return (
     <FormModal
-      description='Update bounded feature metadata. Existing run snapshots and validated specs do not change.'
+      description='Rename the feature without changing its specification or supporting context.'
       errorMessage={
         mutation.error
           ? getApiErrorMessage(mutation.error, 'The feature could not be saved.')
@@ -170,9 +159,7 @@ function EditFeatureDialog({
       onReset={form.reset}
       onSubmit={form.handleSubmit(async (values) => {
         await mutation.mutateAsync({
-          brief: values.brief.trim() || null,
           featureKey: feature.publicKey,
-          includeInProjectContext: values.includeInProjectContext,
           title: values.title,
         });
         close();
@@ -196,40 +183,6 @@ function EditFeatureDialog({
             onChange={field.onChange}
             required
             value={field.value}
-          />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name='brief'
-        render={({ field, fieldState }) => (
-          <TextArea
-            disabled={mutation.isPending}
-            errorMessage={fieldState.error?.message}
-            helperText='Keep this concise. Rich context belongs in the Feature workspace.'
-            label='Feature brief'
-            maxLength={2000}
-            name={field.name}
-            onBlur={field.onBlur}
-            onChange={field.onChange}
-            rows={5}
-            showCharacterCount
-            value={field.value}
-          />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name='includeInProjectContext'
-        render={({ field }) => (
-          <Checkbox
-            checked={field.value}
-            description='Make this feature available to the system-generated project context used by future work.'
-            disabled={mutation.isPending}
-            label='Include in project context'
-            name={field.name}
-            onBlur={field.onBlur}
-            onChange={(event) => field.onChange(event.currentTarget.checked)}
           />
         )}
       />
@@ -257,7 +210,7 @@ function DeleteFeatureDialog({
     <ConfirmModal
       cancelLabel='Keep feature'
       confirmLabel='Delete feature'
-      description={`Delete ${action.feature.title}? Its workspace will no longer be available. A feature with an active spec run cannot be deleted.`}
+      description={`Delete ${action.feature.title}? Its workspace will no longer be available. A feature with an active run cannot be deleted.`}
       errorMessage={
         mutation.error
           ? getApiErrorMessage(mutation.error, 'The feature could not be deleted.')
