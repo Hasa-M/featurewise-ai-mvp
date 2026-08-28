@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 1 complete; Phase 2 ready
+Status: Phase 2 complete; Phase 3 ready
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -11,14 +11,24 @@ Scope: application/domain refactor only; analyzer, verification pipeline, and ev
 Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specification_analysis_refactor_plan.md`.
 
 - Branch: `refactor/specification-analysis-engine`, based on `main` at `8930865`.
-- Phase 1: **complete on 2026-08-28; changes intentionally uncommitted for user review**.
-- Phase 2: **ready**. It is the next allowed implementation phase on this branch.
+- Phase 1: **complete on 2026-08-28; committed as `0910c6b`**.
+- Phase 2: **complete on 2026-08-28; user-approved for commit**.
+- Phase 3: **ready**. It is the next allowed implementation phase on this branch after user confirmation.
 - Later phases: pending and unchanged.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
   generation sequence directory was renamed to `04-sequence-analysis-lifecycle`.
 - Phase 1 verification: relative Markdown links resolve; current-facing old-domain hits are explicit removal/migration statements; no backend, frontend, Prisma, dependency, agent-instruction, skill, or generated-file diff exists; `git diff --check` passes.
 - Runtime tests/builds were not run because Phase 1 changes documentation only.
+- Phase 2 implementation note: root agent guidance and the local create-page/component
+  guidance now follow ADR-0030 through ADR-0032. `frontend/AGENTS.md` and both skill
+  metadata files were inspected and required no terminology changes.
+- Phase 2 verification: the required obsolete-term search across AGENTS and `.agents`
+  files is clean; both local skills pass the skill-creator `quick_validate.py` workflow
+  with Python 3.11; `git diff --check` passes; no backend runtime, frontend runtime,
+  Prisma, migration, package, Phase 1 architecture, or generated-file diff exists.
+- Runtime tests/builds were not run because Phase 2 changes documentation and skill
+  guidance only.
 
 
 ## 1. Outcome and locked decisions
@@ -478,7 +488,7 @@ Each phase below is independently reviewable. Do not begin analyzer implementati
 
 ### Phase 1 — `docs(architecture): adopt specification analysis domain`
 
-Status: **complete; awaiting user review/commit**
+Status: **complete; committed as `0910c6b`**
 
 Purpose: establish the architectural source of truth before code changes.
 
@@ -504,7 +514,7 @@ Dependencies: none.
 
 ### Phase 2 — `docs(agents): align guidance with analysis engine`
 
-Status: **ready; do not start until Phase 1 is confirmed**
+Status: **complete; user-approved**
 
 Purpose: prevent coding-agent instructions and local UI skills from enforcing the superseded model.
 
@@ -525,6 +535,8 @@ Checks:
 Dependencies: Phase 1, because instructions must cite accepted ADRs.
 
 ### Phase 3 — `refactor(product): center features on specification analysis`
+
+Status: **ready; do not start until Phase 2 is confirmed**
 
 Purpose: cut the public backend/Console product contract over before the destructive schema replacement, using a short-lived compatibility mapping to old columns.
 
@@ -706,27 +718,22 @@ No unresolved decision blocks the first implementation task. The following must 
 
 ## 14. Exact suggested next implementation task
 
-After the user reviews and commits Phase 1, implement Phase 2 on the existing
+After the user reviews and commits Phase 2, implement Phase 3 on the existing
 `refactor/specification-analysis-engine` branch. Do not create a commit
 automatically.
 
 The next task is exactly:
 
-1. Replace the root `AGENTS.md` old generated-spec invariants with the accepted
-   rules from ADR-0030 through ADR-0032.
-2. Update `frontend/AGENTS.md` only where current examples or page rules use
-   obsolete terminology.
-3. Update `.agents/skills/create-page/SKILL.md` so page work follows
-   Specification, Context, and Analyses instead of generation, validation, and
-   consolidation flows.
-4. Update
-   `.agents/skills/create-component/references/component-design-guidelines.md`
-   to remove alignment/update/generated-spec labels and generation-progress
-   assumptions.
-5. Update skill metadata only when a description itself encodes obsolete
-   behavior.
-6. Search all agent and local-skill files for mandatory old-domain rules,
-   validate both local skills with their documented validation workflow, and
-   confirm there is no runtime or Prisma diff.
+1. Cut the public Feature API and Console contract over to
+   `specificationContent`, using only the documented temporary service mapping
+   required by the old database schema.
+2. Remove origin, project-context membership, generated-spec activity, and
+   alignment fields from public DTOs, frontend models, forms, projections, and
+   fixtures without changing Prisma yet.
+3. Change the Feature workspace to `Specification | Context | Analyses`, with
+   Specification as the default and an honest unavailable/empty Analyses state
+   that makes no placeholder request.
+4. Run the Phase 3 backend and frontend contract, unit, e2e, lint, build, and
+   manual Feature workflow checks listed above.
 
-Stop after Phase 2 and request confirmation before Phase 3.
+Stop after Phase 3 and request confirmation before Phase 4.

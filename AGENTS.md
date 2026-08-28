@@ -5,9 +5,10 @@ CLAUDE.md imports this file. Do not duplicate rules elsewhere.
  
 ## What this project is
  
-Featurewise is a product-intent readiness layer: it turns messy feature intent and context
-into structured, reviewable implementation-readiness specifications.
-Phase 1 is a local-first MVP prototype built by a solo developer. It is NOT a production system.
+Featurewise is a Specification Analysis Engine for software product development. It analyzes
+user-authored feature specifications and supporting context and returns individually addressable,
+evidence-backed findings. The Featurewise Console is its first-party control plane and client.
+The MVP is a local-first prototype built by a solo developer. It is NOT a production system.
  
 ## Architecture documentation is the source of truth
  
@@ -15,61 +16,80 @@ This is the most important rule in this file:
  
 1. Before designing or implementing anything non-trivial, READ the relevant ADRs in
    `docs/architecture/adr/` and the diagrams in `docs/architecture/diagrams/`.
-   Consider still they could be not perfect and with some errors or things to update/change.
-3. When you have a doubt about structure, naming, flow, or scope: check the ADRs FIRST.
-   Aske me considering them.
+   Consider that they may still contain errors or need amendment.
+2. ADR-0030, ADR-0031, and ADR-0032 are authoritative for the product domain, traceable
+   analysis inputs, and analysis lifecycle even while later refactor phases still contain
+   superseded runtime terminology.
+3. When you have a doubt about structure, naming, flow, or scope, check the ADRs FIRST and
+   ask the user with the relevant architectural context.
 4. If a requested change conflicts with an accepted ADR: STOP. Do not silently diverge.
    Say which ADR conflicts and propose either a different approach or an ADR amendment.
 5. If you are making a significant new architectural decision, propose a new ADR
    (same minimal style: Context / Decision / Consequences). Do not bury decisions in code.
-6. The spec generation flow is fully defined in
-   `docs/architecture/diagrams/04-sequence-gene-spec-new-feature/` and ADR-0019.
-   Implement exactly that flow. Do not invent statuses, retries, or endpoints.
+6. The accepted analysis boundary and lifecycle are defined by ADR-0030 through ADR-0032
+   and `docs/architecture/diagrams/04-sequence-analysis-lifecycle/`. Do not invent deferred
+   endpoints, analyzer behavior, retries, prompts, provider policy, or verification policy.
+
 ## Stack
  
 - Backend: NestJS + TypeScript, modular monolith, REST/JSON (ADR-0002, ADR-0009 file).
-- Frontend: React + Vite + TypeScript (separate app; backend owns all business logic).
-- Database: PostgreSQL. GeneratedSpec content is JSONB with `schemaVersion` (ADR-0006).
-- Object storage: AWS S3 for images and raw context artifacts; Postgres stores metadata
-  and keys only (ADR-0011 file).
-- LLM: external provider called ONLY from the backend. The frontend never calls the LLM.
+- Frontend: React + Vite + TypeScript Featurewise Console (separate app; backend owns all
+  business logic).
+- Database: PostgreSQL. Analysis runs, findings, and reviews are relational; versioned
+  analysis settings and immutable snapshots use JSON where defined by ADR-0031/0032.
+- Object storage: private AWS S3 for uploaded context originals and prepared derivatives;
+  Postgres stores metadata and immutable keys/version identifiers only (ADR-0011/0029/0031).
+- LLM/model providers are called ONLY from the backend analysis boundary. The frontend never
+  calls a provider directly.
+
 ## Domain model (do not improvise on this)
  
-- Organization → Project → Feature → (FeatureUpdate 0..N) → SpecRun → GeneratedSpec (ADR-0003, ADR-0020).
-- Feature.origin: brand_new | mapped_existing (ADR-0020). Feature has NO type column; ADR-0004/0005 are superseded.
-- FeatureUpdate = one increment inside a Feature. Exactly one nesting level. Own ContextArtifact, own runs and specs.
-- Each Feature AND each FeatureUpdate has exactly ONE editable ContextArtifact (ADR-0016).
-- SpecRun: featureId always set, featureUpdateId nullable (target). runKind: generation | consolidation (feature-target only).
-- Preconditions (else 422): generation on Feature requires origin=brand_new; generation on FeatureUpdate requires a usable
- parent baseline (non-empty parent context, or uploads, or parent valid spec); consolidation requires >=1 validated,
-  not-yet-incorporated update spec.
-- At most one non-terminal run per TARGET → 409, enforced by partial unique indexes (ADR-0019/0020).
-- GeneratedSpec drafts are created with version 0 and `valid = false`. Versions become sequential only when specs are validated:
-  the first validation for a target assigns version 1, and later validations assign last+1.
-  Marking valid atomically un-validates the previous one. At most one valid spec per TARGET (ADR-0018/0021).
-- Feature alignment (aligned | updates_pending) is COMPUTED from incorporatedUpdates vs current valid update specs —
-  never stored, never auto-resolved by regeneration (ADR-0021).
+- Organization → Project → Feature → AnalysisRun → AnalysisFinding → FindingReview
+  (ADR-0030/0032).
+- Feature is the sole analysis unit. Whether work is new or pre-existing belongs in the
+  specification or supporting context, not in a discriminator or nested update entity.
+- `Feature.specificationContent` is the user-authored canonical feature specification.
+- Each Feature owns exactly one editable `ContextArtifact`. Its `content` and selected uploaded
+  files are supporting context, separate from the specification (ADR-0031).
+- Each Project owns at most one editable `ProjectContext`; it is a distinct analysis source,
+  not a generated summary or feature-membership projection.
+- An AnalysisRun returns zero or more immutable, evidence-backed AnalysisFindings. Evidence
+  resolves only inside that run's exact prepared-context snapshot.
+- FindingReview records are append-only. Accepting, dismissing, resolving, or deferring a
+  finding never mutates the original model assertion; current disposition is a projection of
+  the latest review.
+
 ## Hard invariants (violating these = wrong implementation)
  
-- Module boundaries: each NestJS module exposes a public API; other modules must not
-  import its internals (ADR-0002). Keep generation extractable to a worker later.
-- At most ONE non-terminal SpecRun per target; concurrent start → 409 (ADR-0019/0020).
-- SpecRun statuses are exactly: queued, preparing_context, calling_llm, validating_output,
-  repairing_output, checking_quality, persisting, completed, failed (ADR-0019).
-- SpecRun snapshots are immutable. S3 object keys are NEVER overwritten; uploads always
-  create new keys (ADR-0017).
-- Transient LLM errors: max 3 attempts. Schema-invalid output: max 2 repair round-trips,
-  then failed. Log every LLM attempt (ADR-0019).
-- Prompt templates are versioned files in this repository. No DB prompt management.
-  Generated JSON is runtime-validated against its schema version (ADR-0013).
-- A new GeneratedSpec is created as version 0 with `valid = false`. At most one valid
-  spec per target. Marking valid is a user action, never automatic (ADR-0018 file).
-- Quality checks are non-blocking: warnings only, never a failed run (ADR-0019).
+- Module boundaries: each NestJS module exposes a public API; other modules must not import its
+  internals (ADR-0002). Keep analysis extractable from the in-process MVP later.
+- At most ONE non-terminal AnalysisRun per Feature, enforced race-safely by a PostgreSQL partial
+  unique index; an application pre-check is only a fast path (ADR-0032).
+- AnalysisRun statuses are exactly: queued, preparing_context, analyzing, validating_output,
+  repairing_output, verifying_findings, persisting, completed, failed (ADR-0032).
+- `inputSnapshot` is immutable from run creation. `preparedContextSnapshot` may transition once
+  from null to a value during context preparation and is write-once afterward (ADR-0031/0032).
+- Only selected, ready files enter a new input snapshot. Capture exact original and prepared S3
+  keys, version IDs, checksums, MIME types, sizes, and preparation versions, and atomically set
+  `StorageObject.firstUsedAt` only if it is unset. Used objects cannot be physically purged.
+- S3 object keys are NEVER overwritten. Uploads and prepared derivatives always create immutable,
+  versioned keys; SQL migrations never delete S3 objects (ADR-0029/0031).
+- Prompt templates are versioned repository files. Engine output is runtime-validated against
+  the schema version recorded by the AnalysisRun, and every LLM attempt is logged. Retry limits,
+  provider/model selection, prompt content, verification, deduplication, and evaluation policy
+  are deferred (ADR-0032).
+- Future analysis start/status/history, finding, and review endpoints must not be implemented
+  until a real analyzer vertical slice backs them (ADR-0032).
+- External API identities use immutable public keys under ADR-0028 as amended by ADR-0030–0032.
+  The frontend never receives, stores, derives, routes with, or sends domain UUIDs.
 - Passwords: Argon2id via a standard library. NEVER write custom hashing/salting (ADR-0015).
-## Phase 1 scope guards (do NOT build these, even if they seem useful)
+
+## MVP scope guards (do NOT build these, even if they seem useful)
  
-No queue/worker/separate AI service (ADR-0012). No real third-party integrations —
-Figma/GitHub/Jira context arrives as uploaded or pasted artifacts (ADR-0014).
+No queue, worker, dedicated AI service, or multi-agent orchestration. Analysis is asynchronous
+from the client perspective but remains inside the NestJS process for the local-first MVP
+(ADR-0032). No real third-party integrations: Figma/GitHub/Jira context arrives as uploaded or
+pasted artifacts, and future connectors remain deferred (ADR-0014/0031).
 No teams, roles, permissions, invitations, 2FA, password reset (ADR-0015).
 No public production deployment (ADR-0010 file). If a task seems to require one of
 these, flag it instead of building it.
@@ -91,8 +111,9 @@ Backend commands are run from `backend/`:
 - End-to-end tests: `npm run test:e2e`
 - Lint: `npm run lint`
 
-No migration command exists yet. Prisma is the selected future ORM, but it is not wired
-in the first skeleton-only backend scaffold.
+Prisma is wired under `backend/prisma/`. The backend package provides `prisma:generate` and
+`prisma:seed` scripts but no npm migration script; inspect the current schema, migrations,
+and package scripts before database work.
  
 ## General behavior
  
