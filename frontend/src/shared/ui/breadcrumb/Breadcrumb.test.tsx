@@ -58,14 +58,14 @@ describe('Breadcrumb', () => {
       items[2],
       items[3],
       {
-        href: '/projects/northstar-mobile/features/authentication/generations',
+        href: '/projects/northstar-mobile/features/authentication/analyses',
         kind: 'folder',
-        label: 'Generations',
+        label: 'Analyses',
       },
       {
-        href: '/projects/northstar-mobile/features/authentication/generations/2',
+        href: '/projects/northstar-mobile/features/authentication/analyses/2',
         kind: 'item',
-        label: 'Generation 2',
+        label: 'Analysis 2',
       },
     ] satisfies BreadcrumbItems;
 

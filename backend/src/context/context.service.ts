@@ -10,7 +10,6 @@ import { AssetType, Prisma, StorageObjectStatus } from '@prisma/client';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey, parsePublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
-import { FeatureUpdatesService } from '../feature-updates/feature-updates.service';
 import { FeaturesService } from '../features/features.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -28,12 +27,10 @@ interface ContextOwnerRecord {
   readonly contextArtifact: {
     readonly id: string;
     readonly publicNumber: number;
-    readonly promptContent: string;
+    readonly content: string;
     readonly createdAt: Date;
     readonly updatedAt: Date;
   };
-  readonly featurePublicNumber: number;
-  readonly featureUpdatePublicNumber: number | null;
   readonly projectPublicNumber: number;
 }
 
@@ -59,7 +56,6 @@ export interface StorageObjectResponse {
 export class ContextService {
   constructor(
     private readonly featuresService: FeaturesService,
-    private readonly featureUpdatesService: FeatureUpdatesService,
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
     private readonly fileProcessor: ContextFileProcessorService,
@@ -74,7 +70,7 @@ export class ContextService {
       featurePublicNumber,
     );
 
-    return this.toContextResponse(contextArtifact, feature.publicNumber, null);
+    return this.toContextResponse(contextArtifact, feature.publicNumber);
   }
 
   async updateFeatureContext(
@@ -93,52 +89,11 @@ export class ContextService {
           id: contextArtifact.id,
         },
         data: {
-          promptContent: dto.promptContent,
+          content: dto.content,
         },
       });
 
-    return this.toContextResponse(
-      updatedContextArtifact,
-      feature.publicNumber,
-      null,
-    );
-  }
-
-  async getFeatureUpdateContext(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-
-    return this.toContextResponse(
-      owner.contextArtifact,
-      owner.featurePublicNumber,
-      owner.featureUpdatePublicNumber,
-    );
-  }
-
-  async updateFeatureUpdateContext(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    dto: UpdateFeatureContextDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-    const updated = await this.prismaService.contextArtifact.update({
-      where: { id: owner.contextArtifact.id },
-      data: { promptContent: dto.promptContent },
-    });
-
-    return this.toContextResponse(
-      updated,
-      owner.featurePublicNumber,
-      owner.featureUpdatePublicNumber,
-    );
+    return this.toContextResponse(updatedContextArtifact, feature.publicNumber);
   }
 
   async createFeatureContextFile(
@@ -154,19 +109,6 @@ export class ContextService {
     return this.createContextFile(currentUser, owner, dto);
   }
 
-  async createFeatureUpdateContextFile(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    dto: CreateContextFileDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-
-    return this.createContextFile(currentUser, owner, dto);
-  }
-
   async listFeatureContextArchive(
     currentUser: CurrentUserContext,
     featurePublicNumber: number,
@@ -175,19 +117,6 @@ export class ContextService {
     const owner = await this.getFeatureContextOwner(
       currentUser,
       featurePublicNumber,
-    );
-
-    return this.listContextArchive(owner.contextArtifact.id, query);
-  }
-
-  async listFeatureUpdateContextArchive(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    query: ListContextFilesQueryDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
     );
 
     return this.listContextArchive(owner.contextArtifact.id, query);
@@ -449,7 +378,7 @@ export class ContextService {
 
         if (current.firstUsedAt !== null) {
           throw new ConflictException(
-            'Files used by a spec run cannot be permanently deleted',
+            'Files used by an analysis run cannot be permanently deleted',
           );
         }
 
@@ -486,8 +415,9 @@ export class ContextService {
     const contextArtifact = await transaction.contextArtifact.findUnique({
       where: { id: contextArtifactId },
       include: {
-        feature: { select: { brief: true, title: true } },
-        featureUpdate: { select: { brief: true, title: true } },
+        feature: {
+          select: { specificationContent: true, title: true },
+        },
         storageObjects: {
           where: {
             purgeRequestedAt: null,
@@ -526,12 +456,6 @@ export class ContextService {
           'Context files changed while the snapshot was being created',
         );
       }
-    }
-
-    const owner = contextArtifact.feature ?? contextArtifact.featureUpdate;
-
-    if (owner === null) {
-      throw new NotFoundException('Context owner not found');
     }
 
     const storageObjects = contextArtifact.storageObjects.map((file) => {
@@ -588,9 +512,9 @@ export class ContextService {
     }
 
     return {
-      title: owner.title,
-      brief: owner.brief,
-      promptContent: contextArtifact.promptContent,
+      title: contextArtifact.feature.title,
+      specificationContent: contextArtifact.feature.specificationContent,
+      content: contextArtifact.content,
       storageObjects,
     };
   }
@@ -628,36 +552,7 @@ export class ContextService {
 
     return {
       contextArtifact,
-      featurePublicNumber: feature.publicNumber,
-      featureUpdatePublicNumber: null,
-      projectPublicNumber: Number(currentUser.projectKey.split('-')[1]),
-    };
-  }
-
-  private async getFeatureUpdateContextRecord(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-  ): Promise<ContextOwnerRecord> {
-    const featureUpdate =
-      await this.featureUpdatesService.getFeatureUpdateRecord(
-        currentUser,
-        featureUpdatePublicNumber,
-      );
-    const contextArtifact = await this.prismaService.contextArtifact.findUnique(
-      {
-        where: { featureUpdateId: featureUpdate.id },
-      },
-    );
-
-    if (contextArtifact === null) {
-      throw new NotFoundException('Feature update context not found');
-    }
-
-    return {
-      contextArtifact,
-      featurePublicNumber: featureUpdate.feature.publicNumber,
-      featureUpdatePublicNumber: featureUpdate.publicNumber,
-      projectPublicNumber: featureUpdate.feature.project.publicNumber,
+      projectPublicNumber: feature.project.publicNumber,
     };
   }
 
@@ -763,25 +658,11 @@ export class ContextService {
       where: {
         publicNumber,
         contextArtifact: {
-          OR: [
-            {
-              feature: {
-                deletedAt: null,
-                projectId: currentUser.projectId,
-                project: { organizationId: currentUser.organizationId },
-              },
-            },
-            {
-              featureUpdate: {
-                deletedAt: null,
-                feature: {
-                  deletedAt: null,
-                  projectId: currentUser.projectId,
-                  project: { organizationId: currentUser.organizationId },
-                },
-              },
-            },
-          ],
+          feature: {
+            deletedAt: null,
+            projectId: currentUser.projectId,
+            project: { organizationId: currentUser.organizationId },
+          },
         },
       },
     });
@@ -898,12 +779,11 @@ export class ContextService {
   private toContextResponse(
     contextArtifact: {
       readonly publicNumber: number;
-      readonly promptContent: string;
+      readonly content: string;
       readonly createdAt: Date;
       readonly updatedAt: Date;
     },
     featurePublicNumber: number,
-    featureUpdatePublicNumber: number | null,
   ) {
     return this.prismaService.storageObject
       .findMany({
@@ -920,11 +800,7 @@ export class ContextService {
           contextArtifact.publicNumber,
         ),
         featureKey: formatPublicKey('feature', featurePublicNumber),
-        featureUpdateKey:
-          featureUpdatePublicNumber === null
-            ? null
-            : formatPublicKey('featureUpdate', featureUpdatePublicNumber),
-        promptContent: contextArtifact.promptContent,
+        content: contextArtifact.content,
         files: files.map((file) => this.toStorageObjectResponse(file)),
         createdAt: contextArtifact.createdAt,
         updatedAt: contextArtifact.updatedAt,

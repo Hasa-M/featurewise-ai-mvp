@@ -58,32 +58,6 @@ export class ContextController {
     );
   }
 
-  @Get('feature-updates/:featureUpdateKey/context')
-  getFeatureUpdateContext(
-    @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureUpdateKey', new ParsePublicKeyPipe('featureUpdate'))
-    featureUpdatePublicNumber: ParsedPublicNumber,
-  ) {
-    return this.contextService.getFeatureUpdateContext(
-      currentUser,
-      featureUpdatePublicNumber.value,
-    );
-  }
-
-  @Patch('feature-updates/:featureUpdateKey/context')
-  updateFeatureUpdateContext(
-    @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureUpdateKey', new ParsePublicKeyPipe('featureUpdate'))
-    featureUpdatePublicNumber: ParsedPublicNumber,
-    @Body() dto: UpdateFeatureContextDto,
-  ) {
-    return this.contextService.updateFeatureUpdateContext(
-      currentUser,
-      featureUpdatePublicNumber.value,
-      dto,
-    );
-  }
-
   @Post('features/:featureKey/context/files')
   createFeatureContextFile(
     @CurrentUser() currentUser: CurrentUserContext,
@@ -98,20 +72,6 @@ export class ContextController {
     );
   }
 
-  @Post('feature-updates/:featureUpdateKey/context/files')
-  createFeatureUpdateContextFile(
-    @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureUpdateKey', new ParsePublicKeyPipe('featureUpdate'))
-    featureUpdatePublicNumber: ParsedPublicNumber,
-    @Body() dto: CreateContextFileDto,
-  ) {
-    return this.contextService.createFeatureUpdateContextFile(
-      currentUser,
-      featureUpdatePublicNumber.value,
-      dto,
-    );
-  }
-
   @Get('features/:featureKey/context/files/archive')
   listFeatureContextArchive(
     @CurrentUser() currentUser: CurrentUserContext,
@@ -122,20 +82,6 @@ export class ContextController {
     return this.contextService.listFeatureContextArchive(
       currentUser,
       featurePublicNumber.value,
-      query,
-    );
-  }
-
-  @Get('feature-updates/:featureUpdateKey/context/files/archive')
-  listFeatureUpdateContextArchive(
-    @CurrentUser() currentUser: CurrentUserContext,
-    @Param('featureUpdateKey', new ParsePublicKeyPipe('featureUpdate'))
-    featureUpdatePublicNumber: ParsedPublicNumber,
-    @Query() query: ListContextFilesQueryDto,
-  ) {
-    return this.contextService.listFeatureUpdateContextArchive(
-      currentUser,
-      featureUpdatePublicNumber.value,
       query,
     );
   }

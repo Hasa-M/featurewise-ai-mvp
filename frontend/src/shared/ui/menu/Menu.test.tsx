@@ -117,16 +117,16 @@ describe('Menu', () => {
 
   it('renders a selected navigation item as an anchor', () => {
     render(
-      <MenuItem href="#generation-2" selected>
-        Generation 2
+      <MenuItem href="#analysis-2" selected>
+        Analysis 2
       </MenuItem>,
     );
 
     expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
-    ).toHaveAttribute('href', '#generation-2');
+      screen.getByRole('link', { name: 'Analysis 2' }),
+    ).toHaveAttribute('href', '#analysis-2');
     expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
+      screen.getByRole('link', { name: 'Analysis 2' }),
     ).toHaveAttribute('aria-current', 'page');
   });
 
@@ -134,12 +134,12 @@ describe('Menu', () => {
     const onClick = vi.fn();
     const user = userEvent.setup();
     render(
-      <MenuItem disabled href="#generation-2" onClick={onClick}>
-        Generation 2
+      <MenuItem disabled href="#analysis-2" onClick={onClick}>
+        Analysis 2
       </MenuItem>,
     );
 
-    const link = screen.getByRole('link', { name: 'Generation 2' });
+    const link = screen.getByRole('link', { name: 'Analysis 2' });
     await user.click(link);
 
     expect(link).toHaveAttribute('aria-disabled', 'true');
@@ -150,20 +150,20 @@ describe('Menu', () => {
   it('includes enabled links in menu keyboard navigation', async () => {
     const user = userEvent.setup();
     render(
-      <MenuWrapper aria-label="Generation actions">
-        <MenuItem>Rename generation</MenuItem>
-        <MenuItem href="#review">Review generation</MenuItem>
+      <MenuWrapper aria-label="Analysis actions">
+        <MenuItem>Rename analysis</MenuItem>
+        <MenuItem href="#review">Review analysis</MenuItem>
         <MenuItem disabled href="#archived">
-          Archived generation
+          Archived analysis
         </MenuItem>
       </MenuWrapper>,
     );
 
     const rename = screen.getByRole('menuitem', {
-      name: 'Rename generation',
+      name: 'Rename analysis',
     });
     const review = screen.getByRole('menuitem', {
-      name: 'Review generation',
+      name: 'Review analysis',
     });
 
     rename.focus();

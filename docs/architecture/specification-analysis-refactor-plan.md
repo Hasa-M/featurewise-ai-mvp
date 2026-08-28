@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 3 complete; Phase 4 ready
+Status: Phase 4 complete; Phase 5 ready
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -13,8 +13,9 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
 - Branch: `refactor/specification-analysis-engine`, based on `main` at `8930865`.
 - Phase 1: **complete on 2026-08-28; committed as `0910c6b`**.
 - Phase 2: **complete on 2026-08-28; committed as `d354b53`**.
-- Phase 3: **complete on 2026-08-28; uncommitted pending user review**.
-- Phase 4: **ready**. It is the next allowed implementation phase on this branch after Phase 3 is reviewed and committed.
+- Phase 3: **complete on 2026-08-28; committed as `a96690f`**.
+- Phase 4: **complete on 2026-08-28; uncommitted pending user review**.
+- Phase 5: **ready**. It is the next allowed implementation phase on this branch after Phase 4 is reviewed and committed.
 - Later phases: pending and unchanged.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
@@ -47,6 +48,42 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
   start for the requested browser create/edit/list/open/delete workflow. The same
   workflow and routing/cache behavior are covered by backend e2e and frontend
   router tests.
+- Phase 4 implementation note: one guarded forward migration now replaces the
+  generated-spec persistence model with `AnalysisRun`, `AnalysisFinding`,
+  append-only `FindingReview`, and analysis-owned `LlmCallLog` records. The real
+  `Feature.specificationContent` and `ContextArtifact.content` columns are used
+  end to end, update ownership/runtime paths are removed, and
+  `ProjectContextSummary` is renamed without exposing a Phase 5 HTTP contract.
+  Feature-owned ContextArtifact and StorageObject rows retain their identities,
+  immutable keys/version IDs, checksums, preparation metadata, and lifecycle
+  timestamps.
+- Phase 4 migration verification: all five migrations deployed through Prisma to
+  a fresh isolated PostgreSQL database, and the new migration applied directly
+  to a populated database at the previous migration head. Null and non-null
+  specifications, ContextArtifact data, ProjectContext identity/content/public
+  number, and complete feature-owned StorageObject lifecycle metadata were
+  preserved. Six isolated preflight cases proved aborts for FeatureUpdate,
+  update-owned ContextArtifact, update-owned StorageObject, SpecRun,
+  GeneratedSpec, and legacy LlmCallLog rows. PostgreSQL catalog and behavior
+  checks passed for the exact status enum, six foreign keys, four positive
+  public-number checks, four retained/new public-number sequences, seven
+  immutability/append-only triggers, snapshot guards, finding position
+  uniqueness, and the partial one-active-run-per-feature index.
+- Phase 4 runtime verification: Prisma format/validate/client generation passed;
+  backend unit tests passed (52/52), backend end-to-end tests passed (2/2), and
+  backend lint/build passed. Frontend tests passed (336/336), and frontend
+  lint/build and the Storybook build passed. The configured private S3 smoke
+  passed presigned upload,
+  confirm/process, immutable original/prepared keys and version IDs, checksums,
+  prepared metadata, selection/archive/reselection, access, unused purge, and
+  firstUsedAt purge protection using disposable objects. `git diff --check`,
+  dependency/history/scope audits, and executable-code/active-UI obsolete-term
+  searches passed.
+- Phase 4 environmental notes: Docker Desktop's engine socket remains
+  unavailable, but the configured local PostgreSQL server supported isolated
+  databases and the S3 profile worked when the validation process was allowed to
+  read the user-level AWS credentials. The frontend build retains the existing
+  oversized rich-text chunk warning. No required Phase 4 check remains blocked.
 
 
 ## 1. Outcome and locked decisions
@@ -554,7 +591,7 @@ Dependencies: Phase 1, because instructions must cite accepted ADRs.
 
 ### Phase 3 — `refactor(product): center features on specification analysis`
 
-Status: **complete on 2026-08-28; uncommitted pending user review**
+Status: **complete on 2026-08-28; committed as `a96690f`**
 
 Purpose: cut the public backend/Console product contract over before the destructive schema replacement, using a short-lived compatibility mapping to old columns.
 
@@ -592,7 +629,7 @@ Dependencies: Phase 2.
 
 ### Phase 4 — `refactor(db): replace generated specs with analysis findings`
 
-Status: **ready; do not start until Phase 3 is reviewed and committed**
+Status: **complete on 2026-08-28; uncommitted pending user review**
 
 Purpose: make persistence match the accepted domain and remove the compatibility layer.
 
@@ -626,6 +663,8 @@ Checks:
 Dependencies: Phase 3. This commit removes the temporary `brief`/origin mapping atomically with the schema migration.
 
 ### Phase 5 — `feat(context): add editable project context`
+
+Status: **ready; do not start until Phase 4 is reviewed and committed**
 
 Purpose: expose the project-level text input required by future analysis.
 
@@ -738,14 +777,11 @@ No unresolved decision blocks the first implementation task. The following must 
 
 ## 14. Exact suggested next implementation task
 
-After the user reviews and commits Phase 3, implement Phase 4 on the existing
+Phase 4 is complete and awaiting user review on the existing
 `refactor/specification-analysis-engine` branch. Do not create a commit
-automatically.
+automatically and do not begin Phase 5 without confirmation.
 
-The next task is exactly the Phase 4 database/domain replacement documented
-above: add the guarded forward migration and target Prisma model, remove the
-temporary Feature service compatibility mapping and obsolete FeatureUpdates
-runtime boundary, preserve the context-file lifecycle, and add analysis
-persistence without implementing analyzer execution or deferred HTTP endpoints.
-
-Stop after Phase 4 and request confirmation before Phase 5.
+After approval, the next task is exactly Phase 5: expose the already-renamed
+ProjectContext as editable project-level text with tenant-scoped backend
+endpoints and the existing Console project-context surface. Do not add analysis
+execution, findings, review, polling, provider, queue, or worker behavior.

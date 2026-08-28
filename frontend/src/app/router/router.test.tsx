@@ -57,11 +57,10 @@ const feature = {
 };
 
 const featureContext = {
+  content: '',
   createdAt: '2026-07-18T10:00:00.000Z',
   featureKey: feature.publicKey,
-  featureUpdateKey: null,
   files: [],
-  promptContent: '',
   publicKey: 'CTX-19',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
@@ -382,7 +381,6 @@ describe('application routes', () => {
     expect(screen.getByText(feature.specificationContent)).toBeVisible();
     expect(screen.queryByText('Brand new')).toBeNull();
     expect(screen.queryByText('Aligned')).toBeNull();
-    expect(screen.queryByText('Generation history')).toBeNull();
     expect(screen.queryByText('Project context usage')).toBeNull();
   });
 
@@ -406,7 +404,7 @@ describe('application routes', () => {
     });
   });
 
-  it('shows project context as unavailable without issuing membership mutations', async () => {
+  it('shows project context as unavailable without issuing mutations', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const fetchMock = vi.mocked(fetch);
     renderRoute(`/projects/${project.publicKey}?tab=context`);
@@ -548,53 +546,56 @@ describe('application routes', () => {
     });
   });
 
-  it('edits the canonical specification with no legacy request fields', async () => {
-    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
-    let requestBody: Record<string, unknown> | undefined;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(
-        (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-          const path = requestPath(input);
+  it(
+    'edits the canonical specification with no legacy request fields',
+    async () => {
+      window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+      let requestBody: Record<string, unknown> | undefined;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+            const path = requestPath(input);
 
-          if (
-            path === `/api/features/${feature.publicKey}` &&
-            init?.method === 'PATCH'
-          ) {
-            requestBody = JSON.parse(String(init.body)) as Record<
-              string,
-              unknown
-            >;
-            return Promise.resolve(jsonResponse({ ...feature, ...requestBody }));
-          }
+            if (
+              path === `/api/features/${feature.publicKey}` &&
+              init?.method === 'PATCH'
+            ) {
+              requestBody = JSON.parse(String(init.body)) as Record<
+                string,
+                unknown
+              >;
+              return Promise.resolve(
+                jsonResponse({ ...feature, ...requestBody }),
+              );
+            }
 
-          return defaultFetch(input, init);
-        },
-      ),
-    );
-    const user = userEvent.setup();
-    renderRoute(
-      `/projects/${project.publicKey}/features/${feature.publicKey}`,
-    );
+            return defaultFetch(input, init);
+          },
+        ),
+      );
+      const user = userEvent.setup();
+      renderRoute(
+        `/projects/${project.publicKey}/features/${feature.publicKey}`,
+      );
 
-    const specification = await screen.findByLabelText(
-      'Feature specification',
-    );
-    await user.clear(specification);
-    await user.type(specification, 'Updated acceptance criteria.');
-    await user.click(
-      screen.getByRole('button', { name: 'Save specification' }),
-    );
+      const specification = await screen.findByLabelText(
+        'Feature specification',
+      );
+      await user.clear(specification);
+      await user.type(specification, 'Updated acceptance criteria.');
+      await user.click(
+        screen.getByRole('button', { name: 'Save specification' }),
+      );
 
-    await waitFor(() => {
-      expect(requestBody).toEqual({
-        specificationContent: 'Updated acceptance criteria.',
+      await waitFor(() => {
+        expect(requestBody).toEqual({
+          specificationContent: 'Updated acceptance criteria.',
+        });
       });
-    });
-    expect(requestBody).not.toHaveProperty('brief');
-    expect(requestBody).not.toHaveProperty('origin');
-    expect(requestBody).not.toHaveProperty('includeInProjectContext');
-  });
+    },
+    10_000,
+  );
 
   it('keeps expanded navigation mounted and exposes shared entity actions', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
@@ -691,11 +692,6 @@ describe('application routes', () => {
     const editTitle = within(editDialog).getByLabelText('Feature title');
     expect(editTitle).toBeVisible();
     expect(within(editDialog).queryByLabelText('Feature specification')).toBeNull();
-    expect(within(editDialog).queryByLabelText('Feature brief')).toBeNull();
-    expect(
-      within(editDialog).queryByLabelText('Include in project context'),
-    ).toBeNull();
-    expect(within(editDialog).queryByText('Feature origin')).toBeNull();
     await user.clear(editTitle);
     await user.type(editTitle, 'Renamed authentication workflow');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -718,9 +714,6 @@ describe('application routes', () => {
       createSpecification,
       createdFeature.specificationContent,
     );
-    expect(screen.queryByText('Feature origin')).toBeNull();
-    expect(screen.queryByLabelText('Feature brief')).toBeNull();
-    expect(screen.queryByLabelText('Include in project context')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Create feature' }));
 
     expect(

@@ -115,9 +115,9 @@ export function useUpdateFeatureContext(accessToken: string, featureKey: string)
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (promptContent: string) =>
+    mutationFn: async (content: string) =>
       toFeatureContext(
-        await updateFeatureContext(accessToken, featureKey, promptContent),
+        await updateFeatureContext(accessToken, featureKey, content),
       ),
     onSuccess: (context) => {
       queryClient.setQueryData(contextKeys.detail(featureKey), context);

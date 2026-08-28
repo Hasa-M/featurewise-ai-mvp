@@ -71,12 +71,12 @@ describe('Modal', () => {
       <Modal
         onOpenChange={onOpenChange}
         open
-        title="Generation settings"
+        title="Analysis settings"
       />,
     );
 
     const firstDialog = screen.getByRole('dialog', {
-      name: 'Generation settings',
+      name: 'Analysis settings',
     });
     expect(
       fireEvent(firstDialog, new Event('cancel', { cancelable: true })),
@@ -87,11 +87,11 @@ describe('Modal', () => {
       <Modal
         onOpenChange={onOpenChange}
         open
-        title="Generation settings"
+        title="Analysis settings"
       />,
     );
     fireEvent.click(
-      screen.getByRole('dialog', { name: 'Generation settings' }),
+      screen.getByRole('dialog', { name: 'Analysis settings' }),
     );
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
     expect(onOpenChange).toHaveBeenCalledTimes(2);

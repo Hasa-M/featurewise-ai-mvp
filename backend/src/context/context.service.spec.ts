@@ -3,7 +3,6 @@ import { AssetType, StorageObjectStatus, type Prisma } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { PrismaService } from '../database/prisma.service';
-import type { FeatureUpdatesService } from '../feature-updates/feature-updates.service';
 import type { FeaturesService } from '../features/features.service';
 import type { StorageService } from '../storage/storage.service';
 import type { ContextFileProcessorService } from './context-file-processor.service';
@@ -22,13 +21,13 @@ const currentUser: CurrentUserContext = {
 const featureRecord = {
   id: '00000000-0000-4000-8000-000000000004',
   publicNumber: 5831,
+  project: { publicNumber: 204 },
 };
 const contextArtifact = {
   id: '00000000-0000-4000-8000-000000000005',
   publicNumber: 19,
   featureId: featureRecord.id,
-  featureUpdateId: null,
-  promptContent: 'Current prompt',
+  content: 'Current context',
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -92,7 +91,6 @@ function createService(options?: {
   });
   const service = new ContextService(
     { getFeatureRecord } as unknown as FeaturesService,
-    {} as FeatureUpdatesService,
     prisma as unknown as PrismaService,
     {} as StorageService,
     {} as ContextFileProcessorService,
@@ -110,7 +108,7 @@ function createService(options?: {
 }
 
 describe('ContextService', () => {
-  it('keeps Prompt and selected Files separate in the public response', async () => {
+  it('keeps supporting text and selected Files separate in the public response', async () => {
     const { service } = createService({ files: [readyFile] });
 
     await expect(
@@ -118,8 +116,7 @@ describe('ContextService', () => {
     ).resolves.toMatchObject({
       publicKey: 'CTX-19',
       featureKey: 'FEAT-5831',
-      featureUpdateKey: null,
-      promptContent: 'Current prompt',
+      content: 'Current context',
       files: [
         {
           publicKey: 'OBJ-42',
@@ -131,16 +128,16 @@ describe('ContextService', () => {
     });
   });
 
-  it('updates only ContextArtifact promptContent', async () => {
+  it('updates only ContextArtifact content', async () => {
     const { service, update } = createService();
 
     await service.updateFeatureContext(currentUser, 5831, {
-      promptContent: 'Updated prompt',
+      content: 'Updated context',
     });
 
     expect(update).toHaveBeenCalledWith({
       where: { id: contextArtifact.id },
-      data: { promptContent: 'Updated prompt' },
+      data: { content: 'Updated context' },
     });
   });
 
@@ -185,10 +182,9 @@ describe('ContextService', () => {
         findUnique: jest.fn().mockResolvedValue({
           ...contextArtifact,
           feature: {
-            brief: 'Reduce checkout friction.',
+            specificationContent: 'Reduce checkout friction.',
             title: 'New checkout',
           },
-          featureUpdate: null,
           storageObjects: [
             {
               ...readyFile,
@@ -207,8 +203,8 @@ describe('ContextService', () => {
     await expect(
       service.buildContextArtifactSnapshot(transaction, contextArtifact.id),
     ).resolves.toEqual({
-      brief: 'Reduce checkout friction.',
-      promptContent: 'Current prompt',
+      specificationContent: 'Reduce checkout friction.',
+      content: 'Current context',
       storageObjects: [
         {
           assetType: AssetType.file,

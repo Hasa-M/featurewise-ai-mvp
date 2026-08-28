@@ -26,7 +26,7 @@ const items = [
   {
     icon: <Settings2 size={16} strokeWidth={1.75} />,
     id: 'settings',
-    label: 'Generation settings',
+    label: 'Analysis settings',
   },
   {
     icon: <CircleCheck size={16} strokeWidth={1.75} />,
@@ -37,7 +37,7 @@ const items = [
   {
     icon: <FileClock size={16} strokeWidth={1.75} />,
     id: 'history',
-    label: 'Spec history',
+    label: 'Analysis history',
   },
 ] satisfies TabsItems;
 
@@ -73,7 +73,7 @@ export const Default: Story = {};
 export const WithoutIcons: Story = {
   args: {
     items: [
-      { id: 'brief', label: 'Feature brief' },
+      { id: 'specification', label: 'Feature specification' },
       { id: 'criteria', info: 8, label: 'Acceptance criteria' },
       { id: 'risks', info: 'Needs attention', label: 'Risks' },
     ],
@@ -102,8 +102,8 @@ export const Overflow: Story = {
     const more = await canvas.findByRole('button', { name: 'More tabs' });
     await userEvent.click(more);
 
-    const generationSettings = await canvas.findByRole('menuitem', {
-      name: 'Generation settings',
+    const analysisSettings = await canvas.findByRole('menuitem', {
+      name: 'Analysis settings',
     });
     const menuItems = canvas.getAllByRole('menuitem');
     await waitFor(() =>
@@ -113,10 +113,10 @@ export const Overflow: Story = {
         ),
       ).toBe(true),
     );
-    await userEvent.click(generationSettings);
+    await userEvent.click(analysisSettings);
 
     const selectedTab = await canvas.findByRole('tab', {
-      name: 'Generation settings',
+      name: 'Analysis settings',
     });
     await expect(selectedTab).toHaveAttribute('aria-selected', 'true');
     await expect(selectedTab).toHaveFocus();

@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Tag',
   component: Tag,
   args: {
-    children: 'Product brief',
+    children: 'Product requirement',
   },
   parameters: { layout: 'centered' },
   tags: ['autodocs'],
@@ -20,7 +20,7 @@ export const Default: Story = {};
 export const Removable: Story = {
   args: {
     onRemove: () => undefined,
-    removeLabel: 'Remove product brief',
+    removeLabel: 'Remove product requirement',
   },
 };
 

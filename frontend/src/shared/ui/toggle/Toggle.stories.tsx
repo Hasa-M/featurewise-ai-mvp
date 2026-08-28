@@ -51,7 +51,7 @@ export const MediumLabel: Story = {
 export const WithDescription: Story = {
   args: {
     defaultChecked: true,
-    description: 'Add uploaded and pasted artifacts to the next spec run.',
+    description: 'Add uploaded and pasted artifacts to the next analysis.',
   },
 };
 

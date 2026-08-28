@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Radio group',
   component: RadioGroup,
   args: {
-    label: 'Generation mode',
+    label: 'Finding severity',
   },
   argTypes: {
     clearable: { control: 'boolean' },
@@ -43,11 +43,11 @@ export const Default: Story = {
   args: {
     children: (
       <>
-        <Radio label="Generate a new spec" value="generation" />
-        <Radio label="Consolidate validated updates" value="consolidation" />
+        <Radio label="High" value="high" />
+        <Radio label="Medium" value="medium" />
       </>
     ),
-    defaultValue: 'generation',
+    defaultValue: 'high',
   },
 };
 
@@ -55,11 +55,11 @@ export const Horizontal: Story = {
   args: {
     children: (
       <>
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="Specification" value="specification" />
+        <Radio label="Supporting context" value="context" />
       </>
     ),
-    defaultValue: 'feature',
+    defaultValue: 'specification',
     orientation: 'horizontal',
   },
 };
@@ -69,20 +69,20 @@ export const Cards: Story = {
     children: (
       <>
         <RadioCard
-          description="Create a readiness spec for a brand-new feature."
-          label="New feature"
-          value="new"
+          description="Check the user-authored specification."
+          label="Specification"
+          value="specification"
         />
         <RadioCard
-          description="Capture an increment against an existing feature baseline."
-          label="Feature update"
-          value="update"
+          description="Check supporting notes and uploaded files."
+          label="Context"
+          value="context"
         />
       </>
     ),
-    defaultValue: 'new',
-    description: 'Choose the target that matches the product intent.',
-    label: 'Spec target',
+    defaultValue: 'specification',
+    description: 'Choose which input surface to inspect.',
+    label: 'Analysis source',
   },
 };
 
@@ -119,18 +119,18 @@ export const Disabled: Story = {
       <>
         <RadioCard
           description="This target is already selected."
-          label="Feature"
-          value="feature"
+          label="Specification"
+          value="specification"
         />
         <RadioCard
-          description="Updates are unavailable for this feature."
-          label="Feature update"
-          value="update"
+          description="Context selection is unavailable."
+          label="Context"
+          value="context"
         />
       </>
     ),
-    defaultValue: 'feature',
+    defaultValue: 'specification',
     disabled: true,
-    label: 'Spec target',
+    label: 'Analysis source',
   },
 };

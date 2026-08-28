@@ -25,11 +25,10 @@ export interface ContextFileDto {
 }
 
 export interface ContextDto {
+  readonly content: string;
   readonly createdAt: string;
   readonly featureKey: string;
-  readonly featureUpdateKey: string | null;
   readonly files: readonly ContextFileDto[];
-  readonly promptContent: string;
   readonly publicKey: string;
   readonly updatedAt: string;
 }
@@ -58,11 +57,11 @@ export function getFeatureContext(
 export function updateFeatureContext(
   accessToken: string,
   featureKey: string,
-  promptContent: string,
+  content: string,
 ): Promise<ContextDto> {
   return request<ContextDto>(`/features/${featureKey}/context`, {
     accessToken,
-    body: { promptContent },
+    body: { content },
     method: 'PATCH',
   });
 }

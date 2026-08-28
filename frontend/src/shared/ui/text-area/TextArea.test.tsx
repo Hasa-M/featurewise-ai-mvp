@@ -9,8 +9,8 @@ describe('TextArea', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
 
-    render(<TextArea label="Feature brief" onChange={onChange} />);
-    const textArea = screen.getByRole('textbox', { name: 'Feature brief' });
+    render(<TextArea label="Feature specification" onChange={onChange} />);
+    const textArea = screen.getByRole('textbox', { name: 'Feature specification' });
     await user.type(textArea, 'User need{enter}Expected outcome');
 
     expect(textArea).toHaveValue('User need\nExpected outcome');
@@ -53,16 +53,16 @@ describe('TextArea', () => {
     render(
       <TextArea
         errorMessage="Add an expected outcome."
-        helperText="Use the current product brief."
-        label="Feature brief"
+        helperText="Use the current product requirements."
+        label="Feature specification"
         required
       />,
     );
 
-    const textArea = screen.getByRole('textbox', { name: 'Feature brief' });
+    const textArea = screen.getByRole('textbox', { name: 'Feature specification' });
     expect(textArea).toBeRequired();
     expect(textArea).toHaveAccessibleDescription(
-      'Use the current product brief. Add an expected outcome.',
+      'Use the current product requirements. Add an expected outcome.',
     );
     expect(textArea).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('alert')).toHaveTextContent(

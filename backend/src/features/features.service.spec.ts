@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { FeatureOrigin, SpecRunStatus } from '@prisma/client';
+import { AnalysisRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { PrismaService } from '../database/prisma.service';
@@ -21,9 +21,7 @@ const featureRecord = {
   publicNumber: 5831,
   projectId: currentUser.projectId,
   title: 'Feature',
-  brief: null,
-  origin: FeatureOrigin.brand_new,
-  includeInProjectContext: false,
+  specificationContent: '',
   createdById: currentUser.userId,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -46,7 +44,7 @@ function createPrismaMock(overrides: Partial<Record<string, unknown>> = {}) {
       findMany: jest.fn().mockResolvedValue([featureRecord]),
       update: jest.fn().mockResolvedValue(featureRecord),
     },
-    specRun: {
+    analysisRun: {
       findFirst: jest.fn().mockResolvedValue(null),
     },
     ...overrides,
@@ -81,7 +79,7 @@ describe('FeaturesService', () => {
     const prismaMock = createPrismaMock();
     prismaMock.feature.create.mockResolvedValue({
       ...featureRecord,
-      brief: 'Useful thing',
+      specificationContent: 'Useful thing',
     });
     prismaMock.$transaction.mockImplementation(
       <T>(
@@ -109,24 +107,17 @@ describe('FeaturesService', () => {
     });
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('projectId');
-    expect(result).not.toHaveProperty('brief');
-    expect(result).not.toHaveProperty('origin');
-    expect(result).not.toHaveProperty('includeInProjectContext');
-    expect(result).not.toHaveProperty('activity');
-    expect(result).not.toHaveProperty('alignment');
     expect(workspaceMock.getProjectRecord).toHaveBeenCalledWith(
       currentUser,
       204,
     );
     expect(prismaMock.feature.create).toHaveBeenCalledWith({
       data: {
-        brief: 'Useful thing',
         createdById: currentUser.userId,
-        includeInProjectContext: false,
-        origin: FeatureOrigin.brand_new,
         projectId: currentUser.projectId,
+        specificationContent: 'Useful thing',
         title: 'New capability',
-        contextArtifact: { create: { promptContent: '' } },
+        contextArtifact: { create: { content: '' } },
       },
       include: publicRelations,
     });
@@ -158,10 +149,10 @@ describe('FeaturesService', () => {
     });
   });
 
-  it('maps specification updates to the legacy brief column without exposing it', async () => {
+  it('updates the canonical specification field', async () => {
     const updatedRecord = {
       ...featureRecord,
-      brief: 'Updated specification',
+      specificationContent: 'Updated specification',
     };
     const prismaMock = createPrismaMock({
       feature: {
@@ -177,16 +168,13 @@ describe('FeaturesService', () => {
 
     expect(prismaMock.feature.update).toHaveBeenCalledWith({
       where: { id: featureRecord.id },
-      data: { brief: 'Updated specification' },
+      data: { specificationContent: 'Updated specification' },
       include: publicRelations,
     });
     expect(result.specificationContent).toBe('Updated specification');
-    expect(result).not.toHaveProperty('brief');
-    expect(result).not.toHaveProperty('activity');
-    expect(result).not.toHaveProperty('alignment');
   });
 
-  it('represents an empty specification as a public string over a legacy null', async () => {
+  it('stores an empty specification as an empty string', async () => {
     const prismaMock = createPrismaMock();
     const service = createService(prismaMock);
 
@@ -196,7 +184,7 @@ describe('FeaturesService', () => {
 
     expect(prismaMock.feature.update).toHaveBeenCalledWith({
       where: { id: featureRecord.id },
-      data: { brief: null },
+      data: { specificationContent: '' },
       include: publicRelations,
     });
     expect(result.specificationContent).toBe('');
@@ -222,12 +210,12 @@ describe('FeaturesService', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('blocks soft delete while the Feature has a non-terminal SpecRun', async () => {
+  it('blocks soft delete while the Feature has a non-terminal AnalysisRun', async () => {
     const prismaMock = createPrismaMock({
-      specRun: {
+      analysisRun: {
         findFirst: jest.fn().mockResolvedValue({
           id: '00000000-0000-4000-8000-000000000005',
-          status: SpecRunStatus.queued,
+          status: AnalysisRunStatus.queued,
         }),
       },
     });
@@ -308,7 +296,7 @@ describe('FeaturesService', () => {
     await expect(
       service.deleteFeature(currentUser, 9999),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(prismaMock.specRun.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.analysisRun.findFirst).not.toHaveBeenCalled();
     expect(prismaMock.feature.update).not.toHaveBeenCalled();
   });
 });

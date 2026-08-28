@@ -29,22 +29,22 @@ const nodes: readonly SidebarNodeItem[] = [
                 children: [
                   {
                     addAction: {
-                      'aria-label': 'Generate authentication spec',
-                      href: '#generate-authentication',
+                      'aria-label': 'Start authentication analysis',
+                      href: '#analyze-authentication',
                     },
                     children: [
                       {
-                        href: '#generation-2',
-                        id: 'generation-2',
-                        label: 'Generation 2',
+                        href: '#analysis-2',
+                        id: 'analysis-2',
+                        label: 'Analysis 2',
                         type: 'leaf',
                       },
                     ],
-                    id: 'generations',
-                    label: 'Generations',
+                    id: 'analyses',
+                    label: 'Analyses',
                     listAction: {
-                      'aria-label': 'View authentication generations',
-                      href: '#authentication-generations',
+                      'aria-label': 'View authentication analyses',
+                      href: '#authentication-analyses',
                     },
                     type: 'node',
                   },
@@ -94,7 +94,7 @@ const nodes: readonly SidebarNodeItem[] = [
   },
 ];
 
-async function openGenerationPath(user: ReturnType<typeof userEvent.setup>) {
+async function openAnalysisPath(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Northstar mobile' }));
   await user.click(
     screen.getByRole('button', { name: 'Authentication workflow' }),
@@ -163,29 +163,29 @@ describe('Sidebar', () => {
     const user = userEvent.setup();
     render(<Sidebar nodes={nodes} />);
 
-    await openGenerationPath(user);
+    await openAnalysisPath(user);
 
     expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
-    ).toHaveAttribute('href', '#generation-2');
+      screen.getByRole('link', { name: 'Analysis 2' }),
+    ).toHaveAttribute('href', '#analysis-2');
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
   });
 
   it('marks the active leaf as the current page', async () => {
     const user = userEvent.setup();
-    render(<Sidebar activeItemId="generation-2" nodes={nodes} />);
+    render(<Sidebar activeItemId="analysis-2" nodes={nodes} />);
 
-    await openGenerationPath(user);
+    await openAnalysisPath(user);
 
     expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
+      screen.getByRole('link', { name: 'Analysis 2' }),
     ).toHaveAttribute('aria-current', 'page');
     for (const label of [
       'Projects',
       'Northstar mobile',
       'Features',
       'Authentication workflow',
-      'Generations',
+      'Analyses',
     ]) {
       expect(
         screen

@@ -20,8 +20,8 @@ import { Modal } from '@/shared/ui/modal';
 import { Search } from '@/shared/ui/search';
 
 import {
-  contextPromptSchema,
-  type ContextPromptValues,
+  contextContentSchema,
+  type ContextContentValues,
 } from '../lib/context-form-schema';
 import { formatFileSize } from '../lib/file-format';
 import {
@@ -59,33 +59,33 @@ interface FeatureContextPanelProps {
   readonly featureKey: string;
 }
 
-interface ContextPromptFormProps {
+interface ContextContentFormProps {
   readonly accessToken: string;
   readonly featureKey: string;
-  readonly initialPrompt: string;
+  readonly initialContent: string;
   readonly onError: (message: string | null) => void;
 }
 
-function ContextPromptForm({
+function ContextContentForm({
   accessToken,
   featureKey,
-  initialPrompt,
+  initialContent,
   onError,
-}: ContextPromptFormProps) {
-  const updatePrompt = useUpdateFeatureContext(accessToken, featureKey);
-  const form = useForm<ContextPromptValues>({
-    defaultValues: { promptContent: initialPrompt },
-    resolver: zodResolver(contextPromptSchema),
+}: ContextContentFormProps) {
+  const updateContent = useUpdateFeatureContext(accessToken, featureKey);
+  const form = useForm<ContextContentValues>({
+    defaultValues: { content: initialContent },
+    resolver: zodResolver(contextContentSchema),
   });
 
   return (
     <form
-      className={styles.promptForm}
+      className={styles.contentForm}
       onSubmit={form.handleSubmit(async (values) => {
         onError(null);
         try {
-          const updated = await updatePrompt.mutateAsync(values.promptContent);
-          form.reset({ promptContent: updated.promptContent });
+          const updated = await updateContent.mutateAsync(values.content);
+          form.reset({ content: updated.content });
         } catch (error: unknown) {
           onError(errorMessage(error));
         }
@@ -93,7 +93,7 @@ function ContextPromptForm({
     >
       <Controller
         control={form.control}
-        name='promptContent'
+        name='content'
         render={({ field, fieldState }) => (
           <Suspense fallback={<p className={styles.muted}>Loading context editor…</p>}>
             <RichText
@@ -117,7 +117,7 @@ function ContextPromptForm({
         </span>
         <Button
           disabled={!form.formState.isDirty}
-          loading={updatePrompt.isPending}
+          loading={updateContent.isPending}
           type='submit'
         >
           Save context
@@ -222,10 +222,10 @@ export function FeatureContextPanel({
             </p>
           </div>
         </div>
-        <ContextPromptForm
+        <ContextContentForm
           accessToken={accessToken}
           featureKey={featureKey}
-          initialPrompt={context.promptContent}
+          initialContent={context.content}
           onError={setOperationError}
         />
       </Card>

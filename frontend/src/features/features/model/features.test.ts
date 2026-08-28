@@ -15,13 +15,8 @@ describe('feature model', () => {
 
   it('maps only the specification-analysis contract from the backend response', () => {
     const dto = {
-      activity: { generationRunCount: 3 },
-      alignment: { pendingUpdates: [], status: 'updates_pending' },
-      brief: null,
       createdAt: '2026-07-18T10:00:00.000Z',
       createdByKey: 'USR-1',
-      includeInProjectContext: false,
-      origin: 'brand_new',
       projectKey: 'PRJ-204',
       publicKey: 'FEAT-5831',
       specificationContent: 'Users can save filter configurations.',
@@ -35,10 +30,5 @@ describe('feature model', () => {
       'Users can save filter configurations.',
     );
     expect(feature.createdAt).toBeInstanceOf(Date);
-    expect(feature).not.toHaveProperty('brief');
-    expect(feature).not.toHaveProperty('origin');
-    expect(feature).not.toHaveProperty('includeInProjectContext');
-    expect(feature).not.toHaveProperty('activity');
-    expect(feature).not.toHaveProperty('alignment');
   });
 });

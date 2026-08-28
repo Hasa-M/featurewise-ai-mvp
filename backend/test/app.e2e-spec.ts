@@ -1,7 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FeatureOrigin } from '@prisma/client';
 import { argon2id, hash } from 'argon2';
 import request, { Response, Test as SuperTestRequest } from 'supertest';
 import { App } from 'supertest/types';
@@ -61,9 +60,7 @@ interface FeatureRecord {
   readonly publicNumber: number;
   readonly projectId: string;
   title: string;
-  brief: string | null;
-  readonly origin: FeatureOrigin;
-  includeInProjectContext: boolean;
+  specificationContent: string;
   readonly createdById: string;
   readonly createdAt: Date;
   updatedAt: Date;
@@ -73,9 +70,8 @@ interface FeatureRecord {
 interface ContextArtifactRecord {
   readonly id: string;
   readonly publicNumber: number;
-  readonly featureId: string | null;
-  readonly featureUpdateId: string | null;
-  promptContent: string;
+  readonly featureId: string;
+  content: string;
   readonly createdAt: Date;
   updatedAt: Date;
 }
@@ -83,13 +79,11 @@ interface ContextArtifactRecord {
 interface FeatureCreateData {
   readonly projectId: string;
   readonly title: string;
-  readonly brief: string | null;
-  readonly origin: FeatureOrigin;
-  readonly includeInProjectContext: boolean;
+  readonly specificationContent: string;
   readonly createdById: string;
   readonly contextArtifact?: {
     readonly create: {
-      readonly promptContent: string;
+      readonly content: string;
     };
   };
 }
@@ -286,9 +280,7 @@ class InMemoryPrisma {
         publicNumber: this.featurePublicNumberCounter++,
         projectId: data.projectId,
         title: data.title,
-        brief: data.brief,
-        origin: data.origin,
-        includeInProjectContext: data.includeInProjectContext,
+        specificationContent: data.specificationContent,
         createdById: data.createdById,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -302,8 +294,7 @@ class InMemoryPrisma {
           id: this.nextId(),
           publicNumber: this.contextArtifactPublicNumberCounter++,
           featureId: feature.id,
-          featureUpdateId: null,
-          promptContent: data.contextArtifact.create.promptContent,
+          content: data.contextArtifact.create.content,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -359,8 +350,7 @@ class InMemoryPrisma {
       where: { id: string };
       data: Partial<{
         title: string;
-        brief: string | null;
-        includeInProjectContext: boolean;
+        specificationContent: string;
         deletedAt: Date;
       }>;
     }) => {
@@ -391,7 +381,7 @@ class InMemoryPrisma {
       data,
     }: {
       where: { id: string };
-      data: { promptContent: string };
+      data: { content: string };
     }) => {
       const contextArtifact = this.contextArtifacts.find(
         (candidate) => candidate.id === where.id,
@@ -401,7 +391,7 @@ class InMemoryPrisma {
         throw new Error('ContextArtifact not found');
       }
 
-      contextArtifact.promptContent = data.promptContent;
+      contextArtifact.content = data.content;
       contextArtifact.updatedAt = new Date();
 
       return Promise.resolve(contextArtifact);
@@ -413,17 +403,8 @@ class InMemoryPrisma {
     updateMany: jest.fn().mockResolvedValue({ count: 0 }),
   };
 
-  readonly specRun = {
-    count: jest.fn().mockResolvedValue(0),
+  readonly analysisRun = {
     findFirst: jest.fn().mockResolvedValue(null),
-  };
-
-  readonly generatedSpec = {
-    findFirst: jest.fn().mockResolvedValue(null),
-  };
-
-  readonly featureUpdate = {
-    findMany: jest.fn().mockResolvedValue([]),
   };
 
   private nextId(): string {
@@ -589,7 +570,7 @@ describe('Featurewise backend (e2e)', () => {
       .expect(401);
     await request(app.getHttpServer())
       .patch('/features/FEAT-1/context')
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(401);
 
     await request(app.getHttpServer())
@@ -729,18 +710,12 @@ describe('Featurewise backend (e2e)', () => {
         expectNoUuid(response.body);
       });
 
-    for (const legacyInput of [
-      { brief: 'Legacy brief' },
-      { origin: FeatureOrigin.brand_new },
-      { includeInProjectContext: true },
-    ]) {
-      await withAuth(
-        request(app.getHttpServer()).post('/projects/PRJ-1/features'),
-        authorizationHeader,
-      )
-        .send({ title: 'Legacy feature', ...legacyInput })
-        .expect(400);
-    }
+    await withAuth(
+      request(app.getHttpServer()).post('/projects/PRJ-1/features'),
+      authorizationHeader,
+    )
+      .send({ title: 'Unexpected field', unexpected: true })
+      .expect(400);
     await withAuth(
       request(app.getHttpServer()).post('/projects/PRJ-1/features'),
       authorizationHeader,
@@ -822,11 +797,9 @@ describe('Featurewise backend (e2e)', () => {
     });
     const otherFeature = await prisma.feature.create({
       data: {
-        brief: null,
         createdById: seededWorkspace.userId,
-        includeInProjectContext: false,
-        origin: FeatureOrigin.brand_new,
         projectId: otherProject.id,
+        specificationContent: '',
         title: 'Other feature',
       },
     });
@@ -855,7 +828,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(404);
 
     await withAuth(
@@ -883,8 +856,7 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          featureUpdateKey: null,
-          promptContent: '',
+          content: '',
         });
         expectNoUuid(response.body);
       });
@@ -912,32 +884,32 @@ describe('Featurewise backend (e2e)', () => {
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 42 })
+      .send({ content: 42 })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'Valid', unexpected: true })
+      .send({ content: 'Valid', unexpected: true })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'x'.repeat(20001) })
+      .send({ content: 'x'.repeat(20001) })
       .expect(400);
 
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'Screenshots and notes go here.' })
+      .send({ content: 'Screenshots and notes go here.' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          promptContent: 'Screenshots and notes go here.',
+          content: 'Screenshots and notes go here.',
         });
         expectNoUuid(response.body);
       });
@@ -951,21 +923,15 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          promptContent: 'Screenshots and notes go here.',
+          content: 'Screenshots and notes go here.',
         });
       });
-    for (const legacyInput of [
-      { brief: 'Legacy brief' },
-      { origin: FeatureOrigin.brand_new },
-      { includeInProjectContext: false },
-    ]) {
-      await withAuth(
-        request(app.getHttpServer()).patch('/features/FEAT-1'),
-        authorizationHeader,
-      )
-        .send(legacyInput)
-        .expect(400);
-    }
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({ unexpected: true })
+      .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1'),
       authorizationHeader,
@@ -1075,7 +1041,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(400);
 
     await withAuth(

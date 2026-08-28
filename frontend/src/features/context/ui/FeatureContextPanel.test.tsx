@@ -20,11 +20,10 @@ vi.mock('../model/context', () => {
     openContextFile: vi.fn(),
     useFeatureContext: () => ({
       data: {
+        content: '',
         createdAt: new Date('2026-08-24T00:00:00Z'),
         featureKey: 'feature-1',
-        featureUpdateKey: null,
         files: [],
-        promptContent: '',
         publicKey: 'context-1',
         updatedAt: new Date('2026-08-24T00:00:00Z'),
       },

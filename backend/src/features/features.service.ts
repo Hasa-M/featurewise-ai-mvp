@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FeatureOrigin, Prisma, SpecRunStatus } from '@prisma/client';
+import { AnalysisRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey } from '../common/public-identifiers';
@@ -17,7 +17,7 @@ interface FeatureRecord {
   readonly publicNumber: number;
   readonly projectId: string;
   readonly title: string;
-  readonly brief: string | null;
+  readonly specificationContent: string;
   readonly createdById: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -72,15 +72,13 @@ export class FeaturesService {
     const feature = await this.prismaService.$transaction((transaction) =>
       transaction.feature.create({
         data: {
-          brief: this.toLegacyBrief(dto.specificationContent),
           createdById: currentUser.userId,
-          includeInProjectContext: false,
-          origin: FeatureOrigin.brand_new,
           projectId: project.id,
+          specificationContent: dto.specificationContent?.trim() ?? '',
           title: dto.title.trim(),
           contextArtifact: {
             create: {
-              promptContent: '',
+              content: '',
             },
           },
         },
@@ -129,14 +127,14 @@ export class FeaturesService {
       featurePublicNumber,
     );
 
-    const data: Prisma.FeatureUpdateInput = {};
+    const data: { specificationContent?: string; title?: string } = {};
 
     if (dto.title !== undefined) {
       data.title = dto.title.trim();
     }
 
     if (dto.specificationContent !== undefined) {
-      data.brief = this.toLegacyBrief(dto.specificationContent);
+      data.specificationContent = dto.specificationContent.trim();
     }
 
     const feature = await this.prismaService.feature.update({
@@ -158,11 +156,11 @@ export class FeaturesService {
       currentUser,
       featurePublicNumber,
     );
-    const activeRun = await this.prismaService.specRun.findFirst({
+    const activeRun = await this.prismaService.analysisRun.findFirst({
       where: {
         featureId: feature.id,
         status: {
-          notIn: [SpecRunStatus.completed, SpecRunStatus.failed],
+          notIn: [AnalysisRunStatus.completed, AnalysisRunStatus.failed],
         },
       },
       select: {
@@ -226,7 +224,7 @@ export class FeaturesService {
       publicKey: formatPublicKey('feature', feature.publicNumber),
       projectKey: formatPublicKey('project', feature.project.publicNumber),
       title: feature.title,
-      specificationContent: feature.brief ?? '',
+      specificationContent: feature.specificationContent,
       createdByKey: formatPublicKey('user', feature.createdBy.publicNumber),
       createdAt: feature.createdAt,
       updatedAt: feature.updatedAt,
@@ -246,15 +244,5 @@ export class FeaturesService {
         },
       },
     } as const;
-  }
-
-  private toLegacyBrief(value: string | undefined): string | null {
-    if (value === undefined) {
-      return null;
-    }
-
-    const trimmedValue = value.trim();
-
-    return trimmedValue === '' ? null : trimmedValue;
   }
 }

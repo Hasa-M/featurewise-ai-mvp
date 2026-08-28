@@ -12,7 +12,7 @@ const meta = {
     children: (
       <>
         <TextInput label='Feature title' value='Saved views' />
-        <TextArea label='Feature brief' value='Let users return to useful filters.' />
+        <TextArea label='Feature specification' value='Let users return to useful filters.' />
       </>
     ),
     description: 'Update bounded feature metadata.',

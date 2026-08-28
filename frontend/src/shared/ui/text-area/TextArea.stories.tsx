@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Text area',
   component: TextArea,
   args: {
-    label: 'Feature brief',
+    label: 'Feature specification',
     placeholder: 'Describe the user need and expected outcome',
     rows: 5,
   },
@@ -86,7 +86,7 @@ export const Error: Story = {
 
 export const Disabled: Story = {
   args: {
-    defaultValue: 'This context artifact is read-only while generation runs.',
+    defaultValue: 'This context artifact is read-only while analysis runs.',
     disabled: true,
     showCharacterCount: true,
   },

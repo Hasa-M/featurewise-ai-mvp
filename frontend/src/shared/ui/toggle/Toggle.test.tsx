@@ -31,14 +31,14 @@ describe('Toggle', () => {
   it('associates its description with the switch', () => {
     render(
       <Toggle
-        description="Add artifacts to the next spec run."
+        description="Add artifacts to the next analysis."
         label="Include context artifacts"
       />,
     );
 
     expect(
       screen.getByRole('switch', { name: 'Include context artifacts' }),
-    ).toHaveAccessibleDescription('Add artifacts to the next spec run.');
+    ).toHaveAccessibleDescription('Add artifacts to the next analysis.');
   });
 
   it('supports regular and medium label weights', () => {

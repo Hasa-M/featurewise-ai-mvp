@@ -103,7 +103,7 @@ export const MixedActionContent: Story = {
       <>
         <Tag>Draft</Tag>
         <Button variant="secondary">Validate</Button>
-        <Button>Generate spec</Button>
+        <Button>Start analysis</Button>
       </>
     ),
   },

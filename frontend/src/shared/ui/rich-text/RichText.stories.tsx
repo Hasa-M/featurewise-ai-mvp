@@ -2,15 +2,15 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { RichText } from './RichText';
 
-const sampleMarkdown = `## Export generated spec
+const sampleMarkdown = `## Export findings report
 
-Users need to export a **validated spec** as Markdown so they can share it with implementation teams.
+Users need to export **analysis findings** as Markdown so they can share them with implementation teams.
 
 - Preserve headings and lists
 - Include readiness warnings
 - Keep structured identifiers in \`inline code\`
 
-> Export reflects the currently selected spec version.`;
+> Export reflects the selected analysis run.`;
 
 const meta = {
   title: 'Shared/Rich text',

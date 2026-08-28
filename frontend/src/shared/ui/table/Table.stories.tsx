@@ -23,7 +23,7 @@ type FeatureRow = {
   artifacts: number;
   id: string;
   name: string;
-  origin: 'brand_new' | 'mapped_existing';
+  category: 'commerce' | 'developer_tools' | 'collaboration';
   readiness: 'Ready' | 'Needs attention' | 'Draft';
   summary: string;
   updatedAt: string;
@@ -35,7 +35,7 @@ const featureRows: readonly FeatureRow[] = [
     artifacts: 5,
     id: 'feature_checkout',
     name: 'Checkout recovery',
-    origin: 'brand_new',
+    category: 'commerce',
     readiness: 'Ready',
     summary: 'Recover interrupted payment sessions.',
     updatedAt: '2026-07-28T08:14:00Z',
@@ -45,7 +45,7 @@ const featureRows: readonly FeatureRow[] = [
     artifacts: 2,
     id: 'feature_import',
     name: 'Repository context import',
-    origin: 'mapped_existing',
+    category: 'developer_tools',
     readiness: 'Needs attention',
     summary: 'Map uploaded source archives into context.',
     updatedAt: '2026-07-26T15:42:00Z',
@@ -55,9 +55,9 @@ const featureRows: readonly FeatureRow[] = [
     artifacts: 0,
     id: 'feature_export',
     name: 'Markdown export',
-    origin: 'brand_new',
+    category: 'collaboration',
     readiness: 'Draft',
-    summary: 'Export the current valid spec.',
+    summary: 'Export the current feature specification.',
     updatedAt: '2026-07-24T12:05:00Z',
     updatedLabel: '24 Jul 2026, 14:05',
   },
@@ -82,12 +82,12 @@ const featureColumns = [
     sortLabel: 'Feature',
   },
   {
-    cell: (row) => row.origin,
-    header: 'Origin',
-    id: 'origin',
+    cell: (row) => row.category,
+    header: 'Category',
+    id: 'category',
     minWidth: '10rem',
     sortable: true,
-    sortLabel: 'Origin',
+    sortLabel: 'Category',
     technical: true,
   },
   {
@@ -172,8 +172,8 @@ function SortableTableStory(args: TableProps<FeatureRow>) {
       return left.updatedAt.localeCompare(right.updatedAt) * direction;
     }
 
-    if (sort.columnId === 'origin') {
-      return left.origin.localeCompare(right.origin) * direction;
+    if (sort.columnId === 'category') {
+      return left.category.localeCompare(right.category) * direction;
     }
 
     return left.name.localeCompare(right.name) * direction;

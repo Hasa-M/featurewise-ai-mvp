@@ -114,13 +114,13 @@ const meta = {
   component: Modal,
   args: {
     children:
-      'Generation settings apply to the next spec run and do not change existing generated specs.',
+      'Analysis settings apply to the next run and do not change existing findings.',
     description:
-      'Review how Featurewise will prepare context before starting the next spec run.',
+      'Review how Featurewise will prepare context before starting the next analysis.',
     onOpenChange: fn(),
     open: true,
     size: 'medium',
-    title: 'Generation settings',
+    title: 'Analysis settings',
   },
   argTypes: {
     actions: {
@@ -182,11 +182,11 @@ export const RequiredDecision: Story = {
     actions: (
       <>
         <Button variant="secondary">Review context</Button>
-        <Button>Continue generation</Button>
+        <Button>Continue analysis</Button>
       </>
     ),
     children:
-      'Choose how to continue before returning to the spec generation flow.',
+      'Choose how to continue before returning to the analysis flow.',
     description:
       'One uploaded context artifact could not be read and will be excluded.',
     dismissible: false,

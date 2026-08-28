@@ -7,6 +7,21 @@ import {
 } from './public-identifiers';
 
 describe('public identifiers', () => {
+  it('registers the specification-analysis domain prefixes', () => {
+    expect(PUBLIC_KEY_PREFIXES).toEqual({
+      analysisFinding: 'FND',
+      analysisRun: 'RUN',
+      contextArtifact: 'CTX',
+      feature: 'FEAT',
+      findingReview: 'FREV',
+      llmCallLog: 'CALL',
+      organization: 'ORG',
+      project: 'PRJ',
+      storageObject: 'OBJ',
+      user: 'USR',
+    });
+  });
+
   it.each(Object.entries(PUBLIC_KEY_PREFIXES))(
     'formats and parses %s public keys with the %s prefix',
     (entity, prefix) => {

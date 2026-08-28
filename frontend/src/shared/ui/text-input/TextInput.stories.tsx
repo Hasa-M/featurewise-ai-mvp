@@ -120,7 +120,7 @@ export const WithoutLabel: Story = {
 
 export const WithHelperText: Story = {
   args: {
-    helperText: 'Use the name shown in the current product brief.',
+    helperText: 'Use the name shown in the current product requirements.',
   },
 };
 
@@ -134,6 +134,6 @@ export const Error: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
-    value: 'Export generated spec',
+    value: 'Export findings report',
   },
 };

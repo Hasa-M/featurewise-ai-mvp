@@ -57,16 +57,16 @@ const overflowItems = [
     label: 'Authentication workflow',
   },
   {
-    href: '#generations',
+    href: '#analyses',
     icon: <FolderClosed size={14} strokeWidth={1.75} />,
     kind: 'folder',
-    label: 'Generations',
+    label: 'Analyses',
   },
   {
-    href: '#generation-2',
+    href: '#analysis-2',
     icon: <FileText size={14} strokeWidth={1.75} />,
     kind: 'item',
-    label: 'Generation 2',
+    label: 'Analysis 2',
   },
 ] satisfies BreadcrumbItems;
 

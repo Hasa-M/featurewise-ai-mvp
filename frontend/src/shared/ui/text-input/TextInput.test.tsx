@@ -11,9 +11,9 @@ describe('TextInput', () => {
 
     render(<TextInput label="Feature name" onChange={onChange} />);
     const input = screen.getByRole('textbox', { name: 'Feature name' });
-    await user.type(input, 'Export generated spec');
+    await user.type(input, 'Export findings report');
 
-    expect(input).toHaveValue('Export generated spec');
+    expect(input).toHaveValue('Export findings report');
     expect(onChange).toHaveBeenCalled();
   });
 

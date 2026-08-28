@@ -9,13 +9,13 @@ describe('RadioGroup', () => {
     const user = userEvent.setup();
 
     render(
-      <RadioGroup defaultValue="feature" label="Spec target">
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+      <RadioGroup defaultValue="specification" label="Analysis source">
+        <Radio label="Specification" value="specification" />
+        <Radio label="Supporting context" value="context" />
       </RadioGroup>,
     );
-    const feature = screen.getByRole('radio', { name: 'Feature' });
-    const update = screen.getByRole('radio', { name: 'Feature update' });
+    const feature = screen.getByRole('radio', { name: 'Specification' });
+    const update = screen.getByRole('radio', { name: 'Supporting context' });
 
     expect(feature).toBeChecked();
     expect(update).not.toBeChecked();
@@ -32,19 +32,19 @@ describe('RadioGroup', () => {
 
     render(
       <RadioGroup
-        label="Spec target"
+        label="Analysis source"
         onValueChange={onValueChange}
-        value="feature"
+        value="specification"
       >
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="Specification" value="specification" />
+        <Radio label="Supporting context" value="context" />
       </RadioGroup>,
     );
 
-    await user.click(screen.getByRole('radio', { name: 'Feature update' }));
+    await user.click(screen.getByRole('radio', { name: 'Supporting context' }));
 
-    expect(onValueChange).toHaveBeenCalledWith('update');
-    expect(screen.getByRole('radio', { name: 'Feature' })).toBeChecked();
+    expect(onValueChange).toHaveBeenCalledWith('context');
+    expect(screen.getByRole('radio', { name: 'Specification' })).toBeChecked();
   });
 
   it('clears an optional selection through the clear action', async () => {
@@ -75,19 +75,19 @@ describe('RadioGroup', () => {
 
   it('associates card descriptions with their radio inputs', () => {
     render(
-      <RadioGroup label="Spec target">
+      <RadioGroup label="Analysis source">
         <RadioCard
-          description="Create a readiness spec for a brand-new feature."
-          label="New feature"
-          value="new"
+          description="Analyze the feature specification as the primary source."
+          label="Specification"
+          value="specification"
         />
       </RadioGroup>,
     );
 
     expect(
-      screen.getByRole('radio', { name: 'New feature' }),
+      screen.getByRole('radio', { name: 'Specification' }),
     ).toHaveAccessibleDescription(
-      'Create a readiness spec for a brand-new feature.',
+      'Analyze the feature specification as the primary source.',
     );
   });
 
@@ -95,13 +95,13 @@ describe('RadioGroup', () => {
     render(
       <RadioGroup
         description="Choose the target that matches the product intent."
-        label="Spec target"
+        label="Analysis source"
       >
         <Radio label="Feature" value="feature" />
       </RadioGroup>,
     );
 
-    expect(screen.getByRole('group', { name: 'Spec target' })).toHaveAccessibleDescription(
+    expect(screen.getByRole('group', { name: 'Analysis source' })).toHaveAccessibleDescription(
       'Choose the target that matches the product intent.',
     );
   });
@@ -112,19 +112,19 @@ describe('RadioGroup', () => {
 
     render(
       <RadioGroup
-        defaultValue="feature"
+        defaultValue="specification"
         disabled
-        label="Spec target"
+        label="Analysis source"
         onValueChange={onValueChange}
       >
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="Specification" value="specification" />
+        <Radio label="Supporting context" value="context" />
       </RadioGroup>,
     );
 
-    await user.click(screen.getByRole('radio', { name: 'Feature update' }));
+    await user.click(screen.getByRole('radio', { name: 'Supporting context' }));
 
-    expect(screen.getByRole('radio', { name: 'Feature' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Specification' })).toBeChecked();
     expect(onValueChange).not.toHaveBeenCalled();
   });
 });

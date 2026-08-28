@@ -80,7 +80,7 @@ export const DisabledItems: Story = {
     'aria-label': 'Spec actions',
     children: (
       <MenuSection title="Spec">
-        <MenuItem disabled>Generate spec</MenuItem>
+        <MenuItem disabled>Start analysis</MenuItem>
         <MenuItem>Export Markdown</MenuItem>
       </MenuSection>
     ),

@@ -10,9 +10,7 @@ describe('feature form schemas', () => {
   it('accepts only title and specification content during creation', () => {
     expect(
       featureCreateSchema.parse({
-        brief: 'Legacy brief',
-        includeInProjectContext: true,
-        origin: 'brand_new',
+        ignored: 'not part of the form contract',
         specificationContent: 'Acceptance criteria',
         title: ' Saved views ',
       }),
@@ -24,9 +22,6 @@ describe('feature form schemas', () => {
 
   it('keeps quick edit limited to the title', () => {
     const result = featureQuickEditSchema.parse({
-      brief: 'Return to useful filters.',
-      includeInProjectContext: true,
-      origin: 'mapped_existing',
       schemaVersion: 'v99',
       specificationContent: 'Canonical specification',
       title: ' Saved views ',

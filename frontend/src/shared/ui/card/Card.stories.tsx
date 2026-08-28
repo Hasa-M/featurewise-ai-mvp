@@ -11,7 +11,7 @@ const cardContent = (
   >
     <strong style={{ color: 'var(--text-strong)' }}>Checkout readiness</strong>
     <span>
-      The feature brief and acceptance criteria are ready for review.
+      The feature specification and acceptance criteria are ready for review.
     </span>
   </div>
 );

@@ -11,7 +11,7 @@ describe('PageHeader', () => {
           actions={
             <>
               <span>Draft</span>
-              <button type="button">Generate spec</button>
+              <button type="button">Start analysis</button>
             </>
           }
           breadcrumb={<h1>Authentication workflow</h1>}
@@ -34,7 +34,7 @@ describe('PageHeader', () => {
       ),
     ).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Generate spec' }),
+      screen.getByRole('button', { name: 'Start analysis' }),
     ).toBeVisible();
     expect(container.querySelector('header')).toHaveAttribute(
       'id',

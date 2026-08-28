@@ -13,8 +13,8 @@ export {
   type FeatureContext,
 } from './model/context';
 export {
-  contextPromptSchema,
-  type ContextPromptValues,
+  contextContentSchema,
+  type ContextContentValues,
 } from './lib/context-form-schema';
 export { formatFileSize } from './lib/file-format';
 export { FeatureContextPanel } from './ui/FeatureContextPanel';

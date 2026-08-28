@@ -34,28 +34,28 @@ function createNodes({
                   children: [
                     {
                       addAction: {
-                        'aria-label': 'Generate authentication spec',
-                        href: '#generate-authentication',
+                        'aria-label': 'Start authentication analysis',
+                        href: '#analyze-authentication',
                       },
                       children: [
                         {
                           href: '#authentication-v2',
                           id: 'authentication-v2',
-                          label: 'Generation 2',
+                          label: 'Analysis 2',
                           type: 'leaf',
                         },
                         {
                           href: '#authentication-v1',
                           id: 'authentication-v1',
-                          label: 'Generation 1',
+                          label: 'Analysis 1',
                           type: 'leaf',
                         },
                       ],
-                      id: 'authentication-generations',
-                      label: 'Generations',
+                      id: 'authentication-analyses',
+                      label: 'Analyses',
                       listAction: {
-                        'aria-label': 'View authentication generations',
-                        href: '#authentication-generations',
+                        'aria-label': 'View authentication analyses',
+                        href: '#authentication-analyses',
                       },
                       type: 'node',
                     },
@@ -77,16 +77,16 @@ function createNodes({
                   children: [
                     {
                       addAction: {
-                        'aria-label': 'Generate offline sync spec',
-                        href: '#generate-offline-sync',
+                        'aria-label': 'Start offline sync analysis',
+                        href: '#analyze-offline-sync',
                       },
                       children: [],
-                      emptyMessage: 'No generations yet',
-                      id: 'offline-sync-generations',
-                      label: 'Generations',
+                      emptyMessage: 'No analyses yet',
+                      id: 'offline-sync-analyses',
+                      label: 'Analyses',
                       listAction: {
-                        'aria-label': 'View offline sync generations',
-                        href: '#offline-sync-generations',
+                        'aria-label': 'View offline sync analyses',
+                        href: '#offline-sync-analyses',
                       },
                       type: 'node',
                     },
@@ -227,7 +227,7 @@ export const Default: Story = {
       expect(getComputedStyle(indicator as Element).transform).not.toBe('none'),
     );
     await expect(
-      canvas.getByRole('link', { name: 'Generation 2' }),
+      canvas.getByRole('link', { name: 'Analysis 2' }),
     ).toBeVisible();
 
     const project = canvas.getByRole('button', {
@@ -242,7 +242,7 @@ export const Default: Story = {
   },
 };
 
-export const SelectedGeneration: Story = {
+export const SelectedAnalysis: Story = {
   args: {
     activeItemId: 'authentication-v2',
     nodes: createNodes({ authenticationOpen: true }),
