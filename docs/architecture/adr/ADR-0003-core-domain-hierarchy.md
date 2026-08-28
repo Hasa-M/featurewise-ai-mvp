@@ -2,9 +2,13 @@
 
 Date: 2026-06-13
 
-Status: accepted
+Status: superseded
 
-Amended by: ADR-0020
+Superseded by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Historical record only. The current hierarchy centers on Feature analysis,
+> findings, and reviews; the hierarchy below must not guide new implementation.
+> ADR-0030 is authoritative.
 
 ## Context
 

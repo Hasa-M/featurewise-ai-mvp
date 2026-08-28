@@ -1,175 +1,168 @@
-# ERD — Core MVP Domain Model
+# ERD — Target Specification Analysis Domain
 
 ## Purpose
 
-Canonical entity-relationship model for the phase 1 backend.
+This is the accepted logical domain model from ADR-0030 through ADR-0032. It is
+a migration target, not a claim that the current Prisma schema already matches
+it. Phase 4 of the tracked refactor plan applies the database changes through a
+new forward migration.
 
-Column names are camelCase here; the ORM maps them to snake_case in PostgreSQL.
+Column names are camelCase here; Prisma maps them to snake_case in PostgreSQL.
 
 ## Diagram
 
 ```mermaid
 erDiagram
-    ORGANIZATION ||--o{ USER : "has (phase 1: exactly one)"
-    ORGANIZATION ||--o{ PROJECT : "has (phase 1: exactly one)"
-    PROJECT ||--o| PROJECT_CONTEXT_SUMMARY : "has"
-    PROJECT ||--o{ FEATURE : "contains"
-    FEATURE ||--o{ FEATURE_UPDATE : "has increments"
-    FEATURE |o--|| CONTEXT_ARTIFACT : "owns exactly one (exclusive)"
-    FEATURE_UPDATE |o--|| CONTEXT_ARTIFACT : "owns exactly one (exclusive)"
-    CONTEXT_ARTIFACT ||--o{ STORAGE_OBJECT : "has uploads"
-    FEATURE ||--o{ SPEC_RUN : "scopes"
-    FEATURE_UPDATE |o--o{ SPEC_RUN : "optional target"
-    FEATURE ||--o{ GENERATED_SPEC : "scopes"
-    FEATURE_UPDATE |o--o{ GENERATED_SPEC : "optional target"
-    SPEC_RUN |o--o| GENERATED_SPEC : "produces a draft version"
-    GENERATED_SPEC |o--o{ GENERATED_SPEC : "derives from (parentSpecId)"
-    SPEC_RUN ||--o{ LLM_CALL_LOG : "logs attempts"
+    ORGANIZATION ||--o{ USER : has
+    ORGANIZATION ||--o{ PROJECT : owns
+    PROJECT ||--o| PROJECT_CONTEXT : has
+    PROJECT ||--o{ FEATURE : contains
+    FEATURE ||--|| CONTEXT_ARTIFACT : owns
+    CONTEXT_ARTIFACT ||--o{ STORAGE_OBJECT : contains
+    FEATURE ||--o{ ANALYSIS_RUN : analyzes
+    ANALYSIS_RUN ||--o{ ANALYSIS_FINDING : produces
+    ANALYSIS_FINDING ||--o{ FINDING_REVIEW : receives
+    ANALYSIS_RUN ||--o{ LLM_CALL_LOG : logs
+    USER ||--o{ FEATURE : creates
+    USER ||--o{ ANALYSIS_RUN : starts
+    USER ||--o{ FINDING_REVIEW : records
 
     ORGANIZATION {
-        uuid organizationId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
+        uuid id PK
+        int publicNumber UK
         text name
         timestamptz createdAt
         timestamptz updatedAt
     }
 
     USER {
-        uuid userId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
+        uuid id PK
+        int publicNumber UK
         uuid organizationId FK
         text username UK
-        text passwordHash "Argon2id via standard library (ADR-0015)"
+        text passwordHash
         boolean isActive
         timestamptz createdAt
         timestamptz updatedAt
     }
 
     PROJECT {
-        uuid projectId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
+        uuid id PK
+        int publicNumber UK
         uuid organizationId FK
         text name
         timestamptz createdAt
         timestamptz updatedAt
     }
 
-    PROJECT_CONTEXT_SUMMARY {
-        uuid summaryId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid projectId FK "unique - at most one summary per project"
+    PROJECT_CONTEXT {
+        uuid id PK
+        int publicNumber UK
+        uuid projectId FK,UK
         text content
         timestamptz createdAt
         timestamptz updatedAt
     }
 
     FEATURE {
-        uuid featureId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
+        uuid id PK
+        int publicNumber UK
         uuid projectId FK
         text title
-        text brief "short statement; deep context lives in the ContextArtifact"
-        text origin "brand_new | mapped_existing (ADR-0020)"
-        text status "unresolved - do not include in first migration until decided"
-        boolean includeInProjectContext "feeds ProjectContextSummary"
-        uuid createdBy FK "User"
+        text specificationContent
+        uuid createdById FK
         timestamptz createdAt
         timestamptz updatedAt
-        timestamptz deletedAt "nullable - soft delete"
-    }
-
-    FEATURE_UPDATE {
-        uuid featureUpdateId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid featureId FK "parent - exactly one nesting level (ADR-0020)"
-        text title
-        text brief
-        text status "unresolved - do not include in first migration until decided"
-        uuid createdBy FK "User"
-        timestamptz createdAt
-        timestamptz updatedAt
-        timestamptz deletedAt "nullable - soft delete"
+        timestamptz deletedAt
     }
 
     CONTEXT_ARTIFACT {
-        uuid contextArtifactId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid featureId FK "nullable + unique (exclusive owner arc)"
-        uuid featureUpdateId FK "nullable + unique (exclusive owner arc)"
-        text promptContent "editable textual Prompt; distinct from Brief and files"
+        uuid id PK
+        int publicNumber UK
+        uuid featureId FK,UK
+        text content
         timestamptz createdAt
         timestamptz updatedAt
     }
 
     STORAGE_OBJECT {
-        uuid storageObjectId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
+        uuid id PK
+        int publicNumber UK
         uuid contextArtifactId FK
         uuid createdById FK
-        text status "pending_upload | processing | ready | failed"
-        boolean selected "ready file included in the current Context"
-        text uploadKey UK "immutable staging key"
-        text s3Key UK "immutable final-original key"
-        text s3VersionId "nullable until confirmed"
-        text assetType "image | file"
+        text status
+        boolean selected
+        text uploadKey UK
+        text s3Key UK
+        text s3VersionId
+        text assetType
         text mimeType
         bigint sizeBytes
         text originalFilename
         text checksumSha256
-        text preparedS3Key UK "nullable immutable derivative"
-        text preparedS3VersionId "nullable"
-        text preparedMimeType "nullable"
-        bigint preparedSizeBytes "nullable"
-        text preparedChecksumSha256 "nullable"
-        text preparationVersion "nullable"
-        timestamptz firstUsedAt "nullable; prevents permanent deletion"
-        timestamptz purgeRequestedAt "nullable"
+        text preparedS3Key UK
+        text preparedS3VersionId
+        text preparedMimeType
+        bigint preparedSizeBytes
+        text preparedChecksumSha256
+        text preparationVersion
+        timestamptz firstUsedAt
+        timestamptz purgeRequestedAt
         timestamptz uploadExpiresAt
         timestamptz createdAt
         timestamptz updatedAt
     }
 
-    SPEC_RUN {
-        uuid specRunId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid featureId FK "always set (scope; parent feature for update runs)"
-        uuid featureUpdateId FK "nullable - set when the target is an update"
-        text runKind "generation | consolidation (ADR-0021)"
-        text status "queued..completed|failed - 9 values (ADR-0019)"
+    ANALYSIS_RUN {
+        uuid id PK
+        int publicNumber UK
+        uuid featureId FK
+        text status
+        text analyzerVersion
         text promptVersion
         text schemaVersion
-        jsonb genSettings "provider, model, includeProjectSummary, ..."
-        jsonb contextSnapshot "immutable - shape defined below (ADR-0017/0021)"
-        text errorMessage "nullable - set on failed"
-        uuid createdBy FK "User"
+        jsonb analysisSettings
+        jsonb inputSnapshot
+        jsonb preparedContextSnapshot
+        text errorMessage
+        uuid createdById FK
         timestamptz createdAt
-        timestamptz startedAt "nullable"
-        timestamptz finishedAt "nullable"
+        timestamptz startedAt
+        timestamptz finishedAt
         timestamptz updatedAt
     }
 
-    GENERATED_SPEC {
-        uuid generatedSpecId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid featureId FK "always set - equals the run or parent target"
-        uuid featureUpdateId FK "nullable - equals the run or parent target"
-        uuid specRunId FK "nullable - set only when produced by a run"
-        uuid parentSpecId FK "nullable self-reference - derivation lineage"
-        int version "drafts use 0; first validation is 1; later validations are last + 1"
-        jsonb content
-        text schemaVersion
-        boolean valid "default false; at most one per target"
-        jsonb warnings "generation-time quality checks (ADR-0019)"
-        jsonb incorporatedUpdates "feature-target only - see shape below (ADR-0021)"
+    ANALYSIS_FINDING {
+        uuid id PK
+        int publicNumber UK
+        uuid analysisRunId FK
+        int position
+        text category
+        text severity
+        text title
+        text description
+        text whyItMatters
+        jsonb evidence
+        jsonb suggestedResolutions
+        jsonb verificationMetadata
         timestamptz createdAt
-        timestamptz updatedAt
+    }
+
+    FINDING_REVIEW {
+        uuid id PK
+        int publicNumber UK
+        uuid findingId FK
+        text decision
+        text reason
+        uuid createdById FK
+        timestamptz createdAt
     }
 
     LLM_CALL_LOG {
-        uuid llmCallId PK
-        int publicNumber UK "positive, immutable, sequence-generated (ADR-0028)"
-        uuid specRunId FK
-        text purpose "generation | schema_repair"
+        uuid id PK
+        int publicNumber UK
+        uuid analysisRunId FK
+        text purpose
         int attempt
         text provider
         text model
@@ -178,171 +171,73 @@ erDiagram
         int inputTokens
         int outputTokens
         int latencyMs
-        text outcome "success | error"
-        text errorMessage "nullable"
-        jsonb rawResponse "nullable - only attempts that failed validation/repair"
+        bigint estimatedCostMicros
+        text outcome
+        text errorMessage
+        jsonb rawResponse
         timestamptz createdAt
     }
 ```
 
-## Database-level constraints (must exist in the first migration)
+Nullable fields are shown without special Mermaid notation. They include
+`deletedAt`, prepared object metadata until preparation completes,
+`preparedContextSnapshot` until context preparation completes, run error and
+lifecycle timestamps, optional LLM usage/cost/error fields, and review reason.
 
-```sql
--- Every domain table has an independent, positive, immutable public number.
--- PostgreSQL sequences supply defaults; unique indexes and update-rejection
--- triggers enforce the durable external identity contract (ADR-0028).
+## Required database invariants
 
--- ContextArtifact: exactly one owner, and each owner has at most one artifact
-CHECK (num_nonnulls(feature_id, feature_update_id) = 1);
-UNIQUE (feature_id);
-UNIQUE (feature_update_id);
+- Every externally identifiable domain table keeps its independent positive,
+  immutable `publicNumber` contract from ADR-0028. Target prefixes are `PCTX`
+  when ProjectContext is exposed, `RUN`, `FND`, `FREV`, and `CALL`; `UPD` and
+  `SPEC` are removed.
+- A Feature has one ContextArtifact from creation. `featureId` is non-null and
+  unique; there is no exclusive Feature/FeatureUpdate owner arc.
+- At most one non-terminal AnalysisRun exists per Feature. A PostgreSQL partial
+  unique index is the race-safe constraint.
+- `(analysisRunId, position)` is unique for AnalysisFinding.
+- Findings are immutable model assertions. FindingReview rows are append-only;
+  latest review is a projection, not a finding status mutation.
+- `inputSnapshot` is immutable from run creation.
+  `preparedContextSnapshot` may transition once from null to a value and is
+  write-once afterward. Run lifecycle state, timestamps, and failure details
+  remain mutable.
+- Category and severity are schema-versioned strings, not database enums.
 
--- SpecRun: consolidation runs are feature-target only (ADR-0021)
-CHECK (run_kind <> 'consolidation' OR feature_update_id IS NULL);
+## Initial vocabularies
 
--- SpecRun: at most one non-terminal run per target (ADR-0019/0020).
--- These indexes are the race-safe source of the 409, not a check-then-insert.
-CREATE UNIQUE INDEX one_active_run_per_feature ON spec_run (feature_id)
-  WHERE feature_update_id IS NULL AND status NOT IN ('completed','failed');
-CREATE UNIQUE INDEX one_active_run_per_update ON spec_run (feature_update_id)
-  WHERE feature_update_id IS NOT NULL AND status NOT IN ('completed','failed');
+AnalysisRun statuses are exactly:
 
--- GeneratedSpec: sequential validated versions per target (ADR-0021).
--- Drafts use version = 0 and may repeat before validation.
-CREATE UNIQUE INDEX spec_version_per_feature ON generated_spec (feature_id, version)
-  WHERE feature_update_id IS NULL AND version > 0;
-CREATE UNIQUE INDEX spec_version_per_update ON generated_spec (feature_update_id, version)
-  WHERE feature_update_id IS NOT NULL AND version > 0;
-
--- GeneratedSpec: at most one valid spec per target (ADR-0018/0021)
-CREATE UNIQUE INDEX one_valid_spec_per_feature ON generated_spec (feature_id)
-  WHERE valid AND feature_update_id IS NULL;
-CREATE UNIQUE INDEX one_valid_spec_per_update ON generated_spec (feature_update_id)
-  WHERE valid AND feature_update_id IS NOT NULL;
+```text
+queued | preparing_context | analyzing | validating_output |
+repairing_output | verifying_findings | persisting | completed | failed
 ```
 
-## Application-level rules (not expressible as simple constraints)
+FindingReview decisions are:
 
-- **Run preconditions (else 422):** `generation` on a Feature requires
-  `origin = brand_new`. `generation` on a FeatureUpdate requires a _usable
-  parent baseline_. `consolidation` (feature target, any origin) requires at
-  least one validated update spec not yet incorporated by the feature's
-  current valid spec.
-- **Usable baseline** = parent ContextArtifact promptContent is non-empty, OR at
-  least one selected ready StorageObject exists on it, OR the parent Feature has a valid
-  GeneratedSpec.
-- An empty ContextArtifact is created automatically, in the same transaction,
-  when a Feature or FeatureUpdate is created — that is how the "exactly one"
-  invariant holds from birth.
-- **Version assignment:** every new GeneratedSpec (run-produced or manual)
-  starts as a draft with `version = 0` and `valid = false`.
-- **Validity (ADR-0021):** Marking a spec valid assigns the next target-local
-  validated version (`1` for the first validation, otherwise `last + 1`) and
-  atomically clears the `valid` flag on the previously valid spec of the same
-  target.
-- Manual (user-created) versions copy `incorporatedUpdates` from their
-  `parentSpecId` spec.
-- A GeneratedSpec's `featureId`/`featureUpdateId` must equal its run's target
-  (run-produced) or its parent's target (manual versions).
-- **Alignment is computed, never stored** (see below).
-- A Feature or FeatureUpdate with a non-terminal SpecRun cannot be deleted.
-- A ready StorageObject's identity, original bytes, and prepared bytes are
-  immutable. `selected` is mutable: unselected files appear in that exact
-  ContextArtifact's Files archive and can be selected again without uploading.
-- A ready file can be permanently purged only while unselected and when
-  `firstUsedAt IS NULL`. Snapshot creation locks selected file rows, copies
-  exact S3 versions into the snapshot, and sets firstUsedAt atomically.
-- Soft delete (`deletedAt`) exists only on Feature and FeatureUpdate. Runs,
-  specs, and logs are immutable history and are never deleted.
-
-## `incorporatedUpdates` JSONB shape (GeneratedSpec, feature target only)
-
-```json
-[{ "featureUpdateId": "...", "generatedSpecId": "...", "version": 2 }]
+```text
+accepted | dismissed | resolved | deferred
 ```
 
-## Computed alignment (never stored)
+Initial schema-governed categories are `missing_information`, `ambiguity`,
+`inconsistency`, `unresolved_decision`, `missing_edge_case`, `testability`, and
+`context_mismatch`. Initial severities are `low`, `medium`, `high`, and
+`critical`.
 
-For a Feature, `alignment.status = updates_pending` when at least one
-non-deleted FeatureUpdate has a **current valid spec** whose
-`generatedSpecId` is not present in the feature's **current valid spec**
-`incorporatedUpdates` (a feature with validated updates and no valid spec of
-its own is also `updates_pending`). Otherwise `aligned`.
+LLM call purposes are `candidate_analysis`, `finding_verification`, and
+`schema_repair`; outcomes are `success` or `error`.
 
-Comparing spec **ids** (not timestamps) means: re-validating an update with a
-new spec version automatically re-flags the feature, and soft-deleted updates
-drop out of the computation. The API exposes
-`alignment: { status, pendingUpdates[] }` on feature reads.
+## Context snapshot boundary
 
-## `contextSnapshot` JSONB shape (SpecRun)
+`inputSnapshot` captures feature specification, feature/project context,
+selected ready file identities with exact immutable object versions and
+checksums, analysis settings, and source identifiers.
+`preparedContextSnapshot` captures the exact source documents and segments
+presented to analysis. Finding evidence may reference only source and segment
+IDs inside that prepared snapshot. See ADR-0031.
 
-```json
-{
-    "snapshotVersion": 2,
-    "target": "feature | feature_update",
-    "runKind": "generation | consolidation",
-    "featureContext": {
-        "promptContent": "copied textual Prompt of the (parent) ContextArtifact",
-        "storageObjects": [
-            {
-                "storageObjectId": "...",
-                "assetType": "image",
-                "originalFilename": "...",
-                "original": {
-                    "s3Key": "...",
-                    "s3VersionId": "...",
-                    "mimeType": "...",
-                    "sizeBytes": 123,
-                    "checksumSha256": "..."
-                },
-                "modelInput": {
-                    "s3Key": "...",
-                    "s3VersionId": "...",
-                    "mimeType": "...",
-                    "sizeBytes": 123,
-                    "checksumSha256": "...",
-                    "preparationVersion": "original | document-pdf-v1 | image-v1"
-                }
-            }
-        ],
-        "externalRefs": ["e.g. repo@commit, figma link"]
-    },
-    "updateContext": "same shape as featureContext, or null",
-    "featureValidSpec": {
-        "generatedSpecId": "...",
-        "version": 3,
-        "content": {}
-    },
-    "updatesToIncorporate": [
-        {
-            "featureUpdateId": "...",
-            "generatedSpecId": "...",
-            "version": 2,
-            "title": "...",
-            "content": {}
-        }
-    ],
-    "includeProjectSummary": false
-}
-```
+## Migration guard
 
-Field usage per run kind:
-
-| Field                  | generation (feature) | generation (update)        | consolidation                      |
-| ---------------------- | -------------------- | -------------------------- | ---------------------------------- |
-| `featureContext`       | own context          | parent baseline            | own context                        |
-| `updateContext`        | null                 | update context             | null                               |
-| `featureValidSpec`     | null                 | parent's valid spec if any | feature's valid spec if any        |
-| `updatesToIncorporate` | null                 | null                       | all pending validated update specs |
-
-
-## Open decisions still pending (tracked, not blockers for the ERD)
-
-- `status` enum values for Feature/FeatureUpdate are unresolved. Do not include
-  them in the first migration until the workflow states are explicitly decided.
-- ProjectContextSummary has a defined shape but **no write path yet**; its
-  generation/update flow needs its own ADR before the entity is more than a
-  manually edited text field.
-- Brief, `ContextArtifact.promptContent`, and selected files remain separate
-  model inputs. There is no phase-1 `normalizedContent` or `extractedText`
-  database duplicate (ADR-0029).
+The later forward migration must stop unless FeatureUpdate, update-owned
+context/storage metadata, SpecRun, GeneratedSpec, and legacy LLM log counts are
+zero. It preserves Feature-owned ContextArtifact and StorageObject rows and
+never deletes S3 objects.

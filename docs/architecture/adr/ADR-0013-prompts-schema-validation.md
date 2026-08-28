@@ -2,7 +2,14 @@
 
 Date: 2026-06-02
 
-Status: accepted
+Status: superseded
+
+Superseded by:
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+> Historical record only. Repository-versioned prompts and runtime schema
+> validation remain, but they now apply to analysis findings as defined by
+> ADR-0032.
 
 ## Context
 

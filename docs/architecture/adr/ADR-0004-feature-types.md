@@ -2,7 +2,13 @@
 
 Date: 2026-06-13
 
-Status: Status: superseded by ADR-0020
+Status: superseded
+
+Superseded by: ADR-0020, which is itself superseded by
+[ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Historical record only. Feature has no type or origin discriminator under
+> the current specification-analysis domain.
 
 ## Context
 

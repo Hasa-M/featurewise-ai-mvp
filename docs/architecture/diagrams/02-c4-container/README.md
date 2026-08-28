@@ -2,58 +2,63 @@
 
 ## Purpose
 
-This diagram shows the main runtime containers of the Featurewise MVP and how they communicate.
+This diagram shows the accepted target container architecture for the
+local-first MVP. It preserves the existing React, NestJS, PostgreSQL, and AWS
+S3 boundaries while introducing the analysis application boundary. The
+analysis engine adapter and provider calls are not implemented yet.
 
-Featurewise is implemented as a local-first prototype with a React web app, a NestJS modular monolith backend, PostgreSQL, object storage, and an external LLM provider.
+## Diagram
 
-The diagram focuses on the current MVP architecture. Future integrations are shown only as deferred external systems.
+```mermaid
+C4Container
+  title Featurewise local-first target containers
 
-## Containers
+  Person(user, "Authenticated user", "Manages specifications/context and reviews findings")
 
-### Web App
+  System_Boundary(featurewise, "Featurewise") {
+    Container(console, "Featurewise Console", "React, Vite, TypeScript", "First-party client for Specification, Context, and Analyses workflows")
+    Container(api, "Backend API", "NestJS, TypeScript, REST/JSON", "Modular monolith owning authorization, context lifecycle, analysis application boundary, persistence, and future analyzer orchestration")
+    ContainerDb(db, "PostgreSQL", "PostgreSQL", "Ownership data, editable context, immutable analysis runs, findings, reviews, and call logs")
+    ContainerDb(storage, "Private object storage", "AWS S3", "Immutable original and prepared context objects")
+  }
 
-React + Vite + TypeScript frontend.
+  System_Ext(llm, "External LLM provider", "Future model-provider adapter used only by the backend")
+  System_Ext(integrations, "Deferred context/client adapters", "Jira, Linear, GitHub, Figma, CLI, MCP, or embedded clients")
 
-Provides the main product workflow UI: organization/project setup, feature creation, context intake, generation settings, async generation status, spec review/editing, and Markdown export.
+  Rel(user, console, "Uses", "Browser")
+  Rel(console, api, "Calls first-party adapter", "HTTPS REST/JSON")
+  Rel(console, storage, "Uploads bytes", "Backend-authorized presigned POST")
+  Rel(api, db, "Reads and writes domain state", "Prisma/PostgreSQL")
+  Rel(api, storage, "Confirms, prepares, versions, signs, and cleans objects", "AWS SDK")
+  Rel(api, llm, "Sends prepared context and receives structured findings", "Deferred backend adapter")
+  Rel(integrations, api, "Uses the same application capability", "Future adapters")
+```
+
+## Container responsibilities
+
+### Featurewise Console
+
+The React application is the first-party control plane. Its target Feature
+workspace exposes Specification, Context, and Analyses. It never calls an LLM
+provider directly and does not own analysis business logic.
 
 ### Backend API
 
-NestJS + TypeScript REST API implemented as a modular monolith.
+The NestJS modular monolith owns authentication, tenant/project/feature
+authorization, feature and project context, the private-file lifecycle, and
+the analysis application boundary from ADR-0032. Analysis remains extractable
+behind ports, but no queue, worker, dedicated AI service, or microservice is
+introduced in the MVP.
 
-Owns the product workflow, context intake, context selection, spec generation orchestration, structured spec persistence, review checkpoints, quality checks, Markdown export, LLM calls, and storage access.
+### PostgreSQL and S3
 
-Spec generation is asynchronous from the user perspective, but runs inside the NestJS process in phase 1. No separate worker or queue is included yet.
+PostgreSQL stores relational domain state and immutable analysis metadata. S3
+stores private original and prepared file bytes under immutable, versioned
+keys. PostgreSQL stores their exact keys, versions, checksums, and lifecycle
+metadata; SQL migrations never delete S3 objects.
 
-### PostgreSQL Database
+### External systems
 
-Stores business entities, minimal user records without context metadata, spec runs, generated specs, checkpoint statuses, quality-check results, and LLM call logs.
-
-PostgreSQL is the main persistence, traceability, and audit/logging backbone for the MVP.
-
-### Object Storage
-
-AWS S3-compatible object storage.
-
-Stores uploaded images and raw context artifacts that should not live directly inside PostgreSQL. PostgreSQL stores metadata and object references.
-
-## External Systems
-
-### External LLM Provider
-
-External AI provider, initially likely OpenAI or another cost-effective provider.
-
-The backend sends normalized context, image inputs, prompt instructions, schema version, and generation settings. The provider returns structured draft specification content and usage metadata.
-
-The frontend never calls the LLM provider directly.
-
-### Deferred App Integrations
-
-Future integrations such as Figma, GitHub, Jira, Linear, and Notion are not part of phase 1.
-
-In the MVP, their context is represented through uploaded or pasted artifacts rather than direct integrations.
-
-## Notes
-
-The backend should be structured so that spec generation can later move to a worker or dedicated AI service without changing the core product model.
-
-The implementation-readiness artifact is not a separate container. It is stored as structured data in PostgreSQL and exported as Markdown on demand by the backend.
+The LLM provider and broader integrations are architectural boundaries only
+until real vertical slices implement them. Uploaded or pasted artifacts stand
+in for direct product integrations during the MVP.

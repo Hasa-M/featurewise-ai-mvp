@@ -2,7 +2,13 @@
 
 Date: 2026-05-26
 
-Status: accepted
+Status: superseded
+
+Superseded by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Historical record only. Featurewise no longer produces a canonical
+> GeneratedSpec. Findings are relational, individually addressable analysis
+> output under ADR-0030.
 
 ## Context
 

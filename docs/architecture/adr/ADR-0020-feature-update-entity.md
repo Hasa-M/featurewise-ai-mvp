@@ -2,7 +2,12 @@
 
 Date: 2026-06-12
 
-Status: accepted
+Status: superseded
+
+Superseded by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Historical record only. Feature is now the sole analysis unit;
+> FeatureOrigin and FeatureUpdate are removed by ADR-0030.
 
 Supersedes: ADR-0004, ADR-0005
 

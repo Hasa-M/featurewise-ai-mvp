@@ -2,9 +2,15 @@
 
 Date: 2026-06-13
 
-Status: accepted
+Status: superseded
 
-Amended by: ADR-0021
+Superseded by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+Previously amended by: ADR-0021
+
+> Historical record only. GeneratedSpec drafts, validity, and versions are
+> removed. Model findings are immutable and human responses are append-only
+> FindingReview records under ADR-0030.
 
 ## Context
 
