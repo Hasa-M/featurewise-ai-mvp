@@ -281,6 +281,54 @@ describe('FeaturesService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('reads analysis Feature input only under the resolved Project and Organization', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: featureRecord.id,
+      publicNumber: featureRecord.publicNumber,
+      title: featureRecord.title,
+      specificationContent: featureRecord.specificationContent,
+    });
+    const service = createService(createPrismaMock());
+
+    await expect(
+      service.getAnalysisFeatureInput(
+        { feature: { findFirst } } as never,
+        currentUser,
+        currentUser.projectId,
+        5831,
+      ),
+    ).resolves.toMatchObject({ publicNumber: 5831, title: 'Feature' });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        publicNumber: 5831,
+        deletedAt: null,
+        projectId: currentUser.projectId,
+        project: { organizationId: currentUser.organizationId },
+      },
+      select: {
+        id: true,
+        publicNumber: true,
+        title: true,
+        specificationContent: true,
+      },
+    });
+  });
+
+  it('rejects an inaccessible Feature at the analysis transaction boundary', async () => {
+    const service = createService(createPrismaMock());
+
+    await expect(
+      service.getAnalysisFeatureInput(
+        {
+          feature: { findFirst: jest.fn().mockResolvedValue(null) },
+        } as never,
+        currentUser,
+        currentUser.projectId,
+        9999,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('does not update or delete a Feature outside the visible Project', async () => {
     const prismaMock = createPrismaMock({
       feature: {

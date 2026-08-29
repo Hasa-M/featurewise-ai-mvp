@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AnalysisRunStatus } from '@prisma/client';
+import { AnalysisRunStatus, type Prisma } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey } from '../common/public-identifiers';
@@ -27,6 +27,13 @@ interface FeatureRecord {
   readonly project: {
     readonly publicNumber: number;
   };
+}
+
+export interface AnalysisFeatureInputRecord {
+  readonly id: string;
+  readonly publicNumber: number;
+  readonly title: string;
+  readonly specificationContent: string;
 }
 
 @Injectable()
@@ -193,6 +200,36 @@ export class FeaturesService {
       featurePublicNumber,
       currentUser.projectId,
     );
+  }
+
+  async getAnalysisFeatureInput(
+    transaction: Prisma.TransactionClient,
+    currentUser: CurrentUserContext,
+    projectId: string,
+    featurePublicNumber: number,
+  ): Promise<AnalysisFeatureInputRecord> {
+    const feature = await transaction.feature.findFirst({
+      where: {
+        publicNumber: featurePublicNumber,
+        deletedAt: null,
+        projectId,
+        project: {
+          organizationId: currentUser.organizationId,
+        },
+      },
+      select: {
+        id: true,
+        publicNumber: true,
+        title: true,
+        specificationContent: true,
+      },
+    });
+
+    if (feature === null) {
+      throw new NotFoundException('Feature not found');
+    }
+
+    return feature;
   }
 
   private async getFeatureRecordByPublicNumber(

@@ -42,6 +42,12 @@ identifiers (ADR-0028).
 - [Analysis lifecycle](diagrams/04-sequence-analysis-lifecycle/sequence-diagram.md)
 - [Console navigation](diagrams/05-c4-frontend-navigation/README.md)
 
+## Deferred contracts
+
+- [Analysis HTTP adapter](contracts/deferred-analysis-http-api.md) documents
+  the provisional, explicitly unimplemented REST boundary reserved for the
+  future real analyzer vertical slice.
+
 The C4 diagrams use Mermaid so their source is reviewable with the rest of the
 architecture. The
 [refactor plan](specification-analysis-refactor-plan.md) records which target

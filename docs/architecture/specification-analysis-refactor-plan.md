@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 5 complete; Phase 6 ready
+Status: Phase 6 complete; Phase 7 ready
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -15,8 +15,9 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
 - Phase 2: **complete on 2026-08-28; committed as `d354b53`**.
 - Phase 3: **complete on 2026-08-28; committed as `a96690f`**.
 - Phase 4: **complete on 2026-08-28; committed as `0e6d124`**.
-- Phase 5: **complete on 2026-08-29; uncommitted pending user review**.
-- Phase 6: **ready**. Later phases remain pending and unchanged.
+- Phase 5: **complete on 2026-08-29; committed as `24435bb`**.
+- Phase 6: **complete on 2026-08-29; uncommitted pending user review**.
+- Phase 7: **ready**.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
   generation sequence directory was renamed to `04-sequence-analysis-lifecycle`.
@@ -113,6 +114,43 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
   mutated during the live smoke. The frontend build retains the existing
   oversized lazy-loaded rich-text chunk warning. No required Phase 5 check
   remains blocked.
+- Phase 6 implementation note: a non-executing Analysis module now owns
+  adapter-neutral, versioned application, engine, preparation/evidence, and
+  persistence ports. Immutable input and prepared-context contracts use stable
+  public-key-derived source IDs and source-scoped segment IDs; validation rejects
+  missing, cross-source, and cross-snapshot evidence. No controller, analyzer,
+  adapter, prompt, provider, retry, verification, queue, worker, or frontend
+  execution surface was added.
+- Phase 6 snapshot note: the Analysis input-capture service coordinates only
+  public Workspace, Features, and Context module APIs inside one transaction.
+  Missing ProjectContext is captured deterministically as `null` without creating
+  a row. Only selected, ready, non-purge-requested files are captured with their
+  exact original/prepared immutable keys, version IDs, checksums, MIME types,
+  sizes, and preparation versions. `StorageObject.firstUsedAt` is set only while
+  null in the same transaction; repeat and concurrent capture preserve the first
+  timestamp. No file body is read and no AnalysisRun is created.
+- Phase 6 HTTP contract note: the architecture contract index now links a
+  provisional start, status/history, findings, and finding-review REST document.
+  Every operation and response shape is explicitly deferred, unimplemented, and
+  public-key-only.
+- Phase 6 verification: Prisma validation passed with no schema or migration
+  diff. Focused analysis/context/workspace/feature tests passed (41/41), backend
+  unit tests passed (74/74), backend end-to-end tests passed (3/3), strict
+  TypeScript checking passed, and backend lint/build passed. Frontend tests passed
+  (343/343), and frontend lint/build passed. Contract-import, route/frontend
+  surface, public-identifier, dependency, migration, historical architecture,
+  and strict-scope audits passed; `git diff --check` passed. Storybook was not run
+  because no story changed.
+- Phase 6 PostgreSQL smoke: all five migrations deployed to a fresh disposable
+  database. Real transaction coverage passed for exact snapshot values,
+  selected/ready filtering, immutable captured values, missing ProjectContext,
+  organization/feature ownership, first-use set-once behavior, and concurrent
+  capture. The database was verified current and removed afterward.
+- Phase 6 environmental notes: the configured development database remains one
+  migration behind and was deliberately left untouched. The disposable database
+  was administered through Prisma because `psql` is unavailable. The frontend
+  build retains the existing oversized lazy-loaded rich-text chunk warning. No
+  required Phase 6 check remains blocked.
 
 
 ## 1. Outcome and locked decisions
@@ -693,7 +731,7 @@ Dependencies: Phase 3. This commit removes the temporary `brief`/origin mapping 
 
 ### Phase 5 — `feat(context): add editable project context`
 
-Status: **complete on 2026-08-29; uncommitted pending user review**
+Status: **complete on 2026-08-29; committed as `24435bb`**
 
 Purpose: expose the project-level text input required by future analysis.
 
@@ -717,7 +755,7 @@ Dependencies: Phase 4 creates/renames the target table. It can be developed inde
 
 ### Phase 6 — `refactor(analysis): establish reproducible engine inputs`
 
-Status: **ready; do not start until Phase 5 is reviewed and committed**
+Status: **complete on 2026-08-29; uncommitted pending user review**
 
 Purpose: define and test the boundary required by the later analyzer without implementing the analyzer or HTTP execution routes.
 
@@ -741,6 +779,8 @@ Checks:
 Dependencies: Phase 4 for analysis persistence and Phase 5 for project context.
 
 ### Phase 7 — `test(ui): align fixtures with analysis terminology`
+
+Status: **ready; do not start until Phase 6 is reviewed and committed**
 
 Purpose: final repository-wide removal of executable old-domain assumptions and a regression pass. Most tests change with their owning phase; this commit is only for cross-cutting fixtures, stories, or snapshots that could not move earlier cleanly.
 
@@ -808,12 +848,13 @@ No unresolved decision blocks the first implementation task. The following must 
 
 ## 14. Exact suggested next implementation task
 
-Phase 5 is complete and awaiting user review on the existing
+Phase 6 is complete and awaiting user review on the existing
 `refactor/specification-analysis-engine` branch. Do not create a commit
-automatically and do not begin Phase 6 without confirmation.
+automatically and do not begin Phase 7 without confirmation.
 
-After approval and a Phase 5 commit, the next task is exactly Phase 6: establish
-the reproducible analysis application, engine-input, snapshot, and evidence
-contracts without implementing analysis HTTP execution routes or analyzer,
-provider, prompt, retry, verification, deduplication, queue, worker, or findings
-UI behavior.
+After approval and a Phase 6 commit, the next task is exactly Phase 7: remove any
+remaining executable old-domain assumptions from cross-cutting fixtures, stories,
+test helpers, or current documentation examples, then run the final repository
+regression pass. Analyzer, provider/model selection, prompt, retry, verification,
+deduplication, evaluation, queue, worker, and analysis UI behavior remain out of
+scope.

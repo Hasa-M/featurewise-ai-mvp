@@ -121,6 +121,55 @@ describe('WorkspaceService', () => {
     );
   });
 
+  it('reads nullable ProjectContext through the authorized transaction boundary', async () => {
+    const transaction = {
+      project: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: project.id,
+          publicNumber: project.publicNumber,
+          context: null,
+        }),
+      },
+    };
+    const service = new WorkspaceService({} as PrismaService);
+
+    await expect(
+      service.getAnalysisProjectInput(transaction as never, currentUser, 204),
+    ).resolves.toEqual({
+      id: project.id,
+      publicNumber: project.publicNumber,
+      context: null,
+    });
+    expect(transaction.project.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: currentUser.organizationId,
+        id: currentUser.projectId,
+        publicNumber: 204,
+      },
+      select: {
+        id: true,
+        publicNumber: true,
+        context: {
+          select: { publicNumber: true, content: true },
+        },
+      },
+    });
+  });
+
+  it('rejects inaccessible Projects at the analysis transaction boundary', async () => {
+    const service = new WorkspaceService({} as PrismaService);
+
+    await expect(
+      service.getAnalysisProjectInput(
+        {
+          project: { findFirst: jest.fn().mockResolvedValue(null) },
+        } as never,
+        currentUser,
+        999,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('lists Projects under a public Organization key without exposing UUIDs', async () => {
     const findMany = jest
       .fn()

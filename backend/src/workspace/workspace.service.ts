@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey } from '../common/public-identifiers';
@@ -31,6 +32,15 @@ interface ProjectContextRecord {
   readonly content: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+}
+
+export interface AnalysisProjectInputRecord {
+  readonly id: string;
+  readonly publicNumber: number;
+  readonly context: {
+    readonly publicNumber: number;
+    readonly content: string;
+  } | null;
 }
 
 @Injectable()
@@ -123,6 +133,36 @@ export class WorkspaceService {
         organizationId: currentUser.organizationId,
         id: currentUser.projectId,
         publicNumber: projectPublicNumber,
+      },
+    });
+
+    if (project === null) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return project;
+  }
+
+  async getAnalysisProjectInput(
+    transaction: Prisma.TransactionClient,
+    currentUser: CurrentUserContext,
+    projectPublicNumber: number,
+  ): Promise<AnalysisProjectInputRecord> {
+    const project = await transaction.project.findFirst({
+      where: {
+        organizationId: currentUser.organizationId,
+        id: currentUser.projectId,
+        publicNumber: projectPublicNumber,
+      },
+      select: {
+        id: true,
+        publicNumber: true,
+        context: {
+          select: {
+            publicNumber: true,
+            content: true,
+          },
+        },
       },
     });
 

@@ -163,7 +163,7 @@ describe('ContextService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('snapshots exact immutable file versions and records first use', async () => {
+  it('captures exact immutable file versions and records first use once', async () => {
     const { service } = createService();
     const updateMany = jest
       .fn<
@@ -179,43 +179,40 @@ describe('ContextService', () => {
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
       contextArtifact: {
-        findUnique: jest.fn().mockResolvedValue({
-          ...contextArtifact,
-          feature: {
-            specificationContent: 'Reduce checkout friction.',
-            title: 'New checkout',
-          },
-          storageObjects: [
-            {
-              ...readyFile,
-              checksumSha256: 'checksum-original',
-              preparationVersion: 'original',
-              preparedChecksumSha256: null,
-              preparedMimeType: null,
-              preparedSizeBytes: null,
-            },
-          ],
-        }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ id: contextArtifact.id })
+          .mockResolvedValueOnce({
+            ...contextArtifact,
+            storageObjects: [
+              {
+                ...readyFile,
+                checksumSha256: 'checksum-original',
+                preparationVersion: 'original',
+                preparedChecksumSha256: null,
+                preparedMimeType: null,
+                preparedSizeBytes: null,
+              },
+            ],
+          }),
       },
       storageObject: { updateMany },
     } as unknown as Prisma.TransactionClient;
+    const capturedAt = new Date('2026-08-29T12:00:00.000Z');
 
     await expect(
-      service.buildContextArtifactSnapshot(transaction, contextArtifact.id),
+      service.captureAnalysisContextInput(
+        transaction,
+        featureRecord.id,
+        capturedAt,
+      ),
     ).resolves.toEqual({
-      specificationContent: 'Reduce checkout friction.',
+      publicNumber: 19,
       content: 'Current context',
-      storageObjects: [
+      files: [
         {
           assetType: AssetType.file,
-          modelInput: {
-            checksumSha256: 'checksum-original',
-            mimeType: 'application/pdf',
-            preparationVersion: 'original',
-            s3Key: 'original',
-            s3VersionId: 'version-1',
-            sizeBytes: 1024,
-          },
+          filename: 'design.pdf',
           original: {
             checksumSha256: 'checksum-original',
             mimeType: 'application/pdf',
@@ -223,21 +220,95 @@ describe('ContextService', () => {
             s3VersionId: 'version-1',
             sizeBytes: 1024,
           },
-          originalFilename: 'design.pdf',
-          storageObjectId: readyFile.id,
+          preparationVersion: 'original',
+          prepared: null,
+          publicNumber: 42,
         },
       ],
-      title: 'New checkout',
     });
     const updateManyArgument = updateMany.mock.calls[0]?.[0];
     expect(updateManyArgument).toMatchObject({
       where: {
-        id: readyFile.id,
+        id: { in: [readyFile.id] },
+        firstUsedAt: null,
         purgeRequestedAt: null,
         selected: true,
         status: StorageObjectStatus.ready,
       },
     });
-    expect(updateManyArgument?.data?.firstUsedAt).toBeInstanceOf(Date);
+    expect(updateManyArgument?.data?.firstUsedAt).toBe(capturedAt);
+  });
+
+  it('preserves an existing firstUsedAt timestamp during capture', async () => {
+    const { service } = createService();
+    const existingFirstUse = new Date('2026-08-28T10:00:00.000Z');
+    const updateMany = jest.fn();
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
+      contextArtifact: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ id: contextArtifact.id })
+          .mockResolvedValueOnce({
+            ...contextArtifact,
+            storageObjects: [
+              {
+                ...readyFile,
+                firstUsedAt: existingFirstUse,
+                checksumSha256: 'checksum-original',
+                preparationVersion: 'original',
+                preparedChecksumSha256: null,
+                preparedMimeType: null,
+                preparedSizeBytes: null,
+              },
+            ],
+          }),
+      },
+      storageObject: { updateMany },
+    } as unknown as Prisma.TransactionClient;
+
+    await service.captureAnalysisContextInput(
+      transaction,
+      featureRecord.id,
+      new Date(),
+    );
+
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('filters capture to selected ready non-purging files in public-number order', async () => {
+    const { service } = createService();
+    const findUnique = jest
+      .fn()
+      .mockResolvedValueOnce({ id: contextArtifact.id })
+      .mockResolvedValueOnce({
+        ...contextArtifact,
+        storageObjects: [],
+      });
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ result: 1 }]),
+      contextArtifact: { findUnique },
+      storageObject: { updateMany: jest.fn() },
+    } as unknown as Prisma.TransactionClient;
+
+    await service.captureAnalysisContextInput(
+      transaction,
+      featureRecord.id,
+      new Date(),
+    );
+
+    expect(findUnique).toHaveBeenNthCalledWith(2, {
+      where: { id: contextArtifact.id },
+      include: {
+        storageObjects: {
+          where: {
+            purgeRequestedAt: null,
+            selected: true,
+            status: StorageObjectStatus.ready,
+          },
+          orderBy: { publicNumber: 'asc' },
+        },
+      },
+    });
   });
 });

@@ -52,6 +52,31 @@ export interface StorageObjectResponse {
   readonly updatedAt: Date;
 }
 
+export interface AnalysisContextInputRecord {
+  readonly publicNumber: number;
+  readonly content: string;
+  readonly files: readonly {
+    readonly publicNumber: number;
+    readonly assetType: 'file' | 'image';
+    readonly filename: string;
+    readonly preparationVersion: string;
+    readonly original: {
+      readonly s3Key: string;
+      readonly s3VersionId: string;
+      readonly checksumSha256: string;
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+    };
+    readonly prepared: {
+      readonly s3Key: string;
+      readonly s3VersionId: string;
+      readonly checksumSha256: string;
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+    } | null;
+  }[];
+}
+
 @Injectable()
 export class ContextService {
   constructor(
@@ -407,24 +432,32 @@ export class ContextService {
     void this.purgeStorageObjectBytes(purgeCandidate).catch(() => undefined);
   }
 
-  async buildContextArtifactSnapshot(
+  async captureAnalysisContextInput(
     transaction: Prisma.TransactionClient,
-    contextArtifactId: string,
-  ) {
+    featureId: string,
+    capturedAt: Date,
+  ): Promise<AnalysisContextInputRecord> {
+    const owner = await transaction.contextArtifact.findUnique({
+      where: { featureId },
+      select: { id: true },
+    });
+
+    if (owner === null) {
+      throw new NotFoundException('Feature context not found');
+    }
+
+    const contextArtifactId = owner.id;
     await this.lockContextArtifact(transaction, contextArtifactId);
     const contextArtifact = await transaction.contextArtifact.findUnique({
       where: { id: contextArtifactId },
       include: {
-        feature: {
-          select: { specificationContent: true, title: true },
-        },
         storageObjects: {
           where: {
             purgeRequestedAt: null,
             selected: true,
             status: StorageObjectStatus.ready,
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { publicNumber: 'asc' },
         },
       },
     });
@@ -433,47 +466,57 @@ export class ContextService {
       throw new NotFoundException('Context not found');
     }
 
-    const now = new Date();
-    const fileIds = contextArtifact.storageObjects.map((file) => file.id);
+    const unusedFileIds = contextArtifact.storageObjects
+      .filter((file) => file.firstUsedAt === null)
+      .map((file) => file.id);
 
-    if (fileIds.length > 0) {
-      const markedUsed = await Promise.all(
-        contextArtifact.storageObjects.map((file) =>
-          transaction.storageObject.updateMany({
-            where: {
-              id: file.id,
-              purgeRequestedAt: null,
-              selected: true,
-              status: StorageObjectStatus.ready,
-            },
-            data: { firstUsedAt: file.firstUsedAt ?? now },
-          }),
-        ),
-      );
+    if (unusedFileIds.length > 0) {
+      const markedUsed = await transaction.storageObject.updateMany({
+        where: {
+          id: { in: unusedFileIds },
+          firstUsedAt: null,
+          purgeRequestedAt: null,
+          selected: true,
+          status: StorageObjectStatus.ready,
+        },
+        data: { firstUsedAt: capturedAt },
+      });
 
-      if (markedUsed.some((result) => result.count !== 1)) {
+      if (markedUsed.count !== unusedFileIds.length) {
         throw new ConflictException(
           'Context files changed while the snapshot was being created',
         );
       }
     }
 
-    const storageObjects = contextArtifact.storageObjects.map((file) => {
+    const files = contextArtifact.storageObjects.map((file) => {
       if (file.s3VersionId === null || file.preparationVersion === null) {
         throw new ConflictException('Ready file metadata is incomplete');
       }
 
-      const usesPrepared =
-        file.preparedS3Key !== null &&
-        file.preparedS3VersionId !== null &&
-        file.preparedMimeType !== null &&
-        file.preparedSizeBytes !== null &&
-        file.preparedChecksumSha256 !== null;
+      const preparedValues = [
+        file.preparedS3Key,
+        file.preparedS3VersionId,
+        file.preparedMimeType,
+        file.preparedSizeBytes,
+        file.preparedChecksumSha256,
+      ];
+      const hasPreparedMetadata = preparedValues.some(
+        (value) => value !== null,
+      );
+      const hasCompletePreparedMetadata = preparedValues.every(
+        (value) => value !== null,
+      );
+
+      if (hasPreparedMetadata && !hasCompletePreparedMetadata) {
+        throw new ConflictException('Ready file metadata is incomplete');
+      }
 
       return {
-        storageObjectId: file.id,
+        publicNumber: file.publicNumber,
         assetType: file.assetType,
-        originalFilename: file.originalFilename,
+        filename: file.originalFilename,
+        preparationVersion: file.preparationVersion,
         original: {
           s3Key: file.s3Key,
           s3VersionId: file.s3VersionId,
@@ -481,41 +524,22 @@ export class ContextService {
           sizeBytes: Number(file.sizeBytes),
           checksumSha256: file.checksumSha256,
         },
-        modelInput: usesPrepared
+        prepared: hasCompletePreparedMetadata
           ? {
-              s3Key: file.preparedS3Key,
-              s3VersionId: file.preparedS3VersionId,
-              mimeType: file.preparedMimeType,
+              s3Key: file.preparedS3Key as string,
+              s3VersionId: file.preparedS3VersionId as string,
+              mimeType: file.preparedMimeType as string,
               sizeBytes: Number(file.preparedSizeBytes),
-              checksumSha256: file.preparedChecksumSha256,
-              preparationVersion: file.preparationVersion,
+              checksumSha256: file.preparedChecksumSha256 as string,
             }
-          : {
-              s3Key: file.s3Key,
-              s3VersionId: file.s3VersionId,
-              mimeType: file.mimeType,
-              sizeBytes: Number(file.sizeBytes),
-              checksumSha256: file.checksumSha256,
-              preparationVersion: file.preparationVersion,
-            },
+          : null,
       };
     });
-    const modelInputBytes = storageObjects.reduce(
-      (total, file) => total + file.modelInput.sizeBytes,
-      0,
-    );
-
-    if (modelInputBytes > 50 * 1024 * 1024) {
-      throw new UnprocessableEntityException(
-        'Selected files exceed the model provider combined input limit',
-      );
-    }
 
     return {
-      title: contextArtifact.feature.title,
-      specificationContent: contextArtifact.feature.specificationContent,
+      publicNumber: contextArtifact.publicNumber,
       content: contextArtifact.content,
-      storageObjects,
+      files,
     };
   }
 
