@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Radio group',
   component: RadioGroup,
   args: {
-    label: 'Finding severity',
+    label: 'Notification level',
   },
   argTypes: {
     clearable: { control: 'boolean' },
@@ -43,11 +43,11 @@ export const Default: Story = {
   args: {
     children: (
       <>
-        <Radio label="High" value="high" />
-        <Radio label="Medium" value="medium" />
+        <Radio label="All activity" value="all" />
+        <Radio label="Important only" value="important" />
       </>
     ),
-    defaultValue: 'high',
+    defaultValue: 'all',
   },
 };
 
@@ -55,11 +55,12 @@ export const Horizontal: Story = {
   args: {
     children: (
       <>
-        <Radio label="Specification" value="specification" />
-        <Radio label="Supporting context" value="context" />
+        <Radio label="Compact" value="compact" />
+        <Radio label="Comfortable" value="comfortable" />
       </>
     ),
-    defaultValue: 'specification',
+    defaultValue: 'compact',
+    label: 'Display density',
     orientation: 'horizontal',
   },
 };
@@ -69,20 +70,20 @@ export const Cards: Story = {
     children: (
       <>
         <RadioCard
-          description="Check the user-authored specification."
-          label="Specification"
-          value="specification"
+          description="Show each item in a compact row."
+          label="List"
+          value="list"
         />
         <RadioCard
-          description="Check supporting notes and uploaded files."
-          label="Context"
-          value="context"
+          description="Show each item in a visual card."
+          label="Cards"
+          value="cards"
         />
       </>
     ),
-    defaultValue: 'specification',
-    description: 'Choose which input surface to inspect.',
-    label: 'Analysis source',
+    defaultValue: 'list',
+    description: 'Choose how example items are displayed.',
+    label: 'Layout',
   },
 };
 
@@ -90,13 +91,13 @@ export const Clearable: Story = {
   args: {
     children: (
       <>
-        <RadioCard label="Ready" value="ready" />
-        <RadioCard label="Needs attention" value="needs-attention" />
+        <RadioCard label="Documentation" value="documentation" />
+        <RadioCard label="Design" value="design" />
       </>
     ),
     clearable: true,
-    defaultValue: 'ready',
-    label: 'Readiness filter',
+    defaultValue: 'documentation',
+    label: 'Category filter',
   },
 };
 
@@ -104,12 +105,12 @@ export const NoSelection: Story = {
   args: {
     children: (
       <>
-        <Radio label="Ready" value="ready" />
-        <Radio label="Blocked" value="blocked" />
+        <Radio label="Documentation" value="documentation" />
+        <Radio label="Design" value="design" />
       </>
     ),
     clearable: true,
-    label: 'Readiness filter',
+    label: 'Category filter',
   },
 };
 
@@ -118,19 +119,19 @@ export const Disabled: Story = {
     children: (
       <>
         <RadioCard
-          description="This target is already selected."
-          label="Specification"
-          value="specification"
+          description="Show each item in a compact row."
+          label="List"
+          value="list"
         />
         <RadioCard
-          description="Context selection is unavailable."
-          label="Context"
-          value="context"
+          description="Show each item in a visual card."
+          label="Cards"
+          value="cards"
         />
       </>
     ),
-    defaultValue: 'specification',
+    defaultValue: 'list',
     disabled: true,
-    label: 'Analysis source',
+    label: 'Layout',
   },
 };

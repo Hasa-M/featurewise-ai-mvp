@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 6 complete; Phase 7 ready
+Status: Phase 7 complete; refactor sequence complete
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -16,8 +16,8 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
 - Phase 3: **complete on 2026-08-28; committed as `a96690f`**.
 - Phase 4: **complete on 2026-08-28; committed as `0e6d124`**.
 - Phase 5: **complete on 2026-08-29; committed as `24435bb`**.
-- Phase 6: **complete on 2026-08-29; uncommitted pending user review**.
-- Phase 7: **ready**.
+- Phase 6: **complete on 2026-08-29; committed as `f687a8a`**.
+- Phase 7: **complete and user-confirmed on 2026-08-29 after successful manual testing**.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
   generation sequence directory was renamed to `04-sequence-analysis-lifecycle`.
@@ -151,6 +151,42 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
   was administered through Prisma because `psql` is unavailable. The frontend
   build retains the existing oversized lazy-loaded rich-text chunk warning. No
   required Phase 6 check remains blocked.
+- Phase 7 implementation note: current-facing root/backend/architecture indexes
+  now describe the completed domain refactor and the non-executing analysis
+  boundary. Cross-cutting frontend examples, stories, fixtures, and component
+  tests now use the current Specification, Context, and Analyses workspace shape,
+  public keys, or clearly generic component data. Removed generated-spec,
+  selectable-analysis-source, confidence-policy, readiness-projection, nested
+  analysis-navigation, and fake findings/settings behavior is no longer implied.
+  No runtime page behavior, analysis API/query/cache surface, dependency, schema,
+  migration, S3 lifecycle, or Phase 1-6 implementation was changed.
+- Phase 7 verification: focused frontend fixture/component tests passed (79/79),
+  the full frontend suite passed (343/343), and frontend lint/build passed.
+  Storybook browser tests passed (155/155) and the Storybook build passed. Focused
+  Phase 6 analysis/context/workspace/feature tests passed (41/41), backend unit
+  tests passed (74/74), backend end-to-end tests passed (3/3), and backend
+  lint/build passed. Prisma validation passed. All five migrations deployed to a
+  fresh disposable PostgreSQL database, where the Phase 6 transaction suite
+  passed (2/2); the database was removed afterward. Public-identifier,
+  UUID-leakage, route/frontend-surface, dependency, schema/migration,
+  analyzer-infrastructure, and protected-file audits passed, as did
+  `git diff --check`.
+- Phase 7 retained-terminology classification: superseded ADR titles and bodies
+  remain historical records; old migrations retain the schema they originally
+  applied; ADR-0030 through ADR-0032, the accepted diagrams, and this plan retain
+  explicit removal and guarded-migration statements; the deferred HTTP contract
+  retains start/status/findings/review language while marking every operation
+  unimplemented. Generic CRUD updates, immutable S3 original-object metadata,
+  CSS/table alignment, source provenance/origin wording, generated client/React
+  IDs, and ordinary HTTP retry behavior are unrelated to the removed domain and
+  remain unchanged.
+- Phase 7 environmental notes: the configured development database is reachable
+  but remains one migration behind and was deliberately not mutated. Prisma's
+  filesystem-only `migrate diff --from-migrations` check is unavailable because
+  this repository has no `migration_lock.toml`; tracked Prisma files have no diff,
+  Prisma validation passes, and a fresh deployment of all migrations succeeds.
+  Frontend and Storybook builds retain their existing oversized rich-text chunk
+  warning. No required Phase 7 check remains blocked.
 
 
 ## 1. Outcome and locked decisions
@@ -171,9 +207,9 @@ The following decisions were established while preparing this plan:
 - During this refactor, define the application and engine boundaries and the future HTTP contracts. Do not add fake start/poll/findings endpoints before the real analyzer can back them.
 - Do not design the analyzer, verifier, prompts, provider implementation, or eval harness beyond the interfaces the application refactor needs.
 
-## 2. Current repository state
+## 2. Baseline repository state before Phase 1
 
-The repository is clean on `main`. The merged implementation is materially smaller than the old ADR set suggests:
+When planning began, the repository was clean on `main`. The merged implementation at that baseline was materially smaller than the old ADR set suggested:
 
 - Prisma contains the old complete persistence model: `FeatureOrigin`, `FeatureUpdate`, `SpecRun`, `GeneratedSpec`, generation/consolidation states, generated-spec versioning, and alignment data.
 - No production generation module, SpecRun controller, GeneratedSpec controller, analyzer, prompt pipeline, or LLM provider implementation exists. The legacy product is therefore mostly schema, projections, documentation, and UI terminology rather than a working generation subsystem.
@@ -755,7 +791,7 @@ Dependencies: Phase 4 creates/renames the target table. It can be developed inde
 
 ### Phase 6 — `refactor(analysis): establish reproducible engine inputs`
 
-Status: **complete on 2026-08-29; uncommitted pending user review**
+Status: **complete on 2026-08-29; committed as `f687a8a`**
 
 Purpose: define and test the boundary required by the later analyzer without implementing the analyzer or HTTP execution routes.
 
@@ -780,7 +816,7 @@ Dependencies: Phase 4 for analysis persistence and Phase 5 for project context.
 
 ### Phase 7 — `test(ui): align fixtures with analysis terminology`
 
-Status: **ready; do not start until Phase 6 is reviewed and committed**
+Status: **complete and user-confirmed on 2026-08-29 after successful manual testing**
 
 Purpose: final repository-wide removal of executable old-domain assumptions and a regression pass. Most tests change with their owning phase; this commit is only for cross-cutting fixtures, stories, or snapshots that could not move earlier cleanly.
 
@@ -813,7 +849,7 @@ Phase 1 architecture ADRs/docs
 
 Phase 3 must precede Phase 4 so users do not see deleted database concepts after the migration. Phase 4 must atomically remove the compatibility mapping. Phase 6 waits for project context because its snapshot contract must capture the real editable source rather than a placeholder.
 
-After Phase 7, the repository is stable for separate work on analyzer v0, finding verification, evals, and finally real analysis endpoints/Console workflows.
+The refactor sequence is complete. The repository is stable for separately scoped future work on analyzer v0, finding verification, evals, and finally real analysis endpoints/Console workflows.
 
 ## 12. Risky intermediate states and mitigations
 
@@ -848,13 +884,10 @@ No unresolved decision blocks the first implementation task. The following must 
 
 ## 14. Exact suggested next implementation task
 
-Phase 6 is complete and awaiting user review on the existing
-`refactor/specification-analysis-engine` branch. Do not create a commit
-automatically and do not begin Phase 7 without confirmation.
+Phase 7 is complete and user-confirmed after successful manual testing on the
+`refactor/specification-analysis-engine` branch.
 
-After approval and a Phase 6 commit, the next task is exactly Phase 7: remove any
-remaining executable old-domain assumptions from cross-cutting fixtures, stories,
-test helpers, or current documentation examples, then run the final repository
-regression pass. Analyzer, provider/model selection, prompt, retry, verification,
-deduplication, evaluation, queue, worker, and analysis UI behavior remain out of
-scope.
+The seven-phase specification-analysis refactor is complete. Analyzer v0 and any
+provider/model selection, prompt, retry, verification, deduplication, evaluation,
+queue, worker, analysis endpoint, or findings/review UI work requires a separate
+scope and must not begin automatically.

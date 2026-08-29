@@ -2,22 +2,22 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { RichText } from './RichText';
 
-const sampleMarkdown = `## Export findings report
+const sampleMarkdown = `## Offline access
 
-Users need to export **analysis findings** as Markdown so they can share them with implementation teams.
+Users need to keep working when their connection is temporarily unavailable.
 
-- Preserve headings and lists
-- Include readiness warnings
-- Keep structured identifiers in \`inline code\`
+- Preserve locally saved changes
+- Show connection status clearly
+- Resume synchronization when connectivity returns
 
-> Export reflects the selected analysis run.`;
+> Supporting context is maintained separately from this specification.`;
 
 const meta = {
   title: 'Shared/Rich text',
   component: RichText,
   args: {
-    label: 'Feature context',
-    placeholder: 'Describe the feature context',
+    label: 'Feature specification',
+    placeholder: 'Describe the feature behavior',
   },
   argTypes: {
     disabled: { control: 'boolean' },

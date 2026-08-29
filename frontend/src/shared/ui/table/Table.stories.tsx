@@ -1,16 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
-  CircleGauge,
   Clock3,
   FileText,
-  FolderArchive,
   MoreHorizontal,
 } from 'lucide-react';
 import { useState } from 'react';
 import { fn } from 'storybook/test';
 
 import { Button } from '../button';
-import { Tag } from '../tag';
 import {
   Table,
   TableCellContent,
@@ -20,44 +17,32 @@ import {
 } from './Table';
 
 type FeatureRow = {
-  artifacts: number;
-  id: string;
-  name: string;
-  category: 'commerce' | 'developer_tools' | 'collaboration';
-  readiness: 'Ready' | 'Needs attention' | 'Draft';
-  summary: string;
+  publicKey: string;
+  specification: string;
+  title: string;
   updatedAt: string;
   updatedLabel: string;
 };
 
 const featureRows: readonly FeatureRow[] = [
   {
-    artifacts: 5,
-    id: 'feature_checkout',
-    name: 'Checkout recovery',
-    category: 'commerce',
-    readiness: 'Ready',
-    summary: 'Recover interrupted payment sessions.',
+    publicKey: 'FEAT-5831',
+    specification: 'Recover interrupted payment sessions.',
+    title: 'Checkout recovery',
     updatedAt: '2026-07-28T08:14:00Z',
     updatedLabel: '28 Jul 2026, 10:14',
   },
   {
-    artifacts: 2,
-    id: 'feature_import',
-    name: 'Repository context import',
-    category: 'developer_tools',
-    readiness: 'Needs attention',
-    summary: 'Map uploaded source archives into context.',
+    publicKey: 'FEAT-5832',
+    specification: 'Attach source archives as supporting context.',
+    title: 'Repository context import',
     updatedAt: '2026-07-26T15:42:00Z',
     updatedLabel: '26 Jul 2026, 17:42',
   },
   {
-    artifacts: 0,
-    id: 'feature_export',
-    name: 'Markdown export',
-    category: 'collaboration',
-    readiness: 'Draft',
-    summary: 'Export the current feature specification.',
+    publicKey: 'FEAT-5833',
+    specification: 'Export the current feature specification.',
+    title: 'Markdown export',
     updatedAt: '2026-07-24T12:05:00Z',
     updatedLabel: '24 Jul 2026, 14:05',
   },
@@ -68,9 +53,9 @@ const featureColumns = [
     cell: (row) => (
       <TableCellContent
         leadingIcon={<FileText />}
-        supportingText={row.summary}
+        supportingText={row.specification}
       >
-        {row.name}
+        {row.title}
       </TableCellContent>
     ),
     header: 'Feature',
@@ -82,29 +67,13 @@ const featureColumns = [
     sortLabel: 'Feature',
   },
   {
-    cell: (row) => row.category,
-    header: 'Category',
-    id: 'category',
+    cell: (row) => row.publicKey,
+    header: 'Public key',
+    id: 'publicKey',
     minWidth: '10rem',
     sortable: true,
-    sortLabel: 'Category',
+    sortLabel: 'Public key',
     technical: true,
-  },
-  {
-    align: 'center',
-    cell: (row) => row.readiness,
-    header: 'Readiness',
-    headerIcon: <CircleGauge />,
-    id: 'readiness',
-    minWidth: '9rem',
-  },
-  {
-    align: 'center',
-    cell: (row) => <Tag>{`${row.artifacts} artifacts`}</Tag>,
-    header: 'Context',
-    headerIcon: <FolderArchive />,
-    id: 'artifacts',
-    minWidth: '8rem',
   },
   {
     cell: (row) => (
@@ -120,8 +89,8 @@ const featureColumns = [
   {
     align: 'end',
     cell: (row) => (
-      <a aria-label={`Review ${row.name}`} href={`#${row.id}`}>
-        Review
+      <a aria-label={`Open ${row.title}`} href={`#${row.publicKey}`}>
+        Open
       </a>
     ),
     header: 'Action',
@@ -136,10 +105,10 @@ const meta = {
   title: 'Shared/Table',
   component: FeatureTable,
   args: {
-    caption: 'Feature readiness',
+    caption: 'Features',
     columns: featureColumns,
     emptyContent: 'No features yet.',
-    getRowKey: (row) => row.id,
+    getRowKey: (row) => row.publicKey,
     onSortChange: fn(),
     rows: featureRows,
   },
@@ -172,11 +141,11 @@ function SortableTableStory(args: TableProps<FeatureRow>) {
       return left.updatedAt.localeCompare(right.updatedAt) * direction;
     }
 
-    if (sort.columnId === 'category') {
-      return left.category.localeCompare(right.category) * direction;
+    if (sort.columnId === 'publicKey') {
+      return left.publicKey.localeCompare(right.publicKey) * direction;
     }
 
-    return left.name.localeCompare(right.name) * direction;
+    return left.title.localeCompare(right.title) * direction;
   });
 
   return (
@@ -199,10 +168,10 @@ const buttonActionColumns = [
     align: 'end',
     cell: (row: FeatureRow) => (
       <Button
-        aria-label={`Open actions for ${row.name}`}
+        aria-label={`Open actions for ${row.title}`}
         isIcon
         size='small'
-        title={`Open actions for ${row.name}`}
+        title={`Open actions for ${row.title}`}
         variant='ghost'
       >
         <MoreHorizontal aria-hidden='true' size={16} strokeWidth={1.75} />

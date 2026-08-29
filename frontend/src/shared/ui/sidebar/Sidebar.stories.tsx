@@ -9,10 +9,10 @@ import {
 import type { SidebarNodeItem } from './Sidebar';
 
 function createNodes({
-  authenticationOpen = false,
+  featureOpen = false,
   projectsOpen,
 }: {
-  authenticationOpen?: boolean;
+  featureOpen?: boolean;
   projectsOpen?: boolean;
 } = {}): readonly SidebarNodeItem[] {
   return [
@@ -31,36 +31,9 @@ function createNodes({
               },
               children: [
                 {
-                  children: [
-                    {
-                      addAction: {
-                        'aria-label': 'Start authentication analysis',
-                        href: '#analyze-authentication',
-                      },
-                      children: [
-                        {
-                          href: '#authentication-v2',
-                          id: 'authentication-v2',
-                          label: 'Analysis 2',
-                          type: 'leaf',
-                        },
-                        {
-                          href: '#authentication-v1',
-                          id: 'authentication-v1',
-                          label: 'Analysis 1',
-                          type: 'leaf',
-                        },
-                      ],
-                      id: 'authentication-analyses',
-                      label: 'Analyses',
-                      listAction: {
-                        'aria-label': 'View authentication analyses',
-                        href: '#authentication-analyses',
-                      },
-                      type: 'node',
-                    },
-                  ],
-                  defaultOpen: authenticationOpen,
+                  children: [],
+                  defaultOpen: featureOpen,
+                  emptyMessage: 'No feature sections yet',
                   id: 'authentication',
                   label: 'Authentication workflow',
                   menuAction: {
@@ -74,23 +47,8 @@ function createNodes({
                   type: 'group',
                 },
                 {
-                  children: [
-                    {
-                      addAction: {
-                        'aria-label': 'Start offline sync analysis',
-                        href: '#analyze-offline-sync',
-                      },
-                      children: [],
-                      emptyMessage: 'No analyses yet',
-                      id: 'offline-sync-analyses',
-                      label: 'Analyses',
-                      listAction: {
-                        'aria-label': 'View offline sync analyses',
-                        href: '#offline-sync-analyses',
-                      },
-                      type: 'node',
-                    },
-                  ],
+                  children: [],
+                  emptyMessage: 'No feature sections yet',
                   id: 'offline-sync',
                   label: 'Offline sync',
                   menuAction: {
@@ -226,9 +184,9 @@ export const Default: Story = {
     await waitFor(() =>
       expect(getComputedStyle(indicator as Element).transform).not.toBe('none'),
     );
-    await expect(
-      canvas.getByRole('link', { name: 'Analysis 2' }),
-    ).toBeVisible();
+    await expect(canvas.getByRole('status')).toHaveTextContent(
+      'No feature sections yet',
+    );
 
     const project = canvas.getByRole('button', {
       name: 'Northstar mobile',
@@ -242,22 +200,22 @@ export const Default: Story = {
   },
 };
 
-export const SelectedAnalysis: Story = {
+export const SelectedFeature: Story = {
   args: {
-    activeItemId: 'authentication-v2',
-    nodes: createNodes({ authenticationOpen: true }),
+    activeItemId: 'authentication',
+    nodes: createNodes({ featureOpen: true }),
   },
 };
 
-export const SelectedAccordion: Story = {
+export const SelectedProject: Story = {
   args: {
-    activeItemId: 'authentication',
-    nodes: createNodes({ authenticationOpen: true }),
+    activeItemId: 'northstar-mobile',
+    nodes: createNodes({ featureOpen: true }),
   },
   play: async ({ canvas }) => {
     await expect(
       canvas
-        .getByRole('button', { name: 'Authentication workflow' })
+        .getByRole('button', { name: 'Northstar mobile' })
         .closest('[data-selection]'),
     ).toHaveAttribute('data-selection', 'current');
     await expect(

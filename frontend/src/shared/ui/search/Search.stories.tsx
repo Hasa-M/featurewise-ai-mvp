@@ -28,14 +28,14 @@ export const Default: Story = {
   play: async ({ canvas, userEvent }) => {
     const searchbox = canvas.getByRole('searchbox', { name: 'Search features' });
 
-    await userEvent.type(searchbox, 'readiness');
+    await userEvent.type(searchbox, 'authentication');
 
-    await expect(searchbox).toHaveValue('readiness');
+    await expect(searchbox).toHaveValue('authentication');
   },
 };
 
 export const WithClear: Story = {
-  args: { onClear: () => undefined, readOnly: true, value: 'readiness' },
+  args: { onClear: () => undefined, readOnly: true, value: 'authentication' },
 };
 
 export const Disabled: Story = {

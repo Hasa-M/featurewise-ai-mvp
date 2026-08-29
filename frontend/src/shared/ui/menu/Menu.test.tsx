@@ -15,8 +15,8 @@ function ExampleMenu({ onEscape = () => undefined }) {
         <MenuItem disabled>Duplicate feature</MenuItem>
       </MenuSection>
       <MenuDivider />
-      <MenuSection title="Spec">
-        <MenuItem trailingIcon={<ChevronRight />}>Export spec</MenuItem>
+      <MenuSection title="Workspace">
+        <MenuItem trailingIcon={<ChevronRight />}>Open specification</MenuItem>
         <MenuItem variant="danger">Delete feature</MenuItem>
       </MenuSection>
     </MenuWrapper>
@@ -29,7 +29,7 @@ describe('Menu', () => {
 
     expect(screen.getByRole('menu', { name: 'Feature actions' })).toBeVisible();
     expect(screen.getByRole('group', { name: 'Feature' })).toBeVisible();
-    expect(screen.getByRole('group', { name: 'Spec' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Workspace' })).toBeVisible();
     expect(screen.getByRole('separator')).toBeVisible();
     expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
@@ -60,12 +60,14 @@ describe('Menu', () => {
     const user = userEvent.setup();
     render(<ExampleMenu />);
     const edit = screen.getByRole('menuitem', { name: 'Edit feature' });
-    const exportSpec = screen.getByRole('menuitem', { name: 'Export spec' });
+    const openSpecification = screen.getByRole('menuitem', {
+      name: 'Open specification',
+    });
     const deleteFeature = screen.getByRole('menuitem', { name: 'Delete feature' });
 
     edit.focus();
     await user.keyboard('{ArrowDown}');
-    expect(exportSpec).toHaveFocus();
+    expect(openSpecification).toHaveFocus();
     await user.keyboard('{End}');
     expect(deleteFeature).toHaveFocus();
     await user.keyboard('{Home}');
@@ -92,8 +94,8 @@ describe('Menu', () => {
       screen.getByRole('menuitem', { name: 'Edit feature' }),
     ).toHaveAccessibleName('Edit feature');
     expect(
-      screen.getByRole('menuitem', { name: 'Export spec' }),
-    ).toHaveAccessibleName('Export spec');
+      screen.getByRole('menuitem', { name: 'Open specification' }),
+    ).toHaveAccessibleName('Open specification');
   });
   it('behaves as a normal button outside a MenuWrapper', async () => {
     const onClick = vi.fn();
@@ -117,16 +119,16 @@ describe('Menu', () => {
 
   it('renders a selected navigation item as an anchor', () => {
     render(
-      <MenuItem href="#analysis-2" selected>
-        Analysis 2
+      <MenuItem href="#authentication" selected>
+        Authentication workflow
       </MenuItem>,
     );
 
     expect(
-      screen.getByRole('link', { name: 'Analysis 2' }),
-    ).toHaveAttribute('href', '#analysis-2');
+      screen.getByRole('link', { name: 'Authentication workflow' }),
+    ).toHaveAttribute('href', '#authentication');
     expect(
-      screen.getByRole('link', { name: 'Analysis 2' }),
+      screen.getByRole('link', { name: 'Authentication workflow' }),
     ).toHaveAttribute('aria-current', 'page');
   });
 
@@ -134,12 +136,14 @@ describe('Menu', () => {
     const onClick = vi.fn();
     const user = userEvent.setup();
     render(
-      <MenuItem disabled href="#analysis-2" onClick={onClick}>
-        Analysis 2
+      <MenuItem disabled href="#authentication" onClick={onClick}>
+        Authentication workflow
       </MenuItem>,
     );
 
-    const link = screen.getByRole('link', { name: 'Analysis 2' });
+    const link = screen.getByRole('link', {
+      name: 'Authentication workflow',
+    });
     await user.click(link);
 
     expect(link).toHaveAttribute('aria-disabled', 'true');
@@ -150,25 +154,25 @@ describe('Menu', () => {
   it('includes enabled links in menu keyboard navigation', async () => {
     const user = userEvent.setup();
     render(
-      <MenuWrapper aria-label="Analysis actions">
-        <MenuItem>Rename analysis</MenuItem>
-        <MenuItem href="#review">Review analysis</MenuItem>
-        <MenuItem disabled href="#archived">
-          Archived analysis
+      <MenuWrapper aria-label="Feature navigation">
+        <MenuItem>Rename feature</MenuItem>
+        <MenuItem href="#context">Open context</MenuItem>
+        <MenuItem disabled href="#analyses">
+          Analyses unavailable
         </MenuItem>
       </MenuWrapper>,
     );
 
     const rename = screen.getByRole('menuitem', {
-      name: 'Rename analysis',
+      name: 'Rename feature',
     });
-    const review = screen.getByRole('menuitem', {
-      name: 'Review analysis',
+    const context = screen.getByRole('menuitem', {
+      name: 'Open context',
     });
 
     rename.focus();
     await user.keyboard('{ArrowDown}');
-    expect(review).toHaveFocus();
+    expect(context).toHaveFocus();
     await user.keyboard('{ArrowDown}');
     expect(rename).toHaveFocus();
   });

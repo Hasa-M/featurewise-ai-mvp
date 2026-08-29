@@ -39,8 +39,8 @@ export const Selected: Story = {
 
 export const Linked: Story = {
   args: {
-    children: 'Analysis 2',
-    href: '#analysis-2',
+    children: 'Authentication workflow',
+    href: '#authentication',
     leadingIcon: <FileText size={16} strokeWidth={1.75} />,
     selected: true,
   },

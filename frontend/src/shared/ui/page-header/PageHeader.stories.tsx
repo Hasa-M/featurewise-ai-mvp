@@ -1,11 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  Download,
-  FileText,
-  FolderClosed,
-  FolderKanban,
-  Plus,
-} from 'lucide-react';
+import { FileText, FolderClosed, FolderKanban, Pencil, Trash2 } from 'lucide-react';
 
 import { Breadcrumb } from '../breadcrumb';
 import { Button } from '../button';
@@ -51,13 +45,16 @@ const meta = {
     actions: (
       <>
         <Button
-          leadingIcon={<Download size={16} strokeWidth={1.75} />}
+          leadingIcon={<Pencil size={16} strokeWidth={1.75} />}
           variant="secondary"
         >
-          Export
+          Edit feature
         </Button>
-        <Button leadingIcon={<Plus size={16} strokeWidth={1.75} />}>
-          Add context
+        <Button
+          leadingIcon={<Trash2 size={16} strokeWidth={1.75} />}
+          variant="danger"
+        >
+          Delete feature
         </Button>
       </>
     ),
@@ -101,9 +98,9 @@ export const MixedActionContent: Story = {
   args: {
     actions: (
       <>
-        <Tag>Draft</Tag>
-        <Button variant="secondary">Validate</Button>
-        <Button>Start analysis</Button>
+        <Tag>FEAT-5831</Tag>
+        <Button variant="secondary">Edit feature</Button>
+        <Button variant="danger">Delete feature</Button>
       </>
     ),
   },

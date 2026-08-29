@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Building2,
-  Download,
   FileText,
   FolderClosed,
   FolderKanban,
-  Plus,
+  Pencil,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { expect } from 'storybook/test';
@@ -31,29 +31,8 @@ const nodes: readonly SidebarNodeItem[] = [
             },
             children: [
               {
-                children: [
-                  {
-                    addAction: {
-                      'aria-label': 'Generate authentication spec',
-                      href: '#generate-spec',
-                    },
-                    children: [
-                      {
-                        href: '#analysis-2',
-                        id: 'analysis-2',
-                        label: 'Analysis 2',
-                        type: 'leaf',
-                      },
-                    ],
-                    id: 'analyses',
-                    label: 'Analyses',
-                    listAction: {
-                      'aria-label': 'View authentication analyses',
-                      href: '#analyses',
-                    },
-                    type: 'node',
-                  },
-                ],
+                children: [],
+                emptyMessage: 'No feature sections yet',
                 id: 'authentication',
                 label: 'Authentication workflow',
                 menuAction: {
@@ -101,7 +80,7 @@ const nodes: readonly SidebarNodeItem[] = [
 
 const pagePlaceholder = (
   <section
-    aria-labelledby="readiness-overview-title"
+    aria-labelledby="specification-overview-title"
     style={{
       background: 'var(--surface-card)',
       borderRadius: 'var(--radius-card)',
@@ -111,7 +90,7 @@ const pagePlaceholder = (
       padding: 'var(--space-6)',
     }}
   >
-    <h2 id="readiness-overview-title">Readiness overview</h2>
+    <h2 id="specification-overview-title">Specification overview</h2>
     <p style={{ color: 'var(--text-muted)' }}>
       Effective page content renders on the canvas below the page header.
     </p>
@@ -152,13 +131,16 @@ const meta = {
       actions: (
         <>
           <Button
-            leadingIcon={<Download size={16} strokeWidth={1.75} />}
+            leadingIcon={<Pencil size={16} strokeWidth={1.75} />}
             variant="secondary"
           >
-            Export
+            Edit feature
           </Button>
-          <Button leadingIcon={<Plus size={16} strokeWidth={1.75} />}>
-            Add context
+          <Button
+            leadingIcon={<Trash2 size={16} strokeWidth={1.75} />}
+            variant="danger"
+          >
+            Delete feature
           </Button>
         </>
       ),

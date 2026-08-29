@@ -56,7 +56,7 @@ export const Default: Story = {};
 
 export const WithCharacterCount: Story = {
   args: {
-    defaultValue: 'Users need a clear readiness summary.',
+    defaultValue: 'Users need a clear feature summary.',
     helperText: 'Include the user problem, constraints, and expected outcome.',
     maxLength: 280,
     showCharacterCount: true,
@@ -86,7 +86,7 @@ export const Error: Story = {
 
 export const Disabled: Story = {
   args: {
-    defaultValue: 'This context artifact is read-only while analysis runs.',
+    defaultValue: 'This example is unavailable for editing.',
     disabled: true,
     showCharacterCount: true,
   },

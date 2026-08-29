@@ -9,9 +9,9 @@ describe('Toggle', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
 
-    render(<Toggle label="Include context artifacts" onChange={onChange} />);
+    render(<Toggle label="Show archived files" onChange={onChange} />);
     const toggle = screen.getByRole('switch', {
-      name: 'Include context artifacts',
+      name: 'Show archived files',
     });
 
     await user.click(toggle);
@@ -21,41 +21,41 @@ describe('Toggle', () => {
   });
 
   it('supports an aria label when no visible label is shown', () => {
-    render(<Toggle aria-label="Include context artifacts" />);
+    render(<Toggle aria-label="Show archived files" />);
 
     expect(
-      screen.getByRole('switch', { name: 'Include context artifacts' }),
+      screen.getByRole('switch', { name: 'Show archived files' }),
     ).toBeInTheDocument();
   });
 
   it('associates its description with the switch', () => {
     render(
       <Toggle
-        description="Add artifacts to the next analysis."
-        label="Include context artifacts"
+        description="Include archived context files in this list."
+        label="Show archived files"
       />,
     );
 
     expect(
-      screen.getByRole('switch', { name: 'Include context artifacts' }),
-    ).toHaveAccessibleDescription('Add artifacts to the next analysis.');
+      screen.getByRole('switch', { name: 'Show archived files' }),
+    ).toHaveAccessibleDescription('Include archived context files in this list.');
   });
 
   it('supports regular and medium label weights', () => {
     const { rerender } = render(
-      <Toggle label="Include context artifacts" labelWeight="regular" />,
+      <Toggle label="Show archived files" labelWeight="regular" />,
     );
 
     expect(
-      screen.getByText('Include context artifacts').closest('label'),
+      screen.getByText('Show archived files').closest('label'),
     ).toHaveAttribute('data-label-weight', 'regular');
 
     rerender(
-      <Toggle label="Include context artifacts" labelWeight="medium" />,
+      <Toggle label="Show archived files" labelWeight="medium" />,
     );
 
     expect(
-      screen.getByText('Include context artifacts').closest('label'),
+      screen.getByText('Show archived files').closest('label'),
     ).toHaveAttribute('data-label-weight', 'medium');
   });
 
@@ -64,10 +64,10 @@ describe('Toggle', () => {
     const user = userEvent.setup();
 
     render(
-      <Toggle disabled label="Include context artifacts" onChange={onChange} />,
+      <Toggle disabled label="Show archived files" onChange={onChange} />,
     );
     const toggle = screen.getByRole('switch', {
-      name: 'Include context artifacts',
+      name: 'Show archived files',
     });
 
     await user.click(toggle);

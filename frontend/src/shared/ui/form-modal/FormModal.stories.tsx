@@ -15,13 +15,13 @@ const meta = {
         <TextArea label='Feature specification' value='Let users return to useful filters.' />
       </>
     ),
-    description: 'Update bounded feature metadata.',
+    description: 'Add a feature title and its user-authored specification.',
     onOpenChange: fn(),
     onReset: fn(),
     onSubmit: (event) => event.preventDefault(),
     open: true,
-    submitLabel: 'Save changes',
-    title: 'Edit feature',
+    submitLabel: 'Create feature',
+    title: 'Create feature',
   },
   parameters: { layout: 'centered' },
   tags: ['autodocs'],

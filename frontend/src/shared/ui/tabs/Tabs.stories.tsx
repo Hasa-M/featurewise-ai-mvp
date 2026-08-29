@@ -1,44 +1,34 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  CircleCheck,
-  FileClock,
-  FileText,
-  Images,
-  Settings2,
-} from 'lucide-react';
+import { FileSearch, FileText, Images } from 'lucide-react';
 import { expect, waitFor } from 'storybook/test';
 
 import { Tabs, type TabsItems } from './Tabs';
 
-const items = [
+const workspaceItems = [
   {
     icon: <FileText size={16} strokeWidth={1.75} />,
-    id: 'overview',
-    info: 'Ready',
-    label: 'Overview',
+    id: 'specification',
+    label: 'Specification',
   },
   {
     icon: <Images size={16} strokeWidth={1.75} />,
     id: 'context',
-    info: 12,
-    label: 'Context artifacts',
+    label: 'Context',
   },
   {
-    icon: <Settings2 size={16} strokeWidth={1.75} />,
-    id: 'settings',
-    label: 'Analysis settings',
+    disabled: true,
+    icon: <FileSearch size={16} strokeWidth={1.75} />,
+    id: 'analyses',
+    label: 'Analyses',
   },
-  {
-    icon: <CircleCheck size={16} strokeWidth={1.75} />,
-    id: 'quality',
-    info: 4,
-    label: 'Quality checks',
-  },
-  {
-    icon: <FileClock size={16} strokeWidth={1.75} />,
-    id: 'history',
-    label: 'Analysis history',
-  },
+] satisfies TabsItems;
+
+const overflowItems = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'details', label: 'Details' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'settings', label: 'Settings' },
 ] satisfies TabsItems;
 
 const meta = {
@@ -46,8 +36,8 @@ const meta = {
   component: Tabs,
   args: {
     'aria-label': 'Feature workspace',
-    defaultValue: 'overview',
-    items,
+    defaultValue: 'specification',
+    items: workspaceItems,
   },
   decorators: [
     (Story) => (
@@ -73,9 +63,9 @@ export const Default: Story = {};
 export const WithoutIcons: Story = {
   args: {
     items: [
-      { id: 'specification', label: 'Feature specification' },
-      { id: 'criteria', info: 8, label: 'Acceptance criteria' },
-      { id: 'risks', info: 'Needs attention', label: 'Risks' },
+      { id: 'specification', label: 'Specification' },
+      { id: 'context', label: 'Context' },
+      { disabled: true, id: 'analyses', label: 'Analyses' },
     ],
   },
 };
@@ -83,17 +73,22 @@ export const WithoutIcons: Story = {
 export const Disabled: Story = {
   args: {
     items: [
-      items[0],
-      { ...items[1], disabled: true },
-      items[2],
+      workspaceItems[0],
+      workspaceItems[1],
+      workspaceItems[2],
     ],
   },
 };
 
 export const Overflow: Story = {
+  args: {
+    'aria-label': 'Example sections',
+    defaultValue: 'overview',
+    items: overflowItems,
+  },
   decorators: [
     (Story) => (
-      <div style={{ width: 'min(32rem, 100%)' }}>
+      <div style={{ width: 'min(18rem, 100%)' }}>
         <Story />
       </div>
     ),
@@ -102,8 +97,8 @@ export const Overflow: Story = {
     const more = await canvas.findByRole('button', { name: 'More tabs' });
     await userEvent.click(more);
 
-    const analysisSettings = await canvas.findByRole('menuitem', {
-      name: 'Analysis settings',
+    const notes = await canvas.findByRole('menuitem', {
+      name: 'Notes',
     });
     const menuItems = canvas.getAllByRole('menuitem');
     await waitFor(() =>
@@ -113,20 +108,20 @@ export const Overflow: Story = {
         ),
       ).toBe(true),
     );
-    await userEvent.click(analysisSettings);
+    await userEvent.click(notes);
 
     const selectedTab = await canvas.findByRole('tab', {
-      name: 'Analysis settings',
+      name: 'Notes',
     });
     await expect(selectedTab).toHaveAttribute('aria-selected', 'true');
     await expect(selectedTab).toHaveFocus();
     await expect(
-      canvas.queryByRole('tab', { name: 'Context artifacts' }),
+      canvas.queryByRole('tab', { name: 'Details' }),
     ).not.toBeInTheDocument();
 
     await userEvent.click(more);
     await expect(
-      canvas.getByRole('menuitem', { name: 'Context artifacts' }),
+      canvas.getByRole('menuitem', { name: 'Details' }),
     ).toBeVisible();
     await userEvent.keyboard('{Escape}');
     await expect(more).toHaveFocus();

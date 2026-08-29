@@ -126,10 +126,11 @@ The accepted target architecture is defined by
 and
 [ADR-0032](docs/architecture/adr/ADR-0032-analysis-application-boundary-and-lifecycle.md).
 
-The repository is being migrated to that model in reviewable phases. The
-current runtime still contains pre-refactor generated-spec terminology and
-does not yet contain an analyzer, analysis execution endpoints, or a working
-findings workflow. Architecture documentation describes the accepted target;
-the tracked
+The application and domain refactor now follow that model. The backend contains
+the non-executing analysis boundary and reproducible input-capture contracts,
+but it does not yet contain an analyzer, analysis execution endpoints, or a
+working findings workflow. Architecture documentation describes the accepted
+target, and the tracked
 [refactor plan](docs/architecture/specification-analysis-refactor-plan.md)
-records implementation progress.
+records implementation progress and the boundary for separately scoped future
+analyzer work.

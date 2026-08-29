@@ -81,7 +81,7 @@ export const Decimal: Story = {
 export const Percentage: Story = {
   args: {
     helperText: 'Accepts up to 4 fractional digits.',
-    label: 'Readiness confidence',
+    label: 'Example percentage',
     valueType: 'percentage',
   },
 };
@@ -98,7 +98,7 @@ export const DisabledPassword: Story = {
   args: {
     disabled: true,
     label: 'Password',
-    value: 'Readiness-2026',
+    value: 'Example-2026',
     valueType: 'password',
   },
 };
@@ -134,6 +134,6 @@ export const Error: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
-    value: 'Export findings report',
+    value: 'Offline access',
   },
 };

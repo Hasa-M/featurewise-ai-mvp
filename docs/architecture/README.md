@@ -1,8 +1,9 @@
 # Architecture Documentation
 
 This folder defines the accepted target architecture for the local-first
-Featurewise MVP. Runtime migration is phased; where code still uses historical
-generated-spec terminology, the accepted ADRs below are authoritative.
+Featurewise MVP. The specification-analysis domain refactor is complete.
+Historical ADRs and migrations intentionally retain superseded terminology;
+the accepted ADRs below are authoritative for current implementation.
 
 ## Current product-domain decisions
 

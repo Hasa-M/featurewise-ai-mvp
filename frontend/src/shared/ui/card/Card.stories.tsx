@@ -9,9 +9,9 @@ const cardContent = (
       gap: 'var(--space-2)',
     }}
   >
-    <strong style={{ color: 'var(--text-strong)' }}>Checkout readiness</strong>
+    <strong style={{ color: 'var(--text-strong)' }}>Checkout recovery</strong>
     <span>
-      The feature specification and acceptance criteria are ready for review.
+      Recover interrupted payment sessions without losing cart state.
     </span>
   </div>
 );
@@ -56,7 +56,7 @@ export const FillWidth: Story = {
 
 export const FitContent: Story = {
   args: {
-    children: <span>Draft spec</span>,
+    children: <span>Draft specification</span>,
     width: 'fit-content',
   },
 };
@@ -70,7 +70,7 @@ export const FixedSize: Story = {
 
 export const Interactive: Story = {
   args: {
-    'aria-label': 'Open checkout readiness',
+    'aria-label': 'Open Checkout recovery',
     onClick: () => undefined,
     width: 320,
   },
@@ -78,7 +78,7 @@ export const Interactive: Story = {
 
 export const Disabled: Story = {
   args: {
-    'aria-label': 'Open checkout readiness',
+    'aria-label': 'Open Checkout recovery',
     disabled: true,
     onClick: () => undefined,
     width: 320,
