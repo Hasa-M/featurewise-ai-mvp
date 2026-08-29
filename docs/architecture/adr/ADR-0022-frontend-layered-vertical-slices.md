@@ -6,9 +6,10 @@ Status: accepted
 
 Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
 
-> The frontend layering remains accepted. Product slices now grow across
-> specification, context, analysis, findings, and finding-review workflows;
-> generation and generated-spec review are no longer target capabilities.
+> The frontend layering remains accepted. Current product slices cover
+> specification and context. Future analysis, finding, and finding-review
+> slices must follow the same layering when real endpoints support them;
+> generation and generated-spec review are no longer product capabilities.
 
 ## Context
 

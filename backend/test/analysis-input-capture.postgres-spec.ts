@@ -332,7 +332,7 @@ describe('Analysis input capture PostgreSQL invariants', () => {
     const user = await prisma.user.create({
       data: {
         organizationId: organization.id,
-        username: `phase6-${suffix}`,
+        username: `analysis-input-${suffix}`,
         passwordHash: 'unused-in-integration-test',
       },
     });
@@ -409,15 +409,17 @@ describe('Analysis input capture PostgreSQL invariants', () => {
         createdById: fixture.userId,
         status: input.status,
         selected: input.selected,
-        uploadKey: `phase6/${input.token}/upload`,
-        s3Key: `phase6/${input.token}/original`,
+        uploadKey: `analysis-input/${input.token}/upload`,
+        s3Key: `analysis-input/${input.token}/original`,
         s3VersionId: ready ? `original-version-${input.token}` : null,
         assetType: AssetType.file,
         mimeType: 'application/pdf',
         sizeBytes: 2048n,
         originalFilename: `${input.token}.pdf`,
         checksumSha256: `original-checksum-${input.token}`,
-        preparedS3Key: input.prepared ? `phase6/${input.token}/prepared` : null,
+        preparedS3Key: input.prepared
+          ? `analysis-input/${input.token}/prepared`
+          : null,
         preparedS3VersionId: input.prepared
           ? `prepared-version-${input.token}`
           : null,

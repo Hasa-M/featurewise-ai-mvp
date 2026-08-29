@@ -2,10 +2,10 @@
 
 ## Purpose
 
-This target diagram shows Featurewise as a Specification Analysis Engine and
-the Featurewise Console as its first-party client. It describes product and
-system boundaries, not currently completed runtime capabilities. The analyzer
-and analysis endpoints remain deferred under ADR-0032.
+This diagram shows Featurewise as a Specification Analysis Engine and the
+Featurewise Console as its first-party client. It distinguishes the current
+product and system boundaries from the analyzer and analysis endpoints that
+remain deferred under ADR-0032.
 
 ## Diagram
 

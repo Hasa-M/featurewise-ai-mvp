@@ -114,7 +114,7 @@ Provisional request:
 Provisional success: `202 Accepted` with `AnalysisRunResource`. The future
 application service resolves `featureKey`, selects recorded engine versions,
 captures immutable inputs, creates the run, and enforces the one-active-run
-constraint. None of that behavior is implemented in Phase 6.
+constraint. None of that behavior is implemented.
 
 ### Read run status — unimplemented
 
@@ -181,9 +181,10 @@ Provisional success: `201 Created` with `FindingReviewResource`. The future
 operation appends a review and never updates or deletes the immutable finding
 assertion or earlier reviews.
 
-## Explicitly absent in Phase 6
+## Explicitly absent
 
 There are no controllers, route decorators, Swagger registrations, frontend
-API functions, query keys, hooks, polling, unavailable-state changes, prompts,
-provider adapters, analyzer execution, fabricated findings, or lifecycle
-orchestration backing this document.
+API functions, query keys, hooks, polling, prompts, provider adapters, analyzer
+execution, fabricated findings, or lifecycle orchestration backing this
+document. The existing request-free Analyses unavailable state does not expose
+or imply any of these capabilities.

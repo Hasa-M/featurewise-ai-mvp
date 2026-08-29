@@ -1,11 +1,11 @@
-# ERD — Target Specification Analysis Domain
+# ERD — Specification Analysis Domain
 
 ## Purpose
 
-This is the accepted logical domain model from ADR-0030 through ADR-0032. It is
-a migration target, not a claim that the current Prisma schema already matches
-it. Phase 4 of the tracked refactor plan applies the database changes through a
-new forward migration.
+This is the implemented logical domain model from ADR-0030 through ADR-0032.
+The Prisma schema and the forward migration
+`20260828000000_specification_analysis_domain` implement these tables and
+constraints.
 
 Column names are camelCase here; Prisma maps them to snake_case in PostgreSQL.
 
@@ -187,9 +187,8 @@ lifecycle timestamps, optional LLM usage/cost/error fields, and review reason.
 ## Required database invariants
 
 - Every externally identifiable domain table keeps its independent positive,
-  immutable `publicNumber` contract from ADR-0028. Target prefixes are `PCTX`
-  when ProjectContext is exposed, `RUN`, `FND`, `FREV`, and `CALL`; `UPD` and
-  `SPEC` are removed.
+  immutable `publicNumber` contract from ADR-0028. Current prefixes are `PCTX`,
+  `RUN`, `FND`, `FREV`, and `CALL`; `UPD` and `SPEC` are removed.
 - A Feature has one ContextArtifact from creation. `featureId` is non-null and
   unique; there is no exclusive Feature/FeatureUpdate owner arc.
 - At most one non-terminal AnalysisRun exists per Feature. A PostgreSQL partial
@@ -237,7 +236,8 @@ IDs inside that prepared snapshot. See ADR-0031.
 
 ## Migration guard
 
-The later forward migration must stop unless FeatureUpdate, update-owned
-context/storage metadata, SpecRun, GeneratedSpec, and legacy LLM log counts are
-zero. It preserves Feature-owned ContextArtifact and StorageObject rows and
-never deletes S3 objects.
+The `20260828000000_specification_analysis_domain` migration contains a
+preflight that stops unless FeatureUpdate, update-owned context/storage
+metadata, SpecRun, GeneratedSpec, and legacy LLM log counts are zero. It
+preserves Feature-owned ContextArtifact and StorageObject rows and never
+deletes S3 objects.

@@ -8,7 +8,7 @@ Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
 
 > React and Vite remain accepted. The web application is now the Featurewise
 > Console, the first-party client of the Specification Analysis Engine. Its
-> target Feature workspace is Specification, Context, and Analyses; the old
+> current Feature workspace is Specification, Context, and Analyses; the old
 > generated-spec workflow below is historical product context.
 
 ## Context

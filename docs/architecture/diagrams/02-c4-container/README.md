@@ -2,16 +2,15 @@
 
 ## Purpose
 
-This diagram shows the accepted target container architecture for the
-local-first MVP. It preserves the existing React, NestJS, PostgreSQL, and AWS
-S3 boundaries while introducing the analysis application boundary. The
-analysis engine adapter and provider calls are not implemented yet.
+This diagram shows the container architecture for the local-first MVP. The
+React, NestJS, PostgreSQL, and AWS S3 containers implement the current product
+boundary; the analysis engine adapter and provider calls remain deferred.
 
 ## Diagram
 
 ```mermaid
 C4Container
-  title Featurewise local-first target containers
+  title Featurewise local-first containers
 
   Person(user, "Authenticated user", "Manages specifications/context and reviews findings")
 
@@ -38,7 +37,7 @@ C4Container
 
 ### Featurewise Console
 
-The React application is the first-party control plane. Its target Feature
+The React application is the first-party control plane. Its Feature
 workspace exposes Specification, Context, and Analyses. It never calls an LLM
 provider directly and does not own analysis business logic.
 

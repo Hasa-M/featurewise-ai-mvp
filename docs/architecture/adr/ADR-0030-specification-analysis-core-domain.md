@@ -66,9 +66,9 @@ PostgreSQL, and private S3 object storage. The analysis capability must remain
 adapter-neutral so future HTTP, CLI, MCP, integration, or embedded clients call
 the same application boundary. No additional adapter is part of this decision.
 
-The current implementation will be migrated in reviewable phases. Until those
-phases complete, this ADR is the architectural source of truth even where
-runtime code still contains superseded names.
+The implementation follows this model. Superseded names remain only in
+historical ADRs and migrations that preserve their original decisions and
+schema history.
 
 ## Consequences
 
@@ -76,9 +76,9 @@ runtime code still contains superseded names.
   and evaluation rather than generated-document management.
 - Organization and Project remain lightweight ownership/context boundaries;
   Feature remains the main product entity and sole analysis target.
-- The Console will expose Specification, Context, and Analyses surfaces.
+- The Console exposes Specification, Context, and Analyses surfaces.
 - Analysis findings and human review history require relational persistence.
-- Existing generated-spec schema, API, projection, and UI concepts must be
-  removed in later refactor phases.
+- Generated-spec schema, API, projection, and UI concepts are removed from the
+  current product model.
 - Analyzer prompts, provider choice, retries, verification behavior, and the
   evaluation harness remain deferred decisions.

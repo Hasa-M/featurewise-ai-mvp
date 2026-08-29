@@ -70,7 +70,7 @@ For Feature workspace pages, preserve the accepted route `/projects/:projectKey/
 Determine and report:
 
 - the exact route, route parameters, deep-link behavior, and lazy-loading boundary;
-- authentication and authorization assumptions allowed by Phase 1 scope;
+- authentication and authorization assumptions allowed by the local-first MVP scope;
 - how the page enters and remains selected in global navigation;
 - required server data, query keys, cache behavior, mappings, and mutations;
 - the owner of every business rule and validation decision;
@@ -85,7 +85,7 @@ Classify support as exactly one of:
 2. **Supported with page-local changes:** only the page slice and existing public feature APIs need composition.
 3. **Shared capability required:** a domain-neutral shared component must be added or generalized.
 4. **Architecture or contract change required:** routing, shell ownership, navigation, API, DTO, backend behavior, or an accepted ADR must change.
-5. **Blocked by an accepted decision or Phase 1 scope:** stop and identify the conflict.
+5. **Blocked by an accepted decision or local-first MVP scope:** stop and identify the conflict.
 
 ### Audit PageStructure ownership carefully
 

@@ -8,11 +8,10 @@ Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md),
 [ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
 [ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
 
-> The identifier format and API-boundary rules remain accepted. The target
+> The identifier format and API-boundary rules remain accepted. The implemented
 > registry removes `UPD` and `SPEC`, keeps `RUN` and `CALL` for AnalysisRun and
-> LlmCallLog, adds `FND` and `FREV`, and uses `PCTX` if ProjectContext receives
-> a public endpoint. The historical table below reflects the pre-refactor
-> schema until the database phase applies the new registry.
+> LlmCallLog, adds `FND` and `FREV`, and uses `PCTX` for the ProjectContext
+> endpoint. Historical references below explain the pre-refactor boundary.
 
 Supersedes ADR-0027 and the external-identifier portions of ADR-0015 and
 ADR-0019. UUID use inside the backend, database relations, authorization, and

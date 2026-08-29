@@ -76,9 +76,8 @@ persistence sources, vector retrieval, or direct third-party integrations.
   ownership and contracts.
 - Every persisted finding can cite the exact source material analyzed.
 - Analysis inputs remain reproducible after editable content changes.
-- Project context becomes an explicit editable source in a later application
-  phase.
-- Existing S3 objects and lifecycle metadata are preserved during the domain
-  migration; SQL migrations must never delete S3 objects.
-- Unexpected FeatureUpdate-owned storage metadata must stop the later
-  destructive migration rather than being silently discarded.
+- Project context is an explicit editable source.
+- The completed domain migration preserved existing S3 objects and lifecycle
+  metadata; SQL migrations must never delete S3 objects.
+- The domain migration preflight rejects unexpected FeatureUpdate-owned
+  storage metadata rather than silently discarding it.

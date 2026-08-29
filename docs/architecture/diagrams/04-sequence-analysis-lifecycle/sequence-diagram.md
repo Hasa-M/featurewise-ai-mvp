@@ -2,9 +2,9 @@
 
 ## Purpose and implementation status
 
-This target sequence defines the application flow accepted by ADR-0031 and
+This sequence defines the deferred application flow accepted by ADR-0031 and
 ADR-0032. It is not an implemented endpoint contract. The REST controller,
-analyzer, provider adapter, retries, verifier policy, and polling UI are
+analyzer, provider adapter, retries, verifier policy, and polling UI remain
 deferred until a real analyzer vertical slice exists.
 
 Feature is the sole analysis target. There is no FeatureOrigin, FeatureUpdate,
@@ -27,7 +27,7 @@ queued
 `validating_output`; exact repair/retry limits are deferred to the analyzer
 vertical slice.
 
-## Target sequence
+## Deferred sequence
 
 ```mermaid
 sequenceDiagram

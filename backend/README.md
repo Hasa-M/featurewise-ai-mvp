@@ -32,10 +32,10 @@ The API uses username/password login and bearer JWTs. Set `SEED_PASSWORD` in
 npm run prisma:seed
 ```
 
-The seed is idempotent. It creates the phase 1 organization, project, and
-`dev.operator` user when absent; later runs reactivate that user, update its
-Argon2id password hash from `SEED_PASSWORD`, and preserve existing workspace
-names and data.
+The seed is idempotent. It creates the `Featurewise` development organization,
+the `Featurewise MVP` project, and the `dev.operator` user when absent; later
+runs reactivate that user, update its Argon2id password hash from
+`SEED_PASSWORD`, and preserve existing workspace names and data.
 
 Log in with:
 

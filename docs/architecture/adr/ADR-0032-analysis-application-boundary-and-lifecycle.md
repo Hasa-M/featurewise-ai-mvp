@@ -20,11 +20,12 @@ implementations.
 
 ## Decision
 
-Add an `analysis` module to the NestJS modular monolith in a later refactor
-phase. Its application service will be the single entry point used by the
-first-party REST controller and future adapters. It owns authorization, run
-creation, concurrency, lifecycle transitions, context preparation,
-engine invocation, output validation, persistence, and review recording.
+The NestJS modular monolith includes a non-executing `analysis` module that
+defines the application boundary and its ports. A future orchestration service
+will be the single entry point used by the first-party REST controller and
+other adapters. It will own authorization, run creation, concurrency,
+lifecycle transitions, context preparation, engine invocation, output
+validation, persistence, and review recording.
 
 The application boundary depends on explicit ports:
 
@@ -86,5 +87,4 @@ design are explicitly deferred.
 - Reproducibility and evidence preparation remain outside controller and model
   provider concerns.
 - The modular-monolith MVP avoids premature AI infrastructure.
-- The repository gains no fake analysis endpoint or analyzer implementation as
-  part of the architecture reset.
+- The repository contains no fake analysis endpoint or analyzer implementation.

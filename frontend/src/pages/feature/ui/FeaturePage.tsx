@@ -245,10 +245,10 @@ function FeatureContent({
         ) : (
           <section aria-labelledby='feature-analyses-title'>
             <p className='fw-overline'>Unavailable</p>
-            <h2 id='feature-analyses-title'>Analyses are not available yet</h2>
+            <h2 id='feature-analyses-title'>Analyses are unavailable</h2>
             <p>
-              Analysis execution and evidence-backed findings will appear here
-              when the engine workflow is implemented.
+              Analysis execution and evidence-backed findings are deferred and
+              are not available in the Console.
             </p>
           </section>
         )}

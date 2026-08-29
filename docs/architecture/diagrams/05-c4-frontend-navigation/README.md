@@ -2,18 +2,16 @@
 
 ## Purpose and implementation status
 
-This document describes the accepted target navigation for the Featurewise
-Console while preserving the current React architecture, route ownership,
-persistent shell, and TanStack Query boundaries. The product terminology and
-tabs are implemented in later refactor phases; analysis execution and findings
-UI remain unavailable until a real backend vertical slice exists.
+This document describes the current Featurewise Console navigation, React
+architecture, route ownership, persistent shell, and TanStack Query
+boundaries. Analysis execution and findings UI remain unavailable until a real
+backend vertical slice exists.
 
-## Target routes and workspaces
+## Routes and workspaces
 
 - `/` renders Projects and remains the application home.
 - `/projects/:projectKey` renders a Project workspace with `features` and
-  `context` tabs. ProjectContext becomes editable only after the corresponding
-  backend contract is implemented.
+  `context` tabs. The Context tab edits the Project's ProjectContext.
 - `/projects/:projectKey/features/:featureKey` renders a Feature workspace with
   `specification`, `context`, and `analyses` tabs. Missing or invalid values
   resolve to `specification`.
@@ -54,19 +52,19 @@ contain engine rules.
 
 TanStack Query remains the Console server-state cache and React Router remains
 the URL/navigation owner. Existing organization, project, feature, feature
-context, and file-archive query policies stay in force until their owning
-implementation phase changes the corresponding contract.
+context, and file-archive query policies remain in force. A future contract
+change must update its owning slice and cache policy together.
 
 Removed product projections include generated-spec version/count, generation
 activity, FeatureUpdate state, and alignment. Analysis query keys, polling,
 findings, and review mutations are added only with real endpoints. No
-placeholder cache entry is introduced during the documentation reset.
+placeholder analysis cache entry exists.
 
 ## Component diagram
 
 ```mermaid
 C4Component
-  title Featurewise Console target navigation components
+  title Featurewise Console navigation components
 
   Person(user, "Authenticated user", "Manages feature specifications/context and reviews analyses")
 

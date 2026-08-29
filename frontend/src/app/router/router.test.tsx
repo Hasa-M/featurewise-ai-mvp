@@ -205,6 +205,7 @@ describe('application routes', () => {
     expect(
       await screen.findByRole('heading', { name: 'Sign in' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Local-first MVP · single-user.')).toBeVisible();
     expect(screen.getByLabelText('Username')).toHaveFocus();
   });
 
@@ -547,8 +548,13 @@ describe('application routes', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Analyses are not available yet',
+        name: 'Analyses are unavailable',
       }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        'Analysis execution and evidence-backed findings are deferred and are not available in the Console.',
+      ),
     ).toBeVisible();
     expect(
       screen.getByText(

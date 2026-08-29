@@ -18,8 +18,8 @@ This is the most important rule in this file:
    `docs/architecture/adr/` and the diagrams in `docs/architecture/diagrams/`.
    Consider that they may still contain errors or need amendment.
 2. ADR-0030, ADR-0031, and ADR-0032 are authoritative for the product domain, traceable
-   analysis inputs, and analysis lifecycle even while later refactor phases still contain
-   superseded runtime terminology.
+   analysis inputs, and analysis lifecycle. Superseded terminology remains only where
+   historical ADRs and migrations preserve the decisions and schema they originally recorded.
 3. When you have a doubt about structure, naming, flow, or scope, check the ADRs FIRST and
    ask the user with the relevant architectural context.
 4. If a requested change conflicts with an accepted ADR: STOP. Do not silently diverge.

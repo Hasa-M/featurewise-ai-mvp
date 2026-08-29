@@ -118,19 +118,21 @@ Featurewise does not generate or maintain the canonical specification. It does
 not become the customer's requirements system of record, and it does not add
 real Jira, GitHub, Figma, or similar integrations in the local-first MVP.
 
-## Current implementation state
+## Current product baseline
 
-The accepted target architecture is defined by
+The current architecture is defined by
 [ADR-0030](docs/architecture/adr/ADR-0030-specification-analysis-core-domain.md),
 [ADR-0031](docs/architecture/adr/ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
 and
 [ADR-0032](docs/architecture/adr/ADR-0032-analysis-application-boundary-and-lifecycle.md).
 
-The application and domain refactor now follow that model. The backend contains
-the non-executing analysis boundary and reproducible input-capture contracts,
-but it does not yet contain an analyzer, analysis execution endpoints, or a
-working findings workflow. Architecture documentation describes the accepted
-target, and the tracked
-[refactor plan](docs/architecture/specification-analysis-refactor-plan.md)
-records implementation progress and the boundary for separately scoped future
-analyzer work.
+The implemented local-first baseline provides authentication, Organization and
+Project workspaces, user-authored Feature specifications, editable feature and
+project context, and private uploaded context files. The Featurewise Console
+exposes the current Specification, Context, and unavailable Analyses
+workspaces.
+
+The backend also contains the non-executing analysis application boundary,
+versioned contracts, and reproducible input capture. Analyzer execution,
+analysis HTTP endpoints, findings and review workflows, prompts, providers,
+verification, and evaluations remain separately scoped deferred product work.

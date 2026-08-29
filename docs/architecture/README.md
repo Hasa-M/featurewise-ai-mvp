@@ -1,9 +1,9 @@
 # Architecture Documentation
 
-This folder defines the accepted target architecture for the local-first
-Featurewise MVP. The specification-analysis domain refactor is complete.
-Historical ADRs and migrations intentionally retain superseded terminology;
-the accepted ADRs below are authoritative for current implementation.
+This folder defines the current architecture for the local-first Featurewise
+MVP. Historical ADRs and migrations intentionally retain superseded
+terminology; the accepted ADRs below are authoritative for the implemented
+product baseline and separately scoped future analysis work.
 
 ## Current product-domain decisions
 
@@ -50,6 +50,4 @@ identifiers (ADR-0028).
   future real analyzer vertical slice.
 
 The C4 diagrams use Mermaid so their source is reviewable with the rest of the
-architecture. The
-[refactor plan](specification-analysis-refactor-plan.md) records which target
-decisions have reached the runtime implementation.
+architecture.
