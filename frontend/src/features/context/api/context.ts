@@ -33,6 +33,14 @@ export interface ContextDto {
   readonly updatedAt: string;
 }
 
+export interface ProjectContextDto {
+  readonly content: string;
+  readonly createdAt: string;
+  readonly projectKey: string;
+  readonly publicKey: string;
+  readonly updatedAt: string;
+}
+
 export interface PresignedUploadDto {
   readonly file: ContextFileDto;
   readonly upload: {
@@ -60,6 +68,27 @@ export function updateFeatureContext(
   content: string,
 ): Promise<ContextDto> {
   return request<ContextDto>(`/features/${featureKey}/context`, {
+    accessToken,
+    body: { content },
+    method: 'PATCH',
+  });
+}
+
+export function getProjectContext(
+  accessToken: string,
+  projectKey: string,
+): Promise<ProjectContextDto> {
+  return request<ProjectContextDto>(`/projects/${projectKey}/context`, {
+    accessToken,
+  });
+}
+
+export function updateProjectContext(
+  accessToken: string,
+  projectKey: string,
+  content: string,
+): Promise<ProjectContextDto> {
+  return request<ProjectContextDto>(`/projects/${projectKey}/context`, {
     accessToken,
     body: { content },
     method: 'PATCH',

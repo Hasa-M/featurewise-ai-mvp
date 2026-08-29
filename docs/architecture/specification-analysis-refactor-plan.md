@@ -1,6 +1,6 @@
 # Specification Analysis Engine Domain Refactor
 
-Status: Phase 4 complete; Phase 5 ready
+Status: Phase 5 complete; Phase 6 ready
 Repository inspected: `main` at `8930865` (`Merge PR #2 context-file-attachments`)
 Product direction: `featurewise_final_architecture_refactor_handoff.md`
 Implementation source of truth: the repository state described below
@@ -14,9 +14,9 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
 - Phase 1: **complete on 2026-08-28; committed as `0910c6b`**.
 - Phase 2: **complete on 2026-08-28; committed as `d354b53`**.
 - Phase 3: **complete on 2026-08-28; committed as `a96690f`**.
-- Phase 4: **complete on 2026-08-28; uncommitted pending user review**.
-- Phase 5: **ready**. It is the next allowed implementation phase on this branch after Phase 4 is reviewed and committed.
-- Later phases: pending and unchanged.
+- Phase 4: **complete on 2026-08-28; committed as `0e6d124`**.
+- Phase 5: **complete on 2026-08-29; uncommitted pending user review**.
+- Phase 6: **ready**. Later phases remain pending and unchanged.
 - Phase 1 implementation note: C4 sources were converted to canonical
   Markdown/Mermaid, obsolete Draw.io/PNG exports were removed, and the old
   generation sequence directory was renamed to `04-sequence-analysis-lifecycle`.
@@ -84,6 +84,35 @@ Tracked copy created from `C:\Users\Salvatore Fadda\Documents\featurewise_specif
   databases and the S3 profile worked when the validation process was allowed to
   read the user-level AWS credentials. The frontend build retains the existing
   oversized rich-text chunk warning. No required Phase 4 check remains blocked.
+- Phase 5 implementation note: the Workspace module now exposes tenant-scoped
+  `GET` and `PATCH /projects/:projectKey/context` endpoints. Both resolve the
+  authorized project through its `PRJ` key before a race-safe singleton upsert;
+  a first read lazily creates an empty row, while a first update creates the row
+  with the submitted content. The explicit response exposes `PCTX`, `PRJ`,
+  content, and lifecycle timestamps without UUIDs. The Console project Context
+  tab now uses React Hook Form and the existing context schema, with TanStack
+  Query server state isolated under `['project-context', projectKey]`.
+- Phase 5 verification: Prisma validation passed and repository audits confirmed
+  no schema, migration, seed, package/dependency, ADR, diagram, agent-guidance,
+  analysis endpoint/hook/cache, or Phase 1-4 implementation drift. Backend unit
+  tests passed (58/58), backend end-to-end tests passed (3/3), and backend lint
+  and build passed. Frontend focused context/router tests passed (24/24), the full
+  frontend suite passed (343/343), and frontend lint and build passed.
+  `git diff --check`, public-identifier, UUID-leakage, and strict-scope audits
+  passed. Storybook was not run because no story was changed.
+- Phase 5 live smoke: all five migrations were deployed to a fresh disposable
+  PostgreSQL database and the normal seed was applied. Authenticated HTTP checks
+  passed for lazy empty materialization, empty reload, non-empty save/reload,
+  clear/reload, stable `PCTX` singleton identity, content validation, malformed,
+  wrong-prefix, UUID-shaped, and unknown project rejection, the exact wire DTO,
+  and absence of UUIDs. Cross-project/cross-organization rejection and concurrent
+  no-duplicate behavior are covered at the HTTP boundary by the e2e suite. The
+  disposable database was verified and removed afterward.
+- Phase 5 environmental notes: the configured development database is reachable
+  but remains at the pre-Phase 4 schema, so it was deliberately not migrated or
+  mutated during the live smoke. The frontend build retains the existing
+  oversized lazy-loaded rich-text chunk warning. No required Phase 5 check
+  remains blocked.
 
 
 ## 1. Outcome and locked decisions
@@ -629,7 +658,7 @@ Dependencies: Phase 2.
 
 ### Phase 4 — `refactor(db): replace generated specs with analysis findings`
 
-Status: **complete on 2026-08-28; uncommitted pending user review**
+Status: **complete on 2026-08-28; committed as `0e6d124`**
 
 Purpose: make persistence match the accepted domain and remove the compatibility layer.
 
@@ -664,7 +693,7 @@ Dependencies: Phase 3. This commit removes the temporary `brief`/origin mapping 
 
 ### Phase 5 — `feat(context): add editable project context`
 
-Status: **ready; do not start until Phase 4 is reviewed and committed**
+Status: **complete on 2026-08-29; uncommitted pending user review**
 
 Purpose: expose the project-level text input required by future analysis.
 
@@ -687,6 +716,8 @@ Checks:
 Dependencies: Phase 4 creates/renames the target table. It can be developed independently after that schema contract exists.
 
 ### Phase 6 — `refactor(analysis): establish reproducible engine inputs`
+
+Status: **ready; do not start until Phase 5 is reviewed and committed**
 
 Purpose: define and test the boundary required by the later analyzer without implementing the analyzer or HTTP execution routes.
 
@@ -771,17 +802,18 @@ No unresolved decision blocks the first implementation task. The following must 
 - Exact external HTTP response shapes for run progress and findings should be documented provisionally in Phase 6 and finalized with the analyzer vertical slice, not implemented now.
 - Confidence may later join severity/verification metadata only if evals show it is calibrated and useful.
 - Organization context, project files, repository sources, and connectors are future source adapters; the internal source model must accommodate them without adding their persistence now.
-- Whether ProjectContext needs a visible public key can be settled when its endpoint DTO is implemented; if exposed, use `PCTX` consistently.
+- ProjectContext is exposed as an entity by the Phase 5 endpoint DTO and uses `PCTX` consistently; its database UUID remains internal.
 - Database triggers for snapshot immutability should be added only where they do not prevent legitimate lifecycle transitions; application tests remain mandatory.
 - If migration preflight finds any unexpected update-owned S3 objects, choose explicitly between lifecycle purge and a full disposable-environment reset before applying the migration.
 
 ## 14. Exact suggested next implementation task
 
-Phase 4 is complete and awaiting user review on the existing
+Phase 5 is complete and awaiting user review on the existing
 `refactor/specification-analysis-engine` branch. Do not create a commit
-automatically and do not begin Phase 5 without confirmation.
+automatically and do not begin Phase 6 without confirmation.
 
-After approval, the next task is exactly Phase 5: expose the already-renamed
-ProjectContext as editable project-level text with tenant-scoped backend
-endpoints and the existing Console project-context surface. Do not add analysis
-execution, findings, review, polling, provider, queue, or worker behavior.
+After approval and a Phase 5 commit, the next task is exactly Phase 6: establish
+the reproducible analysis application, engine-input, snapshot, and evidence
+contracts without implementing analysis HTTP execution routes or analyzer,
+provider, prompt, retry, verification, deduplication, queue, worker, or findings
+UI behavior.

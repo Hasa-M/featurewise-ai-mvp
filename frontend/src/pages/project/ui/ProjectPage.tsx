@@ -10,6 +10,7 @@ import { useEffect, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
+import { ProjectContextPanel } from '@/features/context';
 import {
   getFeaturePath,
   useFeatureActions,
@@ -150,27 +151,6 @@ function FeatureCards({
   );
 }
 
-function ProjectContextPanel() {
-  return (
-    <section
-      aria-labelledby='project-context-editor-title'
-      className={styles.contextPlaceholder}
-    >
-      <span aria-hidden='true' className={styles.contextIcon}>
-        <FileText size={22} strokeWidth={1.75} />
-      </span>
-      <div>
-        <p className='fw-overline'>Unavailable</p>
-        <h2 id='project-context-editor-title'>Project context is not available yet</h2>
-        <p>
-          Editable project-level context will appear here when its backend
-          contract is implemented.
-        </p>
-      </div>
-    </section>
-  );
-}
-
 interface ProjectContentProps {
   readonly accessToken: string;
   readonly organizationKey: string;
@@ -183,7 +163,6 @@ function ProjectContent({
   projectKey,
 }: ProjectContentProps) {
   const projectQuery = useProject(accessToken, organizationKey, projectKey);
-  const featuresQuery = useProjectFeatures(accessToken, projectKey);
   const { openEdit: openEditProject } = useProjectActions();
   const featureActions = useFeatureActions();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -191,6 +170,11 @@ function ProjectContent({
   const activeTab: ProjectTabId = isProjectTabId(requestedTab)
     ? requestedTab
     : 'features';
+  const featuresQuery = useProjectFeatures(
+    accessToken,
+    projectKey,
+    activeTab === 'features',
+  );
   const projectNotFound = projectQuery.isError && isNotFound(projectQuery.error);
   const tabs = useMemo<TabsItems>(
     () => [
@@ -261,7 +245,7 @@ function ProjectContent({
       subtitle: projectQuery.data
         ? activeTab === 'features'
           ? 'Open a feature to edit its specification and supporting context.'
-          : 'Project-level context editing is not available yet.'
+          : 'Add shared project-level context for future feature analyses.'
         : undefined,
     }),
     [
@@ -332,26 +316,34 @@ function ProjectContent({
         role='tabpanel'
         tabIndex={0}
       >
-        {featuresQuery.isPending ? (
-          <p className={styles.status} role='status'>
-            Loading features...
-          </p>
-        ) : featuresQuery.isError ? (
-          <div className={styles.status} role='alert'>
-            <p>Features could not be loaded.</p>
-            <Button onClick={() => void featuresQuery.refetch()} size='small'>
-              Retry
-            </Button>
-          </div>
-        ) : activeTab === 'features' ? (
-          <FeatureCards
-            features={featuresQuery.data}
-            onDelete={featureActions.openDelete}
-            onEdit={featureActions.openEdit}
-            projectPublicKey={projectQuery.data.publicKey}
-          />
+        {activeTab === 'features' ? (
+          featuresQuery.isPending ? (
+            <p className={styles.status} role='status'>
+              Loading features...
+            </p>
+          ) : featuresQuery.isError ? (
+            <div className={styles.status} role='alert'>
+              <p>Features could not be loaded.</p>
+              <Button
+                onClick={() => void featuresQuery.refetch()}
+                size='small'
+              >
+                Retry
+              </Button>
+            </div>
+          ) : (
+            <FeatureCards
+              features={featuresQuery.data}
+              onDelete={featureActions.openDelete}
+              onEdit={featureActions.openEdit}
+              projectPublicKey={projectQuery.data.publicKey}
+            />
+          )
         ) : (
-          <ProjectContextPanel />
+          <ProjectContextPanel
+            accessToken={accessToken}
+            projectKey={projectQuery.data.publicKey}
+          />
         )}
       </div>
     </section>

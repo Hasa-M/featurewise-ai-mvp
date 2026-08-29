@@ -9,6 +9,7 @@ export const PUBLIC_KEY_PREFIXES = {
   llmCallLog: 'CALL',
   organization: 'ORG',
   project: 'PRJ',
+  projectContext: 'PCTX',
   storageObject: 'OBJ',
   user: 'USR',
 } as const;

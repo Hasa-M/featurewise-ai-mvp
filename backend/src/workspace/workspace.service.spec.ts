@@ -31,6 +31,15 @@ const project = {
   updatedAt: new Date(),
 };
 
+const projectContext = {
+  id: '00000000-0000-4000-8000-000000000004',
+  publicNumber: 31,
+  projectId: currentUser.projectId,
+  content: '',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 describe('WorkspaceService', () => {
   it('returns 404 when an Organization public number is outside the current user scope', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
@@ -184,5 +193,84 @@ describe('WorkspaceService', () => {
       where: { id: currentUser.projectId },
       data: { name: 'Renamed project' },
     });
+  });
+
+  it('materializes one empty ProjectContext after authorizing the Project', async () => {
+    const findFirst = jest.fn().mockResolvedValue(project);
+    const upsert = jest.fn().mockResolvedValue(projectContext);
+    const service = new WorkspaceService({
+      project: { findFirst },
+      projectContext: { upsert },
+    } as unknown as PrismaService);
+
+    const result = await service.getProjectContext(currentUser, 204);
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: currentUser.organizationId,
+        id: currentUser.projectId,
+        publicNumber: 204,
+      },
+    });
+    expect(upsert).toHaveBeenCalledWith({
+      where: { projectId: currentUser.projectId },
+      create: {
+        projectId: currentUser.projectId,
+        content: '',
+      },
+      update: {},
+    });
+    expect(result).toEqual({
+      publicKey: 'PCTX-31',
+      projectKey: 'PRJ-204',
+      content: '',
+      createdAt: projectContext.createdAt,
+      updatedAt: projectContext.updatedAt,
+    });
+    expect(result).not.toHaveProperty('id');
+    expect(result).not.toHaveProperty('projectId');
+  });
+
+  it('upserts only submitted ProjectContext content without trimming it', async () => {
+    const upsert = jest.fn().mockResolvedValue({
+      ...projectContext,
+      content: '  Shared project rules  ',
+    });
+    const service = new WorkspaceService({
+      project: { findFirst: jest.fn().mockResolvedValue(project) },
+      projectContext: { upsert },
+    } as unknown as PrismaService);
+
+    const result = await service.updateProjectContext(currentUser, 204, {
+      content: '  Shared project rules  ',
+    });
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: { projectId: currentUser.projectId },
+      create: {
+        projectId: currentUser.projectId,
+        content: '  Shared project rules  ',
+      },
+      update: {
+        content: '  Shared project rules  ',
+      },
+    });
+    expect(result.content).toBe('  Shared project rules  ');
+  });
+
+  it('does not read or create ProjectContext outside the authorized Project', async () => {
+    const upsert = jest.fn();
+    const service = new WorkspaceService({
+      project: { findFirst: jest.fn().mockResolvedValue(null) },
+      projectContext: { upsert },
+    } as unknown as PrismaService);
+
+    await expect(
+      service.getProjectContext(currentUser, 999),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.updateProjectContext(currentUser, 999, { content: 'Rejected' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

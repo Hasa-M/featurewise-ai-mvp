@@ -17,6 +17,7 @@ describe('public identifiers', () => {
       llmCallLog: 'CALL',
       organization: 'ORG',
       project: 'PRJ',
+      projectContext: 'PCTX',
       storageObject: 'OBJ',
       user: 'USR',
     });

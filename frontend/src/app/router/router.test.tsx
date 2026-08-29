@@ -19,6 +19,27 @@ import { AuthProvider } from '@/features/auth';
 
 import { routes } from './router';
 
+vi.mock('@/shared/ui/rich-text', () => ({
+  RichText: ({
+    'aria-label': ariaLabel,
+    defaultValue,
+    disabled,
+    onChange,
+  }: {
+    readonly 'aria-label'?: string;
+    readonly defaultValue?: string;
+    readonly disabled?: boolean;
+    readonly onChange?: (value: string) => void;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      defaultValue={defaultValue}
+      disabled={disabled}
+      onChange={(event) => onChange?.(event.currentTarget.value)}
+    />
+  ),
+}));
+
 const currentUser = {
   organizationKey: 'ORG-12',
   projectKey: 'PRJ-204',
@@ -62,6 +83,14 @@ const featureContext = {
   featureKey: feature.publicKey,
   files: [],
   publicKey: 'CTX-19',
+  updatedAt: '2026-07-18T10:00:00.000Z',
+};
+
+const projectContext = {
+  content: '',
+  createdAt: '2026-07-18T10:00:00.000Z',
+  projectKey: project.publicKey,
+  publicKey: 'PCTX-31',
   updatedAt: '2026-07-18T10:00:00.000Z',
 };
 
@@ -111,6 +140,13 @@ function defaultFetch(
   }
   if (path === `/api/projects/${project.publicKey}`) {
     return Promise.resolve(jsonResponse(project));
+  }
+  if (path === `/api/projects/${project.publicKey}/context`) {
+    if (init?.method === 'PATCH') {
+      const body = JSON.parse(String(init.body)) as { content: string };
+      return Promise.resolve(jsonResponse({ ...projectContext, ...body }));
+    }
+    return Promise.resolve(jsonResponse(projectContext));
   }
   if (path === `/api/projects/${project.publicKey}/features`) {
     return Promise.resolve(jsonResponse([feature]));
@@ -404,23 +440,54 @@ describe('application routes', () => {
     });
   });
 
-  it('shows project context as unavailable without issuing mutations', async () => {
+  it('deep-links to editable ProjectContext without loading unrelated Features', async () => {
     window.localStorage.setItem('featurewise.accessToken', 'stored-token');
     const fetchMock = vi.mocked(fetch);
-    renderRoute(`/projects/${project.publicKey}?tab=context`);
+    const { queryClient } = renderRoute(
+      `/projects/${project.publicKey}?tab=context&view=compact`,
+    );
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Project context is not available yet',
+        name: 'Shared project context',
       }),
+    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Project context' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      screen.getByText(
+        'Add shared project-level context for future feature analyses.',
+      ),
     ).toBeVisible();
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(
       fetchMock.mock.calls.some(
-      ([input, init]) =>
-        init?.method === 'PATCH' &&
-        requestPath(input).startsWith('/api/features/'),
+        ([input]) =>
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/features`,
       ),
+    ).toBe(false);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input]) =>
+          requestPath(input) ===
+          `/api/projects/${project.publicKey}/context`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      queryClient.getQueryData(['project-context', project.publicKey]),
+    ).toMatchObject({
+      content: '',
+      projectKey: project.publicKey,
+      publicKey: 'PCTX-31',
+    });
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .some((query) => String(query.queryKey[0]).includes('analysis')),
     ).toBe(false);
   });
 

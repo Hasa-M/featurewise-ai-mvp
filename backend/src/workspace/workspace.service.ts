@@ -3,7 +3,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
+import type { ProjectContextResponseDto } from './dto/project-context-response.dto';
 import type { UpdateOrganizationDto } from './dto/update-organization.dto';
+import type { UpdateProjectContextDto } from './dto/update-project-context.dto';
 import type { UpdateProjectDto } from './dto/update-project.dto';
 
 export interface ProjectRecord {
@@ -19,6 +21,14 @@ interface OrganizationRecord {
   readonly id: string;
   readonly publicNumber: number;
   readonly name: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+interface ProjectContextRecord {
+  readonly publicNumber: number;
+  readonly projectId: string;
+  readonly content: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -123,6 +133,49 @@ export class WorkspaceService {
     return project;
   }
 
+  async getProjectContext(
+    currentUser: CurrentUserContext,
+    projectPublicNumber: number,
+  ): Promise<ProjectContextResponseDto> {
+    const project = await this.getProjectRecord(
+      currentUser,
+      projectPublicNumber,
+    );
+    const projectContext = await this.prismaService.projectContext.upsert({
+      where: { projectId: project.id },
+      create: {
+        projectId: project.id,
+        content: '',
+      },
+      update: {},
+    });
+
+    return this.toProjectContextResponse(projectContext, project.publicNumber);
+  }
+
+  async updateProjectContext(
+    currentUser: CurrentUserContext,
+    projectPublicNumber: number,
+    dto: UpdateProjectContextDto,
+  ): Promise<ProjectContextResponseDto> {
+    const project = await this.getProjectRecord(
+      currentUser,
+      projectPublicNumber,
+    );
+    const projectContext = await this.prismaService.projectContext.upsert({
+      where: { projectId: project.id },
+      create: {
+        projectId: project.id,
+        content: dto.content,
+      },
+      update: {
+        content: dto.content,
+      },
+    });
+
+    return this.toProjectContextResponse(projectContext, project.publicNumber);
+  }
+
   async updateProject(
     currentUser: CurrentUserContext,
     projectPublicNumber: number,
@@ -179,6 +232,19 @@ export class WorkspaceService {
       name: project.name,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
+    };
+  }
+
+  private toProjectContextResponse(
+    projectContext: ProjectContextRecord,
+    projectPublicNumber: number,
+  ): ProjectContextResponseDto {
+    return {
+      publicKey: formatPublicKey('projectContext', projectContext.publicNumber),
+      projectKey: formatPublicKey('project', projectPublicNumber),
+      content: projectContext.content,
+      createdAt: projectContext.createdAt,
+      updatedAt: projectContext.updatedAt,
     };
   }
 }
