@@ -44,7 +44,13 @@ Always read:
 - `docs/architecture/diagrams/05-c4-frontend-navigation/README.md`;
 - the current worktree status.
 
-Read every additional ADR and diagram relevant to the page's domain or workflow. For generation, validation, consolidation, context, authentication, uploads, or domain-state behavior, trace the accepted backend flow rather than inferring it from UI copy.
+For Feature specification, context, or analysis surfaces, also read:
+
+- `docs/architecture/adr/ADR-0030-specification-analysis-core-domain.md`;
+- `docs/architecture/adr/ADR-0031-feature-specifications-and-traceable-analysis-inputs.md`;
+- `docs/architecture/adr/ADR-0032-analysis-application-boundary-and-lifecycle.md`.
+
+Read every additional ADR and diagram relevant to the page's domain or workflow. For specification editing, analysis, findings, reviews, context, authentication, uploads, or domain-state behavior, trace the accepted backend boundary rather than inferring it from UI copy. Do not propose analysis requests, polling, finding queries, or review mutations before a real backend vertical slice supports them.
 
 Inspect at minimum:
 
@@ -59,10 +65,12 @@ Preserve unrelated worktree changes. Do not assume uncommitted files belong to t
 
 ### Trace whether the platform supports the page
 
+For Feature workspace pages, preserve the accepted route `/projects/:projectKey/features/:featureKey` and the `Specification`, `Context`, and `Analyses` surfaces. `Specification` is the default for a missing or invalid tab value. `Analyses` must render an honest unavailable or empty state until real analysis endpoints exist; it must not issue a placeholder request. Feature is the sole analysis unit.
+
 Determine and report:
 
 - the exact route, route parameters, deep-link behavior, and lazy-loading boundary;
-- authentication and authorization assumptions allowed by Phase 1 scope;
+- authentication and authorization assumptions allowed by the local-first MVP scope;
 - how the page enters and remains selected in global navigation;
 - required server data, query keys, cache behavior, mappings, and mutations;
 - the owner of every business rule and validation decision;
@@ -77,7 +85,7 @@ Classify support as exactly one of:
 2. **Supported with page-local changes:** only the page slice and existing public feature APIs need composition.
 3. **Shared capability required:** a domain-neutral shared component must be added or generalized.
 4. **Architecture or contract change required:** routing, shell ownership, navigation, API, DTO, backend behavior, or an accepted ADR must change.
-5. **Blocked by an accepted decision or Phase 1 scope:** stop and identify the conflict.
+5. **Blocked by an accepted decision or local-first MVP scope:** stop and identify the conflict.
 
 ### Audit PageStructure ownership carefully
 
@@ -145,7 +153,7 @@ After explicit approval:
 7. Use TanStack Query for server state and existing query-option factories. Do not copy server state into local state without a demonstrated editing need.
 8. Compose the confirmed PageHeader through the supported PageStructure ownership path. Provide Breadcrumb, optional subtitle, and action content; render effective page content in the canvas body.
 9. Preserve exactly one page-level heading, one `main`, router-neutral shared UI, semantic variables, CSS Modules, and named Lucide imports.
-10. Implement only applicable states. Use precise Featurewise vocabulary and sentence-case operational copy.
+10. Implement only applicable states. Use precise Featurewise vocabulary and sentence-case operational copy. Feature workspaces use Specification, Context, and Analyses; analysis output uses analysis run, finding, evidence, and finding review.
 11. Update sidebar selection, navigation actions, prefetching, and cache behavior only when the confirmed route requires them.
 12. Update an accepted diagram or add/amend an ADR when the implementation makes a significant architectural decision.
 
@@ -191,5 +199,5 @@ Do not claim completion while required acceptance criteria, tests, or approved a
 ## Example invocation
 
     Use $create-page.
-    Page location: /projects/:projectId/features/:featureId/context
-    Page description: Let the user review and edit the feature context artifact, see uploaded artifacts, and save changes before generating a spec.
+    Page location: /projects/:projectKey/features/:featureKey?tab=context
+    Page description: Let the user edit supporting feature context, manage selected and archived files, and save changes for future analyses.

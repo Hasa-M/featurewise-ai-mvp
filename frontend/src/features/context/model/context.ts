@@ -11,12 +11,15 @@ import {
   getContextFileAccessUrl,
   getFeatureContext,
   getFeatureContextArchive,
+  getProjectContext,
   permanentlyDeleteContextFile,
   updateContextFileSelection,
   updateFeatureContext,
+  updateProjectContext,
   uploadFileToPresignedPost,
   type ContextDto,
   type ContextFileDto,
+  type ProjectContextDto,
 } from '../api';
 import { sha256Base64 } from '../lib/file-format';
 
@@ -29,6 +32,12 @@ export interface ContextFile extends Omit<ContextFileDto, 'createdAt' | 'readyAt
 export interface FeatureContext extends Omit<ContextDto, 'createdAt' | 'files' | 'updatedAt'> {
   readonly createdAt: Date;
   readonly files: readonly ContextFile[];
+  readonly updatedAt: Date;
+}
+
+export interface ProjectContext
+  extends Omit<ProjectContextDto, 'createdAt' | 'updatedAt'> {
+  readonly createdAt: Date;
   readonly updatedAt: Date;
 }
 
@@ -50,10 +59,20 @@ function toFeatureContext(dto: ContextDto): FeatureContext {
   };
 }
 
+export function toProjectContext(dto: ProjectContextDto): ProjectContext {
+  return {
+    ...dto,
+    createdAt: new Date(dto.createdAt),
+    updatedAt: new Date(dto.updatedAt),
+  };
+}
+
 export const contextKeys = {
   archive: (featureKey: string, query: string) =>
     ['feature-context-archive', featureKey, query] as const,
   detail: (featureKey: string) => ['feature-context', featureKey] as const,
+  projectDetail: (projectKey: string) =>
+    ['project-context', projectKey] as const,
 };
 
 export function featureContextQueryOptions(
@@ -79,6 +98,22 @@ export function useFeatureContext(accessToken: string, featureKey: string) {
         : false;
     },
   });
+}
+
+export function projectContextQueryOptions(
+  accessToken: string,
+  projectKey: string,
+) {
+  return queryOptions({
+    queryKey: contextKeys.projectDetail(projectKey),
+    queryFn: async () =>
+      toProjectContext(await getProjectContext(accessToken, projectKey)),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useProjectContext(accessToken: string, projectKey: string) {
+  return useQuery(projectContextQueryOptions(accessToken, projectKey));
 }
 
 export function useFeatureContextArchive(
@@ -115,12 +150,29 @@ export function useUpdateFeatureContext(accessToken: string, featureKey: string)
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (promptContent: string) =>
+    mutationFn: async (content: string) =>
       toFeatureContext(
-        await updateFeatureContext(accessToken, featureKey, promptContent),
+        await updateFeatureContext(accessToken, featureKey, content),
       ),
     onSuccess: (context) => {
       queryClient.setQueryData(contextKeys.detail(featureKey), context);
+    },
+  });
+}
+
+export function useUpdateProjectContext(
+  accessToken: string,
+  projectKey: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (content: string) =>
+      toProjectContext(
+        await updateProjectContext(accessToken, projectKey, content),
+      ),
+    onSuccess: (context) => {
+      queryClient.setQueryData(contextKeys.projectDetail(projectKey), context);
     },
   });
 }

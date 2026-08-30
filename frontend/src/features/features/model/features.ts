@@ -17,15 +17,11 @@ import {
 } from '../api';
 
 export interface Feature {
-  readonly activity: FeatureDto['activity'];
-  readonly alignment: FeatureDto['alignment'];
-  readonly brief: string | null;
   readonly createdAt: Date;
   readonly createdByKey: string;
-  readonly includeInProjectContext: boolean;
-  readonly origin: FeatureDto['origin'];
   readonly projectKey: string;
   readonly publicKey: string;
+  readonly specificationContent: string;
   readonly title: string;
   readonly updatedAt: Date;
 }
@@ -38,8 +34,12 @@ export const featureKeys = {
 
 export function toFeature(dto: FeatureDto): Feature {
   return {
-    ...dto,
     createdAt: new Date(dto.createdAt),
+    createdByKey: dto.createdByKey,
+    projectKey: dto.projectKey,
+    publicKey: dto.publicKey,
+    specificationContent: dto.specificationContent,
+    title: dto.title,
     updatedAt: new Date(dto.updatedAt),
   };
 }
@@ -103,11 +103,11 @@ export interface CreateFeatureInput extends CreateFeatureDto {
   readonly projectKey: string;
 }
 
-export interface FeatureUpdateInput extends UpdateFeatureDto {
+export interface UpdateFeatureInput extends UpdateFeatureDto {
   readonly featureKey: string;
 }
 
-export type FeatureQuickEditInput = FeatureUpdateInput;
+export type FeatureQuickEditInput = UpdateFeatureInput;
 
 export function useCreateFeature(accessToken: string) {
   const queryClient = useQueryClient();
@@ -137,7 +137,7 @@ export function useUpdateFeature(accessToken: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ featureKey, ...input }: FeatureUpdateInput) =>
+    mutationFn: async ({ featureKey, ...input }: UpdateFeatureInput) =>
       toFeature(await updateFeature(accessToken, featureKey, input)),
     onSuccess: (feature) => {
       queryClient.setQueriesData<Feature>(

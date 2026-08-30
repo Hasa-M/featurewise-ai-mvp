@@ -9,21 +9,21 @@ describe('RadioGroup', () => {
     const user = userEvent.setup();
 
     render(
-      <RadioGroup defaultValue="feature" label="Spec target">
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+      <RadioGroup defaultValue="list" label="Layout">
+        <Radio label="List" value="list" />
+        <Radio label="Cards" value="cards" />
       </RadioGroup>,
     );
-    const feature = screen.getByRole('radio', { name: 'Feature' });
-    const update = screen.getByRole('radio', { name: 'Feature update' });
+    const list = screen.getByRole('radio', { name: 'List' });
+    const cards = screen.getByRole('radio', { name: 'Cards' });
 
-    expect(feature).toBeChecked();
-    expect(update).not.toBeChecked();
+    expect(list).toBeChecked();
+    expect(cards).not.toBeChecked();
 
-    await user.click(update);
+    await user.click(cards);
 
-    expect(feature).not.toBeChecked();
-    expect(update).toBeChecked();
+    expect(list).not.toBeChecked();
+    expect(cards).toBeChecked();
   });
 
   it('reports value changes in controlled mode', async () => {
@@ -32,19 +32,19 @@ describe('RadioGroup', () => {
 
     render(
       <RadioGroup
-        label="Spec target"
+        label="Layout"
         onValueChange={onValueChange}
-        value="feature"
+        value="list"
       >
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="List" value="list" />
+        <Radio label="Cards" value="cards" />
       </RadioGroup>,
     );
 
-    await user.click(screen.getByRole('radio', { name: 'Feature update' }));
+    await user.click(screen.getByRole('radio', { name: 'Cards' }));
 
-    expect(onValueChange).toHaveBeenCalledWith('update');
-    expect(screen.getByRole('radio', { name: 'Feature' })).toBeChecked();
+    expect(onValueChange).toHaveBeenCalledWith('cards');
+    expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
   });
 
   it('clears an optional selection through the clear action', async () => {
@@ -54,19 +54,21 @@ describe('RadioGroup', () => {
     render(
       <RadioGroup
         clearable
-        defaultValue="ready"
-        label="Readiness filter"
+        defaultValue="documentation"
+        label="Category filter"
         onValueChange={onValueChange}
       >
-        <Radio label="Ready" value="ready" />
-        <Radio label="Blocked" value="blocked" />
+        <Radio label="Documentation" value="documentation" />
+        <Radio label="Design" value="design" />
       </RadioGroup>,
     );
 
     await user.click(screen.getByRole('button', { name: 'Clear selection' }));
 
-    expect(screen.getByRole('radio', { name: 'Ready' })).not.toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Blocked' })).not.toBeChecked();
+    expect(
+      screen.getByRole('radio', { name: 'Documentation' }),
+    ).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Design' })).not.toBeChecked();
     expect(onValueChange).toHaveBeenCalledWith(null);
     expect(
       screen.queryByRole('button', { name: 'Clear selection' }),
@@ -75,34 +77,32 @@ describe('RadioGroup', () => {
 
   it('associates card descriptions with their radio inputs', () => {
     render(
-      <RadioGroup label="Spec target">
+      <RadioGroup label="Layout">
         <RadioCard
-          description="Create a readiness spec for a brand-new feature."
-          label="New feature"
-          value="new"
+          description="Show each item in a compact row."
+          label="List"
+          value="list"
         />
       </RadioGroup>,
     );
 
     expect(
-      screen.getByRole('radio', { name: 'New feature' }),
-    ).toHaveAccessibleDescription(
-      'Create a readiness spec for a brand-new feature.',
-    );
+      screen.getByRole('radio', { name: 'List' }),
+    ).toHaveAccessibleDescription('Show each item in a compact row.');
   });
 
   it('provides an accessible group name and description', () => {
     render(
       <RadioGroup
-        description="Choose the target that matches the product intent."
-        label="Spec target"
+        description="Choose how example items are displayed."
+        label="Layout"
       >
-        <Radio label="Feature" value="feature" />
+        <Radio label="List" value="list" />
       </RadioGroup>,
     );
 
-    expect(screen.getByRole('group', { name: 'Spec target' })).toHaveAccessibleDescription(
-      'Choose the target that matches the product intent.',
+    expect(screen.getByRole('group', { name: 'Layout' })).toHaveAccessibleDescription(
+      'Choose how example items are displayed.',
     );
   });
 
@@ -112,19 +112,19 @@ describe('RadioGroup', () => {
 
     render(
       <RadioGroup
-        defaultValue="feature"
+        defaultValue="list"
         disabled
-        label="Spec target"
+        label="Layout"
         onValueChange={onValueChange}
       >
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="List" value="list" />
+        <Radio label="Cards" value="cards" />
       </RadioGroup>,
     );
 
-    await user.click(screen.getByRole('radio', { name: 'Feature update' }));
+    await user.click(screen.getByRole('radio', { name: 'Cards' }));
 
-    expect(screen.getByRole('radio', { name: 'Feature' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
     expect(onValueChange).not.toHaveBeenCalled();
   });
 });

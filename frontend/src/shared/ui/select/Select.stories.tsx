@@ -5,17 +5,17 @@ import { useState } from 'react';
 import { Select } from './Select';
 import type { MultipleSelectProps, SingleSelectProps } from './Select';
 
-const readinessOptions = [
-  { label: 'Ready', value: 'ready' },
-  { label: 'Needs attention', value: 'needs-attention' },
-  { label: 'Blocked', value: 'blocked' },
-  { label: 'In progress', value: 'in-progress' },
-  { label: 'Draft', value: 'draft' },
+const categoryOptions = [
+  { label: 'Design', value: 'design' },
+  { label: 'Engineering', value: 'engineering' },
+  { label: 'Research', value: 'research' },
+  { label: 'Planning', value: 'planning' },
+  { label: 'Documentation', value: 'documentation' },
 ];
 
 const contextOptions = Array.from({ length: 14 }, (_, index) => ({
   label: `Context artifact ${index + 1}`,
-  value: `context-${index + 1}`,
+  value: `OBJ-${index + 1}`,
 }));
 
 function ControlledSingle(args: SingleSelectProps) {
@@ -25,7 +25,7 @@ function ControlledSingle(args: SingleSelectProps) {
 
 function ControlledMultiple(args: MultipleSelectProps) {
   const [value, setValue] = useState(
-    args.value.length > 0 ? args.value : ['context-1', 'context-3'],
+    args.value.length > 0 ? args.value : ['OBJ-1', 'OBJ-3'],
   );
   return (
     <Select
@@ -59,18 +59,18 @@ type MultipleStory = StoryObj<MultipleSelectProps>;
 
 export const Single: Story = {
   args: {
-    label: 'Readiness',
+    label: 'Category',
     onChange: () => undefined,
-    options: readinessOptions,
+    options: categoryOptions,
   },
   render: (args) => <ControlledSingle {...args} />,
   play: async ({ canvas, userEvent }) => {
-    const control = canvas.getByRole('combobox', { name: 'Readiness' });
+    const control = canvas.getByRole('combobox', { name: 'Category' });
 
     await userEvent.click(control);
-    await userEvent.click(canvas.getByRole('option', { name: 'Ready' }));
+    await userEvent.click(canvas.getByRole('option', { name: 'Design' }));
 
-    await expect(control).toHaveTextContent('Ready');
+    await expect(control).toHaveTextContent('Design');
     await expect(control).toHaveAttribute('aria-expanded', 'false');
   },
 };
@@ -104,19 +104,19 @@ export const MultipleWithSearch: MultipleStory = {
 
 export const WithoutTitle: Story = {
   args: {
-    'aria-label': 'Readiness',
+    'aria-label': 'Category',
     onChange: () => undefined,
-    options: readinessOptions,
+    options: categoryOptions,
   },
   render: (args) => <ControlledSingle {...args} />,
 };
 
 export const Error: Story = {
   args: {
-    errorMessage: 'Select a readiness state before continuing.',
-    label: 'Readiness',
+    errorMessage: 'Select a category before continuing.',
+    label: 'Category',
     onChange: () => undefined,
-    options: readinessOptions,
+    options: categoryOptions,
     required: true,
   },
   render: (args) => <ControlledSingle {...args} />,
@@ -125,16 +125,16 @@ export const Error: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
-    label: 'Readiness',
+    label: 'Category',
     onChange: () => undefined,
-    options: readinessOptions,
-    value: 'draft',
+    options: categoryOptions,
+    value: 'documentation',
   },
 };
 
 export const Empty: Story = {
   args: {
-    label: 'Readiness',
+    label: 'Category',
     onChange: () => undefined,
     options: [],
   },

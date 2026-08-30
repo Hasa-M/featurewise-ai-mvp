@@ -20,12 +20,11 @@ vi.mock('../model/context', () => {
     openContextFile: vi.fn(),
     useFeatureContext: () => ({
       data: {
+        content: '',
         createdAt: new Date('2026-08-24T00:00:00Z'),
-        featureKey: 'feature-1',
-        featureUpdateKey: null,
+        featureKey: 'FEAT-1',
         files: [],
-        promptContent: '',
-        publicKey: 'context-1',
+        publicKey: 'CTX-1',
         updatedAt: new Date('2026-08-24T00:00:00Z'),
       },
       isError: false,
@@ -42,7 +41,7 @@ vi.mock('../model/context', () => {
             failure: null,
             filename: 'requirements.pdf',
             mimeType: 'application/pdf',
-            publicKey: 'file-1',
+            publicKey: 'OBJ-1',
             readyAt: new Date('2026-08-24T00:00:00Z'),
             selected: false,
             sizeBytes: 1024,
@@ -70,8 +69,7 @@ describe('FeatureContextPanel', () => {
     render(
       <FeatureContextPanel
         accessToken='access-token'
-        brief={null}
-        featureKey='feature-1'
+        featureKey='FEAT-1'
       />,
     );
 

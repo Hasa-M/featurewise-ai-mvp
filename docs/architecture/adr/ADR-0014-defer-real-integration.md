@@ -4,6 +4,14 @@ Date: 2026-06-02
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md),
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+> Integrations, a queue, a worker, and a dedicated AI service remain deferred.
+> Future integrations are neutral context or client adapters over the analysis
+> boundary; the old generation workflow below is historical product context.
+
 ## Context
 
 As specified in ADR-006 Featurewise may later integrate with systems such as Figma, GitHub, Jira, Linear, Notion, Cursor rules, Claude project files, or dedicated AI/coding-agent workflows.

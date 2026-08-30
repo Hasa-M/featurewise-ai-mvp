@@ -8,13 +8,13 @@ describe('Card', () => {
   it('renders arbitrary children in a non-interactive wrapper', () => {
     render(
       <Card>
-        <article aria-label="Readiness summary">Ready for review</article>
+        <article aria-label="Feature summary">Checkout recovery</article>
       </Card>,
     );
 
     expect(
-      screen.getByRole('article', { name: 'Readiness summary' }),
-    ).toHaveTextContent('Ready for review');
+      screen.getByRole('article', { name: 'Feature summary' }),
+    ).toHaveTextContent('Checkout recovery');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -58,13 +58,13 @@ describe('Card', () => {
     const onClick = vi.fn();
 
     render(
-      <Card aria-label="Open readiness details" onClick={onClick}>
-        Ready for review
+      <Card aria-label="Open feature details" onClick={onClick}>
+        Checkout recovery
       </Card>,
     );
 
     const card = screen.getByRole('button', {
-      name: 'Open readiness details',
+      name: 'Open feature details',
     });
     expect(card).toHaveAttribute('type', 'button');
 
@@ -78,16 +78,16 @@ describe('Card', () => {
 
     render(
       <Card
-        aria-label="Open readiness details"
+        aria-label="Open feature details"
         disabled
         onClick={onClick}
       >
-        Ready for review
+        Checkout recovery
       </Card>,
     );
 
     await user.click(
-      screen.getByRole('button', { name: 'Open readiness details' }),
+      screen.getByRole('button', { name: 'Open feature details' }),
     );
     expect(onClick).not.toHaveBeenCalled();
   });

@@ -3,32 +3,38 @@ import { describe, expect, it } from 'vitest';
 import {
   featureCreateSchema,
   featureQuickEditSchema,
+  featureSpecificationSchema,
 } from './feature-form-schemas';
 
 describe('feature form schemas', () => {
-  it('requires an explicit origin during creation', () => {
-    expect(featureCreateSchema.safeParse({ title: 'Saved views' }).success).toBe(
-      false,
-    );
+  it('accepts only title and specification content during creation', () => {
     expect(
-      featureCreateSchema.parse({ origin: 'brand_new', title: ' Saved views ' }),
-    ).toEqual({ origin: 'brand_new', title: 'Saved views' });
+      featureCreateSchema.parse({
+        ignored: 'not part of the form contract',
+        specificationContent: 'Acceptance criteria',
+        title: ' Saved views ',
+      }),
+    ).toEqual({
+      specificationContent: 'Acceptance criteria',
+      title: 'Saved views',
+    });
   });
 
-  it('accepts only the bounded quick-edit fields', () => {
+  it('keeps quick edit limited to the title', () => {
     const result = featureQuickEditSchema.parse({
-      brief: 'Return to useful filters.',
-      includeInProjectContext: true,
-      origin: 'mapped_existing',
       schemaVersion: 'v99',
-      title: 'Saved views',
+      specificationContent: 'Canonical specification',
+      title: ' Saved views ',
     });
 
-    expect(result).toEqual({
-      brief: 'Return to useful filters.',
-      includeInProjectContext: true,
-      title: 'Saved views',
-    });
+    expect(result).toEqual({ title: 'Saved views' });
+  });
+
+  it('bounds the canonical specification independently', () => {
+    expect(
+      featureSpecificationSchema.safeParse({
+        specificationContent: 'x'.repeat(2001),
+      }).success,
+    ).toBe(false);
   });
 });
-

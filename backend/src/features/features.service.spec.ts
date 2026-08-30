@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { FeatureOrigin, SpecRunKind, SpecRunStatus } from '@prisma/client';
+import { AnalysisRunStatus } from '@prisma/client';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { PrismaService } from '../database/prisma.service';
@@ -21,9 +21,7 @@ const featureRecord = {
   publicNumber: 5831,
   projectId: currentUser.projectId,
   title: 'Feature',
-  brief: null,
-  origin: FeatureOrigin.brand_new,
-  includeInProjectContext: false,
+  specificationContent: '',
   createdById: currentUser.userId,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -46,15 +44,8 @@ function createPrismaMock(overrides: Partial<Record<string, unknown>> = {}) {
       findMany: jest.fn().mockResolvedValue([featureRecord]),
       update: jest.fn().mockResolvedValue(featureRecord),
     },
-    specRun: {
-      count: jest.fn().mockResolvedValue(0),
+    analysisRun: {
       findFirst: jest.fn().mockResolvedValue(null),
-    },
-    generatedSpec: {
-      findFirst: jest.fn().mockResolvedValue(null),
-    },
-    featureUpdate: {
-      findMany: jest.fn().mockResolvedValue([]),
     },
     ...overrides,
   };
@@ -86,6 +77,10 @@ function createService(
 describe('FeaturesService', () => {
   it('creates a Feature through a Project public number and uses the resolved UUID internally', async () => {
     const prismaMock = createPrismaMock();
+    prismaMock.feature.create.mockResolvedValue({
+      ...featureRecord,
+      specificationContent: 'Useful thing',
+    });
     prismaMock.$transaction.mockImplementation(
       <T>(
         callback: (transaction: {
@@ -98,14 +93,17 @@ describe('FeaturesService', () => {
 
     const result = await service.createFeature(currentUser, 204, {
       title: '  New capability  ',
-      brief: '  Useful thing  ',
-      origin: FeatureOrigin.brand_new,
+      specificationContent: '  Useful thing  ',
     });
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       publicKey: 'FEAT-5831',
       projectKey: 'PRJ-204',
+      title: 'Feature',
+      specificationContent: 'Useful thing',
       createdByKey: 'USR-7',
+      createdAt: featureRecord.createdAt,
+      updatedAt: featureRecord.updatedAt,
     });
     expect(result).not.toHaveProperty('id');
     expect(result).not.toHaveProperty('projectId');
@@ -115,28 +113,31 @@ describe('FeaturesService', () => {
     );
     expect(prismaMock.feature.create).toHaveBeenCalledWith({
       data: {
-        brief: 'Useful thing',
         createdById: currentUser.userId,
-        includeInProjectContext: false,
-        origin: FeatureOrigin.brand_new,
         projectId: currentUser.projectId,
+        specificationContent: 'Useful thing',
         title: 'New capability',
-        contextArtifact: { create: { promptContent: '' } },
+        contextArtifact: { create: { content: '' } },
       },
       include: publicRelations,
     });
   });
 
-  it('lists Features for a Project public number', async () => {
+  it('lists Features for a Project public number using only the specification-analysis contract', async () => {
     const prismaMock = createPrismaMock();
     const workspaceMock = createWorkspaceMock();
     const service = createService(prismaMock, workspaceMock);
 
     await expect(service.listFeatures(currentUser, 204)).resolves.toEqual([
-      expect.objectContaining({
+      {
         publicKey: 'FEAT-5831',
         projectKey: 'PRJ-204',
-      }),
+        title: 'Feature',
+        specificationContent: '',
+        createdByKey: 'USR-7',
+        createdAt: featureRecord.createdAt,
+        updatedAt: featureRecord.updatedAt,
+      },
     ]);
     expect(prismaMock.feature.findMany).toHaveBeenCalledWith({
       where: {
@@ -148,95 +149,45 @@ describe('FeaturesService', () => {
     });
   });
 
-  it('returns direct generation activity without folding in update or consolidation runs', async () => {
+  it('updates the canonical specification field', async () => {
+    const updatedRecord = {
+      ...featureRecord,
+      specificationContent: 'Updated specification',
+    };
     const prismaMock = createPrismaMock({
-      generatedSpec: {
-        findFirst: jest
-          .fn()
-          .mockImplementation(
-            ({ select }: { select: Record<string, boolean> }) =>
-              Promise.resolve(
-                'version' in select
-                  ? { version: 3 }
-                  : { incorporatedUpdates: [] },
-              ),
-          ),
-      },
-      specRun: {
-        count: jest.fn().mockResolvedValue(4),
-        findFirst: jest.fn().mockResolvedValue({
-          genSettings: { includeProjectSummary: true },
-          runKind: SpecRunKind.consolidation,
-          status: SpecRunStatus.completed,
-        }),
+      feature: {
+        ...createPrismaMock().feature,
+        update: jest.fn().mockResolvedValue(updatedRecord),
       },
     });
     const service = createService(prismaMock);
 
-    await expect(service.getFeature(currentUser, 5831)).resolves.toMatchObject({
-      activity: {
-        currentValidSpecVersion: 3,
-        generationRunCount: 4,
-        latestFeatureRun: {
-          runKind: SpecRunKind.consolidation,
-          status: SpecRunStatus.completed,
-          usedProjectContext: true,
-        },
-      },
+    const result = await service.updateFeature(currentUser, 5831, {
+      specificationContent: '  Updated specification  ',
     });
-    expect(prismaMock.specRun.count).toHaveBeenCalledWith({
-      where: {
-        featureId: featureRecord.id,
-        featureUpdateId: null,
-        runKind: SpecRunKind.generation,
-      },
+
+    expect(prismaMock.feature.update).toHaveBeenCalledWith({
+      where: { id: featureRecord.id },
+      data: { specificationContent: 'Updated specification' },
+      include: publicRelations,
     });
+    expect(result.specificationContent).toBe('Updated specification');
   });
 
-  it('maps pending FeatureUpdate and GeneratedSpec identities to public keys', async () => {
-    const prismaMock = createPrismaMock({
-      generatedSpec: {
-        findFirst: jest
-          .fn()
-          .mockImplementation(
-            ({ select }: { select: Record<string, boolean> }) =>
-              Promise.resolve(
-                'version' in select ? null : { incorporatedUpdates: [] },
-              ),
-          ),
-      },
-      featureUpdate: {
-        findMany: jest.fn().mockResolvedValue([
-          {
-            id: '00000000-0000-4000-8000-000000000010',
-            publicNumber: 31,
-            title: 'Increment',
-            generatedSpecs: [
-              {
-                id: '00000000-0000-4000-8000-000000000011',
-                publicNumber: 44,
-                version: 2,
-              },
-            ],
-          },
-        ]),
-      },
-    });
+  it('stores an empty specification as an empty string', async () => {
+    const prismaMock = createPrismaMock();
     const service = createService(prismaMock);
 
-    await expect(service.getFeature(currentUser, 5831)).resolves.toMatchObject({
-      alignment: {
-        status: 'updates_pending',
-        pendingUpdates: [
-          {
-            featureUpdateKey: 'UPD-31',
-            generatedSpecKey: 'SPEC-44',
-            title: 'Increment',
-            version: 2,
-          },
-        ],
-      },
+    const result = await service.updateFeature(currentUser, 5831, {
+      specificationContent: '   ',
     });
+
+    expect(prismaMock.feature.update).toHaveBeenCalledWith({
+      where: { id: featureRecord.id },
+      data: { specificationContent: '' },
+      include: publicRelations,
+    });
+    expect(result.specificationContent).toBe('');
   });
 
   it('returns 404 before listing or creating under an inaccessible Project key', async () => {
@@ -253,19 +204,18 @@ describe('FeaturesService', () => {
     await expect(
       service.createFeature(currentUser, 999, {
         title: 'New capability',
-        origin: FeatureOrigin.brand_new,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(prismaMock.feature.findMany).not.toHaveBeenCalled();
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('blocks soft delete while the Feature has a non-terminal SpecRun', async () => {
+  it('blocks soft delete while the Feature has a non-terminal AnalysisRun', async () => {
     const prismaMock = createPrismaMock({
-      specRun: {
+      analysisRun: {
         findFirst: jest.fn().mockResolvedValue({
           id: '00000000-0000-4000-8000-000000000005',
-          status: SpecRunStatus.queued,
+          status: AnalysisRunStatus.queued,
         }),
       },
     });
@@ -331,6 +281,54 @@ describe('FeaturesService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  it('reads analysis Feature input only under the resolved Project and Organization', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: featureRecord.id,
+      publicNumber: featureRecord.publicNumber,
+      title: featureRecord.title,
+      specificationContent: featureRecord.specificationContent,
+    });
+    const service = createService(createPrismaMock());
+
+    await expect(
+      service.getAnalysisFeatureInput(
+        { feature: { findFirst } } as never,
+        currentUser,
+        currentUser.projectId,
+        5831,
+      ),
+    ).resolves.toMatchObject({ publicNumber: 5831, title: 'Feature' });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        publicNumber: 5831,
+        deletedAt: null,
+        projectId: currentUser.projectId,
+        project: { organizationId: currentUser.organizationId },
+      },
+      select: {
+        id: true,
+        publicNumber: true,
+        title: true,
+        specificationContent: true,
+      },
+    });
+  });
+
+  it('rejects an inaccessible Feature at the analysis transaction boundary', async () => {
+    const service = createService(createPrismaMock());
+
+    await expect(
+      service.getAnalysisFeatureInput(
+        {
+          feature: { findFirst: jest.fn().mockResolvedValue(null) },
+        } as never,
+        currentUser,
+        currentUser.projectId,
+        9999,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('does not update or delete a Feature outside the visible Project', async () => {
     const prismaMock = createPrismaMock({
       feature: {
@@ -346,7 +344,7 @@ describe('FeaturesService', () => {
     await expect(
       service.deleteFeature(currentUser, 9999),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(prismaMock.specRun.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.analysisRun.findFirst).not.toHaveBeenCalled();
     expect(prismaMock.feature.update).not.toHaveBeenCalled();
   });
 });

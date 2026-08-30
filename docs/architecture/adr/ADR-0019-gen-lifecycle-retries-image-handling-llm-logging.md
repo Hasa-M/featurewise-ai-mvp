@@ -2,9 +2,16 @@
 
 Date: 2026-06-14
 
-Status: accepted
+Status: superseded
 
-Amended by: ADR-0020, ADR-0021, ADR-0029
+Superseded by:
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+Previously amended by: ADR-0020, ADR-0021, ADR-0029
+
+> Historical record only. Statuses, endpoints, retry limits, quality behavior,
+> and GeneratedSpec persistence below are not current rules. ADR-0032 defines
+> the analysis boundary and defers analyzer policy.
 
 ## Context
 

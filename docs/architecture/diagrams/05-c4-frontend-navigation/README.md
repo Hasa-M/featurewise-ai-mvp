@@ -1,163 +1,111 @@
-# C4 Component — Frontend Navigation
+# C4 Component — Featurewise Console Navigation
 
-## Purpose
+## Purpose and implementation status
 
-This document describes the Phase 1 authenticated platform navigation implemented by the React web application. It covers route ownership, the persistent application shell, Sidebar behavior, REST server-state caching, lazy loading, and communication with the existing NestJS API.
+This document describes the current Featurewise Console navigation, React
+architecture, route ownership, persistent shell, and TanStack Query
+boundaries. Analysis execution and findings UI remain unavailable until a real
+backend vertical slice exists.
 
-The navigation exposes Projects, a selected project's Features, and a Feature
-workspace with Context, Generations, Updates, and Specifications tabs.
-Organization/project metadata and Feature create, quick-edit, and delete
-actions are shared across the shell and route pages. The Feature Context tab
-implements the separate Brief, editable Prompt, selected-file, and exact-Context
-Files archive surfaces. Generation, update, specification, and validation
-workflows remain dedicated Feature-page milestones.
+## Routes and workspaces
 
-## Routes and persistent layout
+- `/` renders Projects and remains the application home.
+- `/projects/:projectKey` renders a Project workspace with `features` and
+  `context` tabs. The Context tab edits the Project's ProjectContext.
+- `/projects/:projectKey/features/:featureKey` renders a Feature workspace with
+  `specification`, `context`, and `analyses` tabs. Missing or invalid values
+  resolve to `specification`.
 
-The authenticated route tree keeps `AppShell` and `PageStructure` mounted above all three lazy child pages:
+The Specification tab edits the user's canonical
+`Feature.specificationContent`. Context edits separate supporting
+`ContextArtifact.content` and selected/archived files. Analyses honestly shows
+an unavailable or empty state until real endpoints exist; it must not issue a
+fake request.
 
-- `/` renders the Projects list and is also the application home.
-- `/projects/:projectKey` renders the selected Project workspace. Its `tab`
-  query parameter supports `features` and `context`; missing or invalid values
-  resolve to `features`. The context tab currently persists only Feature
-  membership. ProjectContextSummary content editing and recalculation remain
-  deferred until their backend workflow is defined.
-- `/projects/:projectKey/features/:featureKey` renders the selected Feature
-  workspace. Its `tab` query parameter supports `context`, `generations`,
-  `updates`, and `specifications`; missing or invalid values resolve to
-  `context`.
+Project and Feature public keys (`PRJ-*` and `FEAT-*`) remain the only frontend
+identifiers. Central route builders create links from response `publicKey`
+values. UUIDs stay backend-internal under ADR-0028.
 
-Project and Feature keys are backend-generated public identifiers (`PRJ-*` and
-`FEAT-*`). Central route builders create all new links from response
-`publicKey` values. Read and mutation APIs accept only the entity-specific
-public keys. Legacy UUID locations are rejected and are not canonicalized.
-Domain UUIDs remain backend-internal and are never received, stored, derived,
-routed with, or sent by the frontend (ADR-0028).
+## Persistent layout and ownership
 
-`PageStructure` owns the single `main` landmark. Its Header, Sidebar visibility,
-Sidebar width, accordion state, user menu, action providers, and query
-observers survive child-route navigation. Lazy pages register their dynamic
-PageHeader breadcrumb, subtitle, and actions with the shell and render content
-sections only.
+`AppShell` and `PageStructure` remain mounted above lazy route pages.
+`PageStructure` owns the single `main` landmark. Header, Sidebar, user menu,
+action providers, query observers, and PageHeader registration survive child
+navigation.
 
-The Header logo and the Projects node List action both navigate to `/`. Shared UI stays router-neutral through `NavigationLinkComponent`; the app adapter renders React Router `Link`, while Storybook and isolated component tests default to native anchors.
-
-## Sidebar hierarchy and actions
-
-The Sidebar is derived from cached REST resources and has one nesting level ready for future feature navigation:
+The Sidebar hierarchy remains:
 
 ```text
-Projects node
-└── Project group
-    └── Features node
-        └── Feature group
+Projects
+└── Project
+    └── Features
+        └── Feature
 ```
 
-- **Projects node:** its hover List action navigates to `/`. It has no Add action.
-- **Project group:** opening it enables the project's feature query. Its Go-to
-  action navigates to the project route and its menu opens shared project edit.
-- **Features node:** its Add action opens shared Feature creation. It has no
-  List action because the project page owns the feature list.
-- **Feature group:** its Go-to action navigates to the feature route. Its menu
-  opens shared Feature edit and delete. Expanding the group displays a
-  future-navigation empty message.
+Workspace and Features slices own typed API contracts, mappings, queries,
+forms, actions, and cache updates. Context owns supporting text and the private
+file lifecycle. A later Analysis slice will own runs, findings, evidence, and
+review behavior; it must call the backend application boundary rather than
+contain engine rules.
 
-Selection IDs are stable (`projects`, `project:<publicKey>`,
-`features:<projectPublicKey>`, and `feature:<featurePublicKey>`). The URL
-determines the current item and the shared Sidebar marks its ancestors.
+## Server-state boundaries
 
-## Server-state and communication
+TanStack Query remains the Console server-state cache and React Router remains
+the URL/navigation owner. Existing organization, project, feature, feature
+context, and file-archive query policies remain in force. A future contract
+change must update its owning slice and cache policy together.
 
-One QueryClient is mounted above authentication and routing. Authentication failure and logout clear the whole cache before another session can use it.
-
-| Resource | Query key | Freshness |
-| --- | --- | --- |
-| Organization | `['organization', organizationKey]` | 5 minutes |
-| Project summaries, including active-feature count | `['projects', organizationKey]` | 5 minutes |
-| Project | `['project', projectKey]` | 5 minutes |
-| Project features | `['features', projectKey]` | 1 minute |
-| Feature | `['feature', projectKey, featureKey]` | 1 minute |
-| Feature Context | `['feature-context', featureKey]` | 1 minute, polling while files prepare |
-| Context Files archive | `['feature-context-archive', featureKey, search]` | 15 seconds |
-
-Organization and project summaries start concurrently after authentication. The
-project-summary response includes the count of non-deleted Features so the
-Projects page does not eagerly load every Feature collection. Feature
-collections start only when a project page needs them, a project accordion
-opens, or pointer/keyboard intent prefetches them. All three paths use the same
-query options, so TanStack Query deduplicates concurrent requests and skips
-fresh data.
-
-Successful mutations update the relevant detail and collection caches.
-Creation seeds the Feature detail and project collection caches; deletion
-removes both only after the backend succeeds. There are no optimistic updates.
-Successful Feature creation and deletion also adjust the cached project-summary
-count at the app composition boundary.
-
-Project and feature detail queries use fresh collection entries as initial data
-and inherit the collection's update timestamp. Direct deep links use public-key
-Project and nested Feature read endpoints. The nested Feature endpoint verifies
-Project membership. Project feature reads also expose backend-derived
-activity: direct generation-run count, current valid-spec version, and the
-latest feature-target run's kind, status, and project-summary inclusion setting.
-The Feature Context slice separately caches Prompt and selected-file state,
-polls only while an upload is pending or processing, and invalidates both its
-detail and archive queries after upload, selection, or deletion. Browser bytes
-go directly to a backend-authorized S3 presigned POST and never pass through the
-shared REST client. The Project context tab keeps an explicit local membership draft, then
-pessimistically PATCHes only changed Features; successful responses update the
-shared detail and collection caches. No navigation aggregate, GraphQL endpoint,
-polling, or frontend persistence is introduced.
-
-Errors are local to their owning surface: shell-level organization failure blocks the authenticated layout with Retry; project/feature list failures render route or branch feedback; malformed, inaccessible, mismatched, and missing resources render not-found states. Network and 5xx responses retry once, while 4xx responses do not retry.
+Removed product projections include generated-spec version/count, generation
+activity, FeatureUpdate state, and alignment. Analysis query keys, polling,
+findings, and review mutations are added only with real endpoints. No
+placeholder analysis cache entry exists.
 
 ## Component diagram
 
 ```mermaid
 C4Component
-  title Featurewise frontend navigation components
+  title Featurewise Console navigation components
 
-  Person(user, "Authenticated user", "Browses projects and features")
+  Person(user, "Authenticated user", "Manages feature specifications/context and reviews analyses")
 
-  Container_Boundary(web, "React + Vite web app") {
-    Component(auth, "AuthProvider", "React context", "Restores the session and clears cached data on logout/failure")
+  Container_Boundary(console, "React + Vite Featurewise Console") {
+    Component(auth, "AuthProvider", "React context", "Restores session and clears cached data on logout/failure")
     Component(router, "React Router", "Data router", "Matches URLs and lazy-loads route modules")
     Component(shell, "AppShell + PageStructure", "React components", "Keeps Header, Sidebar, and Outlet mounted")
-    Component(actions, "Entity action providers", "React context", "Own shared action state, dialogs, navigation defaults, and mutation entry points")
-    Component(pageHeader, "PageHeader registration", "React context", "Connects lazy route breadcrumbs and actions to the persistent shell")
-    Component(pages, "Navigation pages", "Lazy React modules", "Projects, Project, and Feature destinations")
+    Component(actions, "Entity action providers", "React context", "Own reusable organization, project, and feature actions")
+    Component(header, "PageHeader registration", "React context", "Connects lazy route breadcrumbs/actions to the persistent shell")
+    Component(pages, "Projects, Project, and Feature pages", "Lazy route modules", "Compose Specification, Context, and Analyses workspaces")
     Component(query, "TanStack QueryClient", "In-memory server-state cache", "Caches, deduplicates, retries, seeds, and prefetches REST data")
-    Component(slices, "Workspace, Features, and Context slices", "Typed API/model boundaries", "Own DTOs, mappings, query options, uploads, and hooks")
-    Component(http, "Shared HTTP client", "Fetch wrapper", "Adds API base URL, bearer token, JSON parsing, and normalized errors")
+    Component(slices, "Workspace, Features, Context, and future Analysis slices", "Typed feature boundaries", "Own API DTOs, mappings, hooks, uploads, findings, and reviews")
+    Component(http, "Shared HTTP client", "Fetch wrapper", "Adds API base URL, auth, JSON parsing, and normalized errors")
   }
 
-  Container(api, "Backend API", "NestJS REST/JSON", "Owns visibility and business data")
-  Container(storage, "Private AWS S3", "Object storage", "Stores immutable Context originals and prepared derivatives")
+  Container(api, "Backend API", "NestJS REST/JSON", "Owns authorization, context lifecycle, and analysis business logic")
+  Container(storage, "Private AWS S3", "Object storage", "Stores immutable context originals and prepared derivatives")
 
   Rel(user, router, "Activates links", "Browser history")
   Rel(router, shell, "Renders authenticated layout")
   Rel(shell, pages, "Renders active child", "Outlet")
-  Rel(pages, pageHeader, "Registers breadcrumb and page actions")
-  Rel(pageHeader, shell, "Supplies active PageHeader props")
-  Rel(shell, actions, "Invokes organization, project, and feature actions")
-  Rel(pages, actions, "Invokes the same typed action APIs")
-  Rel(shell, query, "Observes organization, projects, and open branches")
-  Rel(pages, query, "Observes route data and prefetches on intent")
+  Rel(pages, header, "Registers breadcrumb and actions")
+  Rel(header, shell, "Supplies active PageHeader props")
+  Rel(shell, actions, "Invokes shared entity actions")
+  Rel(shell, query, "Observes navigation resources")
+  Rel(pages, query, "Observes route resources")
   Rel(auth, query, "Clears on logout/session failure")
   Rel(query, slices, "Executes stable query options")
   Rel(slices, http, "Calls typed endpoint functions")
-  Rel(http, api, "GET/POST/PATCH/DELETE", "HTTPS REST/JSON + bearer token")
+  Rel(http, api, "GET/POST/PATCH/DELETE", "REST/JSON + bearer token")
   Rel(slices, storage, "Uploads bytes", "Backend-authorized presigned POST")
   Rel(api, storage, "Confirms, prepares, signs access, and cleans up", "AWS SDK")
 ```
 
-## Performance boundaries
+## Performance and failure boundaries
 
-- Lazy child routes produce separate production chunks.
-- The persistent shell avoids remounting global navigation during route changes.
-- Query results remain the source of truth; the Project context membership selector copies only an explicit, unsaved editing draft into local state.
-- Sidebar trees and cross-boundary handlers are derived with stable memoization.
-- Prefetch is intent-based rather than eager for every feature collection.
-- Cache freshness, not component mount count, determines whether another request is needed.
-- Backend visibility rules remain unchanged; further transport optimization
-  requires measurement before an architectural change.
+- Lazy child routes remain separate production chunks and the persistent shell
+  avoids global remounts.
+- Cached server data remains the source of truth; local state is limited to
+  explicit editing drafts.
+- Prefetch remains intent-based and freshness determines repeat requests.
+- Authorization and resource visibility stay backend-owned.
+- Errors remain local to their owning shell, page, context/file, or future
+  analysis surface.

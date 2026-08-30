@@ -2,7 +2,13 @@
 
 Date: 2026-06-02
 
-Status: accepted
+Status: superseded
+
+Superseded by:
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+> Historical record only. ADR-0032 retains asynchronous in-process execution
+> for the MVP but replaces spec generation with the analysis lifecycle.
 
 ## Context
 

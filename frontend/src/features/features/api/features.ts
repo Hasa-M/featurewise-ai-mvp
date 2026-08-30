@@ -1,52 +1,22 @@
 import { request } from '@/shared/api';
 
 export interface FeatureDto {
-  readonly activity: {
-    readonly currentValidSpecVersion: number | null;
-    readonly generationRunCount: number;
-    readonly latestFeatureRun: {
-      readonly runKind: 'generation' | 'consolidation';
-      readonly status:
-        | 'queued'
-        | 'preparing_context'
-        | 'calling_llm'
-        | 'validating_output'
-        | 'repairing_output'
-        | 'checking_quality'
-        | 'persisting'
-        | 'completed'
-        | 'failed';
-      readonly usedProjectContext: boolean | null;
-    } | null;
-  };
-  readonly alignment: {
-    readonly pendingUpdates: readonly {
-      readonly featureUpdateKey: string;
-      readonly generatedSpecKey: string;
-      readonly title: string;
-      readonly version: number;
-    }[];
-    readonly status: 'aligned' | 'updates_pending';
-  };
-  readonly brief: string | null;
   readonly createdAt: string;
   readonly createdByKey: string;
-  readonly includeInProjectContext: boolean;
-  readonly origin: 'brand_new' | 'mapped_existing';
   readonly projectKey: string;
   readonly publicKey: string;
+  readonly specificationContent: string;
   readonly title: string;
   readonly updatedAt: string;
 }
 
 export interface CreateFeatureDto {
-  readonly origin: FeatureDto['origin'];
+  readonly specificationContent?: string;
   readonly title: string;
 }
 
 export interface UpdateFeatureDto {
-  readonly brief?: string | null;
-  readonly includeInProjectContext?: boolean;
+  readonly specificationContent?: string;
   readonly title?: string;
 }
 

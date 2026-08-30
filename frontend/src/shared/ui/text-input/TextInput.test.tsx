@@ -11,9 +11,9 @@ describe('TextInput', () => {
 
     render(<TextInput label="Feature name" onChange={onChange} />);
     const input = screen.getByRole('textbox', { name: 'Feature name' });
-    await user.type(input, 'Export generated spec');
+    await user.type(input, 'Offline access');
 
-    expect(input).toHaveValue('Export generated spec');
+    expect(input).toHaveValue('Offline access');
     expect(onChange).toHaveBeenCalled();
   });
 
@@ -87,16 +87,16 @@ describe('TextInput', () => {
 
   it('adds percentage constraints while allowing explicit overrides', () => {
     const { rerender } = render(
-      <TextInput aria-label="Confidence" valueType="percentage" />,
+      <TextInput aria-label="Percentage" valueType="percentage" />,
     );
-    const input = screen.getByRole('spinbutton', { name: 'Confidence' });
+    const input = screen.getByRole('spinbutton', { name: 'Percentage' });
 
     expect(input).toHaveAttribute('min', '0');
     expect(input).toHaveAttribute('max', '100');
 
     rerender(
       <TextInput
-        aria-label="Confidence"
+        aria-label="Percentage"
         max={200}
         min={-100}
         valueType="percentage"

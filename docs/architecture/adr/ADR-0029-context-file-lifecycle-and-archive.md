@@ -4,6 +4,15 @@ Date: 2026-08-12
 
 Status: accepted
 
+Amended by:
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md)
+
+> The S3 lifecycle, selection/archive behavior, limits, preparation, immutable
+> versions, and purge rules remain accepted. ADR-0031 removes FeatureUpdate
+> ownership, renames `brief`/`promptContent`, and makes AnalysisRun input
+> snapshots the historical-use boundary. Conflicting terminology below is
+> retained as implementation history only.
+
 Amends: ADR-0011, ADR-0016, ADR-0017, ADR-0019
 
 ## Context

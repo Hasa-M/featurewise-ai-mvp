@@ -4,6 +4,13 @@ Date: 2026-07-30
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Action-surface ownership remains accepted. Feature creation/editing uses
+> title and `specificationContent`; specification and context editing belong in
+> the Feature workspace. Origin, project-context membership, FeatureUpdate,
+> generated-spec, validation, consolidation, and alignment actions are removed.
+
 ## Context
 
 Entity actions must be reusable across route pages, lists, and the persistent

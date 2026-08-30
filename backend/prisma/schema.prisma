@@ -6,11 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum FeatureOrigin {
-  brand_new
-  mapped_existing
-}
-
 enum AssetType {
   image
   file
@@ -23,25 +18,28 @@ enum StorageObjectStatus {
   failed
 }
 
-enum SpecRunKind {
-  generation
-  consolidation
-}
-
-enum SpecRunStatus {
+enum AnalysisRunStatus {
   queued
   preparing_context
-  calling_llm
+  analyzing
   validating_output
   repairing_output
-  checking_quality
+  verifying_findings
   persisting
   completed
   failed
 }
 
+enum FindingReviewDecision {
+  accepted
+  dismissed
+  resolved
+  deferred
+}
+
 enum LlmCallPurpose {
-  generation
+  candidate_analysis
+  finding_verification
   schema_repair
 }
 
@@ -63,105 +61,78 @@ model Organization {
 }
 
 model User {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
-  publicNumber   Int          @unique(map: "user_public_number_key") @default(dbgenerated("nextval('user_public_number_seq'::regclass)")) @map("public_number")
-  organizationId String       @unique @map("organization_id") @db.Uuid
-  username       String       @unique
-  passwordHash   String       @map("password_hash")
-  isActive       Boolean      @default(true) @map("is_active")
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  publicNumber   Int             @unique(map: "user_public_number_key") @default(dbgenerated("nextval('user_public_number_seq'::regclass)")) @map("public_number")
+  organizationId String          @unique @map("organization_id") @db.Uuid
+  username       String          @unique
+  passwordHash   String          @map("password_hash")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  analysisRuns   AnalysisRun[]
   features       Feature[]
-  featureUpdates FeatureUpdate[]
-  specRuns       SpecRun[]
+  findingReviews FindingReview[]
   storageObjects StorageObject[]
 
   @@map("user")
 }
 
 model Project {
-  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @map("project_id") @db.Uuid
-  publicNumber   Int                    @unique(map: "project_public_number_key") @default(dbgenerated("nextval('project_public_number_seq'::regclass)")) @map("public_number")
-  organizationId String                 @unique @map("organization_id") @db.Uuid
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @map("project_id") @db.Uuid
+  publicNumber   Int             @unique(map: "project_public_number_key") @default(dbgenerated("nextval('project_public_number_seq'::regclass)")) @map("public_number")
+  organizationId String          @unique @map("organization_id") @db.Uuid
   name           String
-  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  context        ProjectContext?
   features       Feature[]
-  summary        ProjectContextSummary?
 
   @@map("project")
 }
 
-model ProjectContextSummary {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("summary_id") @db.Uuid
-  publicNumber Int      @unique(map: "project_context_summary_public_number_key") @default(dbgenerated("nextval('project_context_summary_public_number_seq'::regclass)")) @map("public_number")
+model ProjectContext {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @map("project_context_id") @db.Uuid
+  publicNumber Int      @unique(map: "project_context_public_number_key") @default(dbgenerated("nextval('project_context_public_number_seq'::regclass)")) @map("public_number")
   projectId    String   @unique @map("project_id") @db.Uuid
   content      String   @default("")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@map("project_context_summary")
+  @@map("project_context")
 }
 
 model Feature {
-  id                      String             @id @default(dbgenerated("gen_random_uuid()")) @map("feature_id") @db.Uuid
-  publicNumber            Int              @unique(map: "feature_public_number_key") @default(dbgenerated("nextval('feature_public_number_seq'::regclass)")) @map("public_number")
-  projectId               String             @map("project_id") @db.Uuid
-  title                   String
-  brief                   String?
-  origin                  FeatureOrigin
-  includeInProjectContext Boolean            @default(false) @map("include_in_project_context")
-  createdById             String             @map("created_by") @db.Uuid
-  createdAt               DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt               DateTime?          @map("deleted_at") @db.Timestamptz(6)
-  contextArtifact         ContextArtifact?
-  createdBy               User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  generatedSpecs          GeneratedSpec[]
-  project                 Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  specRuns                SpecRun[]
-  updates                 FeatureUpdate[]
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @map("feature_id") @db.Uuid
+  publicNumber         Int              @unique(map: "feature_public_number_key") @default(dbgenerated("nextval('feature_public_number_seq'::regclass)")) @map("public_number")
+  projectId            String           @map("project_id") @db.Uuid
+  title                String
+  specificationContent String           @default("") @map("specification_content")
+  createdById          String           @map("created_by") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt            DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  analysisRuns         AnalysisRun[]
+  contextArtifact      ContextArtifact?
+  createdBy            User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  project              Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
 
   @@index([projectId])
   @@index([createdById])
   @@map("feature")
 }
 
-model FeatureUpdate {
-  id              String             @id @default(dbgenerated("gen_random_uuid()")) @map("feature_update_id") @db.Uuid
-  publicNumber    Int                @unique(map: "feature_update_public_number_key") @default(dbgenerated("nextval('feature_update_public_number_seq'::regclass)")) @map("public_number")
-  featureId       String             @map("feature_id") @db.Uuid
-  title           String
-  brief           String?
-  createdById     String             @map("created_by") @db.Uuid
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt       DateTime?          @map("deleted_at") @db.Timestamptz(6)
-  contextArtifact ContextArtifact?
-  createdBy       User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  feature         Feature            @relation(fields: [featureId], references: [id], onDelete: Restrict)
-  generatedSpecs  GeneratedSpec[]
-  specRuns        SpecRun[]
-
-  @@index([featureId])
-  @@index([createdById])
-  @@map("feature_update")
-}
-
 model ContextArtifact {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @map("context_artifact_id") @db.Uuid
-  publicNumber    Int             @unique(map: "context_artifact_public_number_key") @default(dbgenerated("nextval('context_artifact_public_number_seq'::regclass)")) @map("public_number")
-  featureId       String?         @unique @map("feature_id") @db.Uuid
-  featureUpdateId String?         @unique @map("feature_update_id") @db.Uuid
-  promptContent   String          @default("") @map("prompt_content")
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
-  feature         Feature?        @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  featureUpdate   FeatureUpdate?  @relation(fields: [featureUpdateId], references: [id], onDelete: Cascade)
-  storageObjects  StorageObject[]
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @map("context_artifact_id") @db.Uuid
+  publicNumber   Int             @unique(map: "context_artifact_public_number_key") @default(dbgenerated("nextval('context_artifact_public_number_seq'::regclass)")) @map("public_number")
+  featureId      String          @unique @map("feature_id") @db.Uuid
+  content        String          @default("")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  feature        Feature         @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  storageObjects StorageObject[]
 
   @@map("context_artifact")
 }
@@ -191,17 +162,17 @@ model StorageObject {
   preparationVersion     String?             @map("preparation_version")
   failureCode            String?             @map("failure_code")
   failureMessage         String?             @map("failure_message")
-  uploadExpiresAt        DateTime             @map("upload_expires_at") @db.Timestamptz(6)
-  confirmedAt            DateTime?            @map("confirmed_at") @db.Timestamptz(6)
-  readyAt                DateTime?            @map("ready_at") @db.Timestamptz(6)
-  failedAt               DateTime?            @map("failed_at") @db.Timestamptz(6)
-  unselectedAt           DateTime?            @map("unselected_at") @db.Timestamptz(6)
-  firstUsedAt            DateTime?            @map("first_used_at") @db.Timestamptz(6)
-  purgeRequestedAt       DateTime?            @map("purge_requested_at") @db.Timestamptz(6)
-  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  contextArtifact        ContextArtifact      @relation(fields: [contextArtifactId], references: [id], onDelete: Restrict)
-  createdBy              User                 @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  uploadExpiresAt        DateTime            @map("upload_expires_at") @db.Timestamptz(6)
+  confirmedAt            DateTime?           @map("confirmed_at") @db.Timestamptz(6)
+  readyAt                DateTime?           @map("ready_at") @db.Timestamptz(6)
+  failedAt               DateTime?           @map("failed_at") @db.Timestamptz(6)
+  unselectedAt           DateTime?           @map("unselected_at") @db.Timestamptz(6)
+  firstUsedAt            DateTime?           @map("first_used_at") @db.Timestamptz(6)
+  purgeRequestedAt       DateTime?           @map("purge_requested_at") @db.Timestamptz(6)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contextArtifact        ContextArtifact     @relation(fields: [contextArtifactId], references: [id], onDelete: Restrict)
+  createdBy              User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([contextArtifactId, status, selected])
   @@index([status, uploadExpiresAt])
@@ -211,81 +182,96 @@ model StorageObject {
   @@map("storage_object")
 }
 
-model SpecRun {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @map("spec_run_id") @db.Uuid
-  publicNumber    Int             @unique(map: "spec_run_public_number_key") @default(dbgenerated("nextval('spec_run_public_number_seq'::regclass)")) @map("public_number")
-  featureId       String          @map("feature_id") @db.Uuid
-  featureUpdateId String?         @map("feature_update_id") @db.Uuid
-  runKind         SpecRunKind     @map("run_kind")
-  status          SpecRunStatus
-  promptVersion   String          @map("prompt_version")
-  schemaVersion   String          @map("schema_version")
-  genSettings     Json            @default("{}") @map("gen_settings")
-  contextSnapshot Json            @map("context_snapshot")
-  errorMessage    String?         @map("error_message")
-  createdById     String          @map("created_by") @db.Uuid
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  startedAt       DateTime?       @map("started_at") @db.Timestamptz(6)
-  finishedAt      DateTime?       @map("finished_at") @db.Timestamptz(6)
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
-  createdBy       User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  feature         Feature         @relation(fields: [featureId], references: [id], onDelete: Restrict)
-  featureUpdate   FeatureUpdate?  @relation(fields: [featureUpdateId], references: [id], onDelete: Restrict)
-  generatedSpec   GeneratedSpec?
-  llmCallLogs     LlmCallLog[]
+/// The migration owns the partial unique index that permits at most one
+/// non-terminal AnalysisRun per Feature and the immutable snapshot trigger.
+model AnalysisRun {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @map("analysis_run_id") @db.Uuid
+  publicNumber            Int               @unique(map: "analysis_run_public_number_key") @default(dbgenerated("nextval('analysis_run_public_number_seq'::regclass)")) @map("public_number")
+  featureId               String            @map("feature_id") @db.Uuid
+  status                  AnalysisRunStatus
+  analyzerVersion         String            @map("analyzer_version")
+  promptVersion           String            @map("prompt_version")
+  schemaVersion           String            @map("schema_version")
+  analysisSettings        Json              @map("analysis_settings")
+  inputSnapshot           Json              @map("input_snapshot")
+  preparedContextSnapshot Json?             @map("prepared_context_snapshot")
+  errorMessage            String?           @map("error_message")
+  createdById             String            @map("created_by") @db.Uuid
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  startedAt               DateTime?         @map("started_at") @db.Timestamptz(6)
+  finishedAt              DateTime?         @map("finished_at") @db.Timestamptz(6)
+  updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy               User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  feature                 Feature           @relation(fields: [featureId], references: [id], onDelete: Restrict)
+  findings                AnalysisFinding[]
+  llmCallLogs             LlmCallLog[]
 
   @@index([featureId])
-  @@index([featureUpdateId])
   @@index([createdById])
-  @@map("spec_run")
+  @@map("analysis_run")
 }
 
-model GeneratedSpec {
-  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @map("generated_spec_id") @db.Uuid
-  publicNumber         Int             @unique(map: "generated_spec_public_number_key") @default(dbgenerated("nextval('generated_spec_public_number_seq'::regclass)")) @map("public_number")
-  featureId            String          @map("feature_id") @db.Uuid
-  featureUpdateId      String?         @map("feature_update_id") @db.Uuid
-  specRunId            String?         @unique @map("spec_run_id") @db.Uuid
-  parentSpecId         String?         @map("parent_spec_id") @db.Uuid
-  version              Int             @default(0)
-  content              Json
-  schemaVersion        String          @map("schema_version")
-  valid                Boolean         @default(false)
-  warnings             Json            @default("[]")
-  incorporatedUpdates  Json            @default("[]") @map("incorporated_updates")
+/// AnalysisFinding rows are immutable after insertion through a
+/// migration-owned PostgreSQL trigger.
+model AnalysisFinding {
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @map("analysis_finding_id") @db.Uuid
+  publicNumber         Int             @unique(map: "analysis_finding_public_number_key") @default(dbgenerated("nextval('analysis_finding_public_number_seq'::regclass)")) @map("public_number")
+  analysisRunId        String          @map("analysis_run_id") @db.Uuid
+  position             Int
+  category             String
+  severity             String
+  title                String
+  description          String
+  whyItMatters         String          @map("why_it_matters")
+  evidence             Json
+  suggestedResolutions Json            @map("suggested_resolutions")
+  verificationMetadata Json            @map("verification_metadata")
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
-  derivedSpecs         GeneratedSpec[] @relation("GeneratedSpecDerivation")
-  feature              Feature         @relation(fields: [featureId], references: [id], onDelete: Restrict)
-  featureUpdate        FeatureUpdate?  @relation(fields: [featureUpdateId], references: [id], onDelete: Restrict)
-  parentSpec           GeneratedSpec?  @relation("GeneratedSpecDerivation", fields: [parentSpecId], references: [id], onDelete: Restrict)
-  specRun              SpecRun?        @relation(fields: [specRunId], references: [id], onDelete: Restrict)
+  analysisRun          AnalysisRun     @relation(fields: [analysisRunId], references: [id], onDelete: Restrict)
+  reviews              FindingReview[]
 
-  @@index([featureId])
-  @@index([featureUpdateId])
-  @@index([parentSpecId])
-  @@map("generated_spec")
+  @@unique([analysisRunId, position], map: "analysis_finding_run_position_key")
+  @@index([analysisRunId])
+  @@map("analysis_finding")
+}
+
+/// FindingReview is append-only through a migration-owned PostgreSQL trigger.
+model FindingReview {
+  id           String                @id @default(dbgenerated("gen_random_uuid()")) @map("finding_review_id") @db.Uuid
+  publicNumber Int                   @unique(map: "finding_review_public_number_key") @default(dbgenerated("nextval('finding_review_public_number_seq'::regclass)")) @map("public_number")
+  findingId    String                @map("finding_id") @db.Uuid
+  decision     FindingReviewDecision
+  reason       String?
+  createdById  String                @map("created_by") @db.Uuid
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  finding      AnalysisFinding       @relation(fields: [findingId], references: [id], onDelete: Restrict)
+
+  @@index([findingId])
+  @@index([createdById])
+  @@map("finding_review")
 }
 
 model LlmCallLog {
-  id             String         @id @default(dbgenerated("gen_random_uuid()")) @map("llm_call_id") @db.Uuid
-  publicNumber   Int            @unique(map: "llm_call_log_public_number_key") @default(dbgenerated("nextval('llm_call_log_public_number_seq'::regclass)")) @map("public_number")
-  specRunId      String         @map("spec_run_id") @db.Uuid
-  purpose        LlmCallPurpose
-  attempt        Int
-  provider       String
-  model          String
-  promptVersion  String         @map("prompt_version")
-  schemaVersion  String         @map("schema_version")
-  inputTokens    Int            @map("input_tokens")
-  outputTokens   Int            @map("output_tokens")
-  latencyMs      Int            @map("latency_ms")
-  outcome        LlmCallOutcome
-  errorMessage   String?        @map("error_message")
-  rawResponse    Json?          @map("raw_response")
-  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  specRun        SpecRun        @relation(fields: [specRunId], references: [id], onDelete: Restrict)
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @map("llm_call_id") @db.Uuid
+  publicNumber        Int            @unique(map: "llm_call_log_public_number_key") @default(dbgenerated("nextval('llm_call_log_public_number_seq'::regclass)")) @map("public_number")
+  analysisRunId       String         @map("analysis_run_id") @db.Uuid
+  purpose             LlmCallPurpose
+  attempt             Int
+  provider            String
+  model               String
+  promptVersion       String         @map("prompt_version")
+  schemaVersion       String         @map("schema_version")
+  inputTokens         Int?           @map("input_tokens")
+  outputTokens        Int?           @map("output_tokens")
+  latencyMs           Int?           @map("latency_ms")
+  estimatedCostMicros BigInt?        @map("estimated_cost_micros")
+  outcome             LlmCallOutcome
+  errorMessage        String?        @map("error_message")
+  rawResponse         Json?          @map("raw_response")
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  analysisRun         AnalysisRun    @relation(fields: [analysisRunId], references: [id], onDelete: Restrict)
 
-  @@index([specRunId])
+  @@index([analysisRunId])
   @@map("llm_call_log")
 }

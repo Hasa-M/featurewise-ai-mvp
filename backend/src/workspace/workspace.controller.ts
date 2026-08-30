@@ -7,7 +7,9 @@ import {
   ParsePublicKeyPipe,
   type ParsedPublicNumber,
 } from '../common/public-identifiers';
+import type { ProjectContextResponseDto } from './dto/project-context-response.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
+import { UpdateProjectContextDto } from './dto/update-project-context.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { WorkspaceService } from './workspace.service';
 
@@ -63,6 +65,32 @@ export class WorkspaceController {
     return this.workspaceService.getProject(
       currentUser,
       projectPublicNumber.value,
+    );
+  }
+
+  @Get('projects/:projectKey/context')
+  async getProjectContext(
+    @CurrentUser() currentUser: CurrentUserContext,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
+  ): Promise<ProjectContextResponseDto> {
+    return this.workspaceService.getProjectContext(
+      currentUser,
+      projectPublicNumber.value,
+    );
+  }
+
+  @Patch('projects/:projectKey/context')
+  async updateProjectContext(
+    @CurrentUser() currentUser: CurrentUserContext,
+    @Param('projectKey', new ParsePublicKeyPipe('project'))
+    projectPublicNumber: ParsedPublicNumber,
+    @Body() dto: UpdateProjectContextDto,
+  ): Promise<ProjectContextResponseDto> {
+    return this.workspaceService.updateProjectContext(
+      currentUser,
+      projectPublicNumber.value,
+      dto,
     );
   }
 

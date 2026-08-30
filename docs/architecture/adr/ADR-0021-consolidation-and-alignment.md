@@ -2,7 +2,12 @@
 
 Date: 2026-06-14
 
-Status: accepted
+Status: superseded
+
+Superseded by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> Historical record only. Generated-spec validation, consolidation,
+> incorporation tracking, and alignment are removed by ADR-0030.
 
 Amends: ADR-0017, ADR-0018, ADR-0019. Depends on: ADR-0020.
 

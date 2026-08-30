@@ -26,30 +26,9 @@ const nodes: readonly SidebarNodeItem[] = [
             },
             children: [
               {
-                children: [
-                  {
-                    addAction: {
-                      'aria-label': 'Generate authentication spec',
-                      href: '#generate-authentication',
-                    },
-                    children: [
-                      {
-                        href: '#generation-2',
-                        id: 'generation-2',
-                        label: 'Generation 2',
-                        type: 'leaf',
-                      },
-                    ],
-                    id: 'generations',
-                    label: 'Generations',
-                    listAction: {
-                      'aria-label': 'View authentication generations',
-                      href: '#authentication-generations',
-                    },
-                    type: 'node',
-                  },
-                ],
-                id: 'authentication',
+                children: [],
+                emptyMessage: 'No feature sections yet',
+                id: 'feature:FEAT-5831',
                 label: 'Authentication workflow',
                 menuAction: {
                   'aria-label': 'Open authentication menu',
@@ -57,7 +36,7 @@ const nodes: readonly SidebarNodeItem[] = [
                 },
                 pageAction: {
                   'aria-label': 'Open authentication page',
-                  href: '#authentication',
+                  href: '/projects/PRJ-204/features/FEAT-5831',
                 },
                 type: 'group',
               },
@@ -71,7 +50,7 @@ const nodes: readonly SidebarNodeItem[] = [
             type: 'node',
           },
         ],
-        id: 'northstar',
+        id: 'project:PRJ-204',
         label: 'Northstar mobile',
         menuAction: {
           'aria-label': 'Open Northstar menu',
@@ -79,7 +58,7 @@ const nodes: readonly SidebarNodeItem[] = [
         },
         pageAction: {
           'aria-label': 'Open Northstar page',
-          href: '#northstar',
+          href: '/projects/PRJ-204',
         },
         type: 'group',
       },
@@ -93,13 +72,6 @@ const nodes: readonly SidebarNodeItem[] = [
     type: 'node',
   },
 ];
-
-async function openGenerationPath(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Northstar mobile' }));
-  await user.click(
-    screen.getByRole('button', { name: 'Authentication workflow' }),
-  );
-}
 
 describe('Sidebar', () => {
   it('renders typed nodes and groups as disclosures with separate actions', () => {
@@ -152,52 +124,79 @@ describe('Sidebar', () => {
     await user.click(projectTrigger);
     expect(projectTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: 'Features' })).toBeVisible();
-    expect(onItemOpenChange).toHaveBeenCalledWith('northstar', true);
+    expect(onItemOpenChange).toHaveBeenCalledWith('project:PRJ-204', true);
     expect(
       screen.getByRole('button', { name: 'Open Northstar menu' }),
     ).toHaveAttribute('data-visibility', 'hover');
     expect(viewAction).toHaveAttribute('data-visibility', 'hover');
   });
 
-  it('opens the alternating hierarchy and renders leaves as links', async () => {
-    const user = userEvent.setup();
-    render(<Sidebar nodes={nodes} />);
+  it('renders leaf nodes as links', () => {
+    render(
+      <Sidebar
+        nodes={[
+          {
+            children: [
+              {
+                href: '#guide',
+                id: 'guide',
+                label: 'Guide',
+                type: 'leaf',
+              },
+            ],
+            defaultOpen: true,
+            id: 'resources',
+            label: 'Resources',
+            type: 'node',
+          },
+        ]}
+      />,
+    );
 
-    await openGenerationPath(user);
-
-    expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
-    ).toHaveAttribute('href', '#generation-2');
+    expect(screen.getByRole('link', { name: 'Guide' })).toHaveAttribute(
+      'href',
+      '#guide',
+    );
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
   });
 
-  it('marks the active leaf as the current page', async () => {
-    const user = userEvent.setup();
-    render(<Sidebar activeItemId="generation-2" nodes={nodes} />);
+  it('marks the active leaf as the current page', () => {
+    render(
+      <Sidebar
+        activeItemId="guide"
+        nodes={[
+          {
+            children: [
+              {
+                href: '#guide',
+                id: 'guide',
+                label: 'Guide',
+                type: 'leaf',
+              },
+            ],
+            defaultOpen: true,
+            id: 'resources',
+            label: 'Resources',
+            type: 'node',
+          },
+        ]}
+      />,
+    );
 
-    await openGenerationPath(user);
-
+    expect(screen.getByRole('link', { name: 'Guide' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(
-      screen.getByRole('link', { name: 'Generation 2' }),
-    ).toHaveAttribute('aria-current', 'page');
-    for (const label of [
-      'Projects',
-      'Northstar mobile',
-      'Features',
-      'Authentication workflow',
-      'Generations',
-    ]) {
-      expect(
-        screen
-          .getByRole('button', { name: label })
-          .closest('[data-selection]'),
-      ).toHaveAttribute('data-selection', 'ancestor');
-    }
+      screen
+        .getByRole('button', { name: 'Resources' })
+        .closest('[data-selection]'),
+    ).toHaveAttribute('data-selection', 'ancestor');
   });
 
   it('distinguishes a current accordion from its selected ancestors', async () => {
     const user = userEvent.setup();
-    render(<Sidebar activeItemId="authentication" nodes={nodes} />);
+    render(<Sidebar activeItemId="feature:FEAT-5831" nodes={nodes} />);
 
     await user.click(
       screen.getByRole('button', { name: 'Northstar mobile' }),
@@ -236,14 +235,14 @@ describe('Sidebar', () => {
     const user = userEvent.setup();
     const { container } = render(<Sidebar nodes={nodes} />);
 
-    expect(container.querySelectorAll('.lucide-folder-open')).toHaveLength(3);
+    expect(container.querySelectorAll('.lucide-folder-open')).toHaveLength(2);
     expect(container.querySelectorAll('.lucide-folder-closed')).toHaveLength(2);
 
     await user.click(
       screen.getByRole('button', { name: 'Northstar mobile' }),
     );
 
-    expect(container.querySelectorAll('.lucide-folder-open')).toHaveLength(4);
+    expect(container.querySelectorAll('.lucide-folder-open')).toHaveLength(3);
     expect(container.querySelectorAll('.lucide-folder-closed')).toHaveLength(1);
   });
 
@@ -344,14 +343,14 @@ describe('Sidebar', () => {
                     children: [
                       {
                         children: [],
-                        id: 'feature-1',
+                        id: 'feature:FEAT-5831',
                         label: 'Authentication',
                         menuAction: {
                           'aria-label': 'Open Authentication menu',
                         },
                         pageAction: {
                           'aria-label': 'Go to Authentication',
-                          href: '/features/feature-1',
+                          href: '/projects/PRJ-204/features/FEAT-5831',
                         },
                         type: 'group',
                       },
@@ -361,14 +360,14 @@ describe('Sidebar', () => {
                     type: 'node',
                   },
                 ],
-                id: 'project-1',
+                id: 'project:PRJ-204',
                 label: 'Northstar',
                 menuAction: {
                   'aria-label': 'Open Northstar menu',
                 },
                 pageAction: {
                   'aria-label': 'Go to Northstar',
-                  href: '/projects/project-1',
+                  href: '/projects/PRJ-204',
                 },
                 type: 'group',
               },

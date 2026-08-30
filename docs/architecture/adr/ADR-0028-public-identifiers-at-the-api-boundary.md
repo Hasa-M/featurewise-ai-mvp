@@ -4,6 +4,15 @@ Date: 2026-08-09
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md),
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+> The identifier format and API-boundary rules remain accepted. The implemented
+> registry removes `UPD` and `SPEC`, keeps `RUN` and `CALL` for AnalysisRun and
+> LlmCallLog, adds `FND` and `FREV`, and uses `PCTX` for the ProjectContext
+> endpoint. Historical references below explain the pre-refactor boundary.
+
 Supersedes ADR-0027 and the external-identifier portions of ADR-0015 and
 ADR-0019. UUID use inside the backend, database relations, authorization, and
 immutable snapshots remains unchanged.
@@ -34,13 +43,13 @@ The central public-identifier registry defines these external prefixes:
 | Organization | ORG |
 | User | USR |
 | Project | PRJ |
-| ProjectContextSummary | PSUM |
+| ProjectContext | PCTX (when exposed directly) |
 | Feature | FEAT |
-| FeatureUpdate | UPD |
 | ContextArtifact | CTX |
 | StorageObject | OBJ |
-| SpecRun | RUN |
-| GeneratedSpec | SPEC |
+| AnalysisRun | RUN |
+| AnalysisFinding | FND |
+| FindingReview | FREV |
 | LlmCallLog | CALL |
 
 External identifiers are formatted as PREFIX-positive_integer. Formatting and
@@ -62,8 +71,8 @@ key under the existing authorization and parent constraints, then uses the
 resolved UUID internally. Nested resolution must constrain the child to the
 resolved parent.
 
-Future external endpoints for FeatureUpdate, ContextArtifact, StorageObject,
-SpecRun, GeneratedSpec, LlmCallLog, and ProjectContextSummary must follow the
+Future external endpoints for ContextArtifact, StorageObject, AnalysisRun,
+AnalysisFinding, FindingReview, LlmCallLog, and ProjectContext must follow the
 same registry and resolution boundary from their first implementation.
 Internal snapshots may retain UUID references because they never cross the API
 boundary.

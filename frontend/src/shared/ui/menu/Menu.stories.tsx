@@ -1,5 +1,5 @@
 ﻿import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ChevronRight, Copy, FileDown, Pencil, Trash2 } from 'lucide-react';
+import { ChevronRight, Copy, FileText, Pencil, Trash2 } from 'lucide-react';
 import { expect } from 'storybook/test';
 
 import { MenuDivider, MenuItem, MenuSection, MenuWrapper } from './Menu';
@@ -33,11 +33,11 @@ export const Default: Story = {
           </MenuItem>
         </MenuSection>
         <MenuDivider />
-        <MenuSection title="Spec">
-          <MenuItem leadingIcon={<FileDown size={16} strokeWidth={1.75} />}>
-            Export Markdown
+        <MenuSection title="Workspace">
+          <MenuItem leadingIcon={<FileText size={16} strokeWidth={1.75} />}>
+            Open specification
           </MenuItem>
-          <MenuItem disabled>Mark valid</MenuItem>
+          <MenuItem>Open context</MenuItem>
         </MenuSection>
         <MenuDivider />
         <MenuSection>
@@ -57,19 +57,19 @@ export const Default: Story = {
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
 
     await expect(
-      canvas.getByRole('menuitem', { name: 'Export Markdown' }),
+      canvas.getByRole('menuitem', { name: 'Open specification' }),
     ).toHaveFocus();
   },
 };
 
 export const WithoutIcons: Story = {
   args: {
-    'aria-label': 'Readiness actions',
+    'aria-label': 'Workspace navigation',
     children: (
-      <MenuSection title="Readiness">
-        <MenuItem>Mark ready</MenuItem>
-        <MenuItem>Mark needs attention</MenuItem>
-        <MenuItem>Mark blocked</MenuItem>
+      <MenuSection title="Workspace">
+        <MenuItem>Specification</MenuItem>
+        <MenuItem>Context</MenuItem>
+        <MenuItem>Project context</MenuItem>
       </MenuSection>
     ),
   },
@@ -77,11 +77,11 @@ export const WithoutIcons: Story = {
 
 export const DisabledItems: Story = {
   args: {
-    'aria-label': 'Spec actions',
+    'aria-label': 'Workspace actions',
     children: (
-      <MenuSection title="Spec">
-        <MenuItem disabled>Generate spec</MenuItem>
-        <MenuItem>Export Markdown</MenuItem>
+      <MenuSection title="Workspace">
+        <MenuItem>Open specification</MenuItem>
+        <MenuItem disabled>Analyses unavailable</MenuItem>
       </MenuSection>
     ),
   },

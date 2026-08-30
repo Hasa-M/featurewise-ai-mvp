@@ -4,6 +4,13 @@ Date: 2026-06-02
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> React and Vite remain accepted. The web application is now the Featurewise
+> Console, the first-party client of the Specification Analysis Engine. Its
+> current Feature workspace is Specification, Context, and Analyses; the old
+> generated-spec workflow below is historical product context.
+
 ## Context
 
 Featurewise needs a real user interface for the main MVP workflow:

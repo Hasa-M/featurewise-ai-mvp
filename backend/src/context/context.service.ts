@@ -10,7 +10,6 @@ import { AssetType, Prisma, StorageObjectStatus } from '@prisma/client';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import { formatPublicKey, parsePublicKey } from '../common/public-identifiers';
 import { PrismaService } from '../database/prisma.service';
-import { FeatureUpdatesService } from '../feature-updates/feature-updates.service';
 import { FeaturesService } from '../features/features.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -28,12 +27,10 @@ interface ContextOwnerRecord {
   readonly contextArtifact: {
     readonly id: string;
     readonly publicNumber: number;
-    readonly promptContent: string;
+    readonly content: string;
     readonly createdAt: Date;
     readonly updatedAt: Date;
   };
-  readonly featurePublicNumber: number;
-  readonly featureUpdatePublicNumber: number | null;
   readonly projectPublicNumber: number;
 }
 
@@ -55,11 +52,35 @@ export interface StorageObjectResponse {
   readonly updatedAt: Date;
 }
 
+export interface AnalysisContextInputRecord {
+  readonly publicNumber: number;
+  readonly content: string;
+  readonly files: readonly {
+    readonly publicNumber: number;
+    readonly assetType: 'file' | 'image';
+    readonly filename: string;
+    readonly preparationVersion: string;
+    readonly original: {
+      readonly s3Key: string;
+      readonly s3VersionId: string;
+      readonly checksumSha256: string;
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+    };
+    readonly prepared: {
+      readonly s3Key: string;
+      readonly s3VersionId: string;
+      readonly checksumSha256: string;
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+    } | null;
+  }[];
+}
+
 @Injectable()
 export class ContextService {
   constructor(
     private readonly featuresService: FeaturesService,
-    private readonly featureUpdatesService: FeatureUpdatesService,
     private readonly prismaService: PrismaService,
     private readonly storageService: StorageService,
     private readonly fileProcessor: ContextFileProcessorService,
@@ -74,7 +95,7 @@ export class ContextService {
       featurePublicNumber,
     );
 
-    return this.toContextResponse(contextArtifact, feature.publicNumber, null);
+    return this.toContextResponse(contextArtifact, feature.publicNumber);
   }
 
   async updateFeatureContext(
@@ -93,52 +114,11 @@ export class ContextService {
           id: contextArtifact.id,
         },
         data: {
-          promptContent: dto.promptContent,
+          content: dto.content,
         },
       });
 
-    return this.toContextResponse(
-      updatedContextArtifact,
-      feature.publicNumber,
-      null,
-    );
-  }
-
-  async getFeatureUpdateContext(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-
-    return this.toContextResponse(
-      owner.contextArtifact,
-      owner.featurePublicNumber,
-      owner.featureUpdatePublicNumber,
-    );
-  }
-
-  async updateFeatureUpdateContext(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    dto: UpdateFeatureContextDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-    const updated = await this.prismaService.contextArtifact.update({
-      where: { id: owner.contextArtifact.id },
-      data: { promptContent: dto.promptContent },
-    });
-
-    return this.toContextResponse(
-      updated,
-      owner.featurePublicNumber,
-      owner.featureUpdatePublicNumber,
-    );
+    return this.toContextResponse(updatedContextArtifact, feature.publicNumber);
   }
 
   async createFeatureContextFile(
@@ -154,19 +134,6 @@ export class ContextService {
     return this.createContextFile(currentUser, owner, dto);
   }
 
-  async createFeatureUpdateContextFile(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    dto: CreateContextFileDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
-    );
-
-    return this.createContextFile(currentUser, owner, dto);
-  }
-
   async listFeatureContextArchive(
     currentUser: CurrentUserContext,
     featurePublicNumber: number,
@@ -175,19 +142,6 @@ export class ContextService {
     const owner = await this.getFeatureContextOwner(
       currentUser,
       featurePublicNumber,
-    );
-
-    return this.listContextArchive(owner.contextArtifact.id, query);
-  }
-
-  async listFeatureUpdateContextArchive(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-    query: ListContextFilesQueryDto,
-  ) {
-    const owner = await this.getFeatureUpdateContextRecord(
-      currentUser,
-      featureUpdatePublicNumber,
     );
 
     return this.listContextArchive(owner.contextArtifact.id, query);
@@ -449,7 +403,7 @@ export class ContextService {
 
         if (current.firstUsedAt !== null) {
           throw new ConflictException(
-            'Files used by a spec run cannot be permanently deleted',
+            'Files used by an analysis run cannot be permanently deleted',
           );
         }
 
@@ -478,23 +432,32 @@ export class ContextService {
     void this.purgeStorageObjectBytes(purgeCandidate).catch(() => undefined);
   }
 
-  async buildContextArtifactSnapshot(
+  async captureAnalysisContextInput(
     transaction: Prisma.TransactionClient,
-    contextArtifactId: string,
-  ) {
+    featureId: string,
+    capturedAt: Date,
+  ): Promise<AnalysisContextInputRecord> {
+    const owner = await transaction.contextArtifact.findUnique({
+      where: { featureId },
+      select: { id: true },
+    });
+
+    if (owner === null) {
+      throw new NotFoundException('Feature context not found');
+    }
+
+    const contextArtifactId = owner.id;
     await this.lockContextArtifact(transaction, contextArtifactId);
     const contextArtifact = await transaction.contextArtifact.findUnique({
       where: { id: contextArtifactId },
       include: {
-        feature: { select: { brief: true, title: true } },
-        featureUpdate: { select: { brief: true, title: true } },
         storageObjects: {
           where: {
             purgeRequestedAt: null,
             selected: true,
             status: StorageObjectStatus.ready,
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { publicNumber: 'asc' },
         },
       },
     });
@@ -503,53 +466,57 @@ export class ContextService {
       throw new NotFoundException('Context not found');
     }
 
-    const now = new Date();
-    const fileIds = contextArtifact.storageObjects.map((file) => file.id);
+    const unusedFileIds = contextArtifact.storageObjects
+      .filter((file) => file.firstUsedAt === null)
+      .map((file) => file.id);
 
-    if (fileIds.length > 0) {
-      const markedUsed = await Promise.all(
-        contextArtifact.storageObjects.map((file) =>
-          transaction.storageObject.updateMany({
-            where: {
-              id: file.id,
-              purgeRequestedAt: null,
-              selected: true,
-              status: StorageObjectStatus.ready,
-            },
-            data: { firstUsedAt: file.firstUsedAt ?? now },
-          }),
-        ),
-      );
+    if (unusedFileIds.length > 0) {
+      const markedUsed = await transaction.storageObject.updateMany({
+        where: {
+          id: { in: unusedFileIds },
+          firstUsedAt: null,
+          purgeRequestedAt: null,
+          selected: true,
+          status: StorageObjectStatus.ready,
+        },
+        data: { firstUsedAt: capturedAt },
+      });
 
-      if (markedUsed.some((result) => result.count !== 1)) {
+      if (markedUsed.count !== unusedFileIds.length) {
         throw new ConflictException(
           'Context files changed while the snapshot was being created',
         );
       }
     }
 
-    const owner = contextArtifact.feature ?? contextArtifact.featureUpdate;
-
-    if (owner === null) {
-      throw new NotFoundException('Context owner not found');
-    }
-
-    const storageObjects = contextArtifact.storageObjects.map((file) => {
+    const files = contextArtifact.storageObjects.map((file) => {
       if (file.s3VersionId === null || file.preparationVersion === null) {
         throw new ConflictException('Ready file metadata is incomplete');
       }
 
-      const usesPrepared =
-        file.preparedS3Key !== null &&
-        file.preparedS3VersionId !== null &&
-        file.preparedMimeType !== null &&
-        file.preparedSizeBytes !== null &&
-        file.preparedChecksumSha256 !== null;
+      const preparedValues = [
+        file.preparedS3Key,
+        file.preparedS3VersionId,
+        file.preparedMimeType,
+        file.preparedSizeBytes,
+        file.preparedChecksumSha256,
+      ];
+      const hasPreparedMetadata = preparedValues.some(
+        (value) => value !== null,
+      );
+      const hasCompletePreparedMetadata = preparedValues.every(
+        (value) => value !== null,
+      );
+
+      if (hasPreparedMetadata && !hasCompletePreparedMetadata) {
+        throw new ConflictException('Ready file metadata is incomplete');
+      }
 
       return {
-        storageObjectId: file.id,
+        publicNumber: file.publicNumber,
         assetType: file.assetType,
-        originalFilename: file.originalFilename,
+        filename: file.originalFilename,
+        preparationVersion: file.preparationVersion,
         original: {
           s3Key: file.s3Key,
           s3VersionId: file.s3VersionId,
@@ -557,41 +524,22 @@ export class ContextService {
           sizeBytes: Number(file.sizeBytes),
           checksumSha256: file.checksumSha256,
         },
-        modelInput: usesPrepared
+        prepared: hasCompletePreparedMetadata
           ? {
-              s3Key: file.preparedS3Key,
-              s3VersionId: file.preparedS3VersionId,
-              mimeType: file.preparedMimeType,
+              s3Key: file.preparedS3Key as string,
+              s3VersionId: file.preparedS3VersionId as string,
+              mimeType: file.preparedMimeType as string,
               sizeBytes: Number(file.preparedSizeBytes),
-              checksumSha256: file.preparedChecksumSha256,
-              preparationVersion: file.preparationVersion,
+              checksumSha256: file.preparedChecksumSha256 as string,
             }
-          : {
-              s3Key: file.s3Key,
-              s3VersionId: file.s3VersionId,
-              mimeType: file.mimeType,
-              sizeBytes: Number(file.sizeBytes),
-              checksumSha256: file.checksumSha256,
-              preparationVersion: file.preparationVersion,
-            },
+          : null,
       };
     });
-    const modelInputBytes = storageObjects.reduce(
-      (total, file) => total + file.modelInput.sizeBytes,
-      0,
-    );
-
-    if (modelInputBytes > 50 * 1024 * 1024) {
-      throw new UnprocessableEntityException(
-        'Selected files exceed the model provider combined input limit',
-      );
-    }
 
     return {
-      title: owner.title,
-      brief: owner.brief,
-      promptContent: contextArtifact.promptContent,
-      storageObjects,
+      publicNumber: contextArtifact.publicNumber,
+      content: contextArtifact.content,
+      files,
     };
   }
 
@@ -628,36 +576,7 @@ export class ContextService {
 
     return {
       contextArtifact,
-      featurePublicNumber: feature.publicNumber,
-      featureUpdatePublicNumber: null,
-      projectPublicNumber: Number(currentUser.projectKey.split('-')[1]),
-    };
-  }
-
-  private async getFeatureUpdateContextRecord(
-    currentUser: CurrentUserContext,
-    featureUpdatePublicNumber: number,
-  ): Promise<ContextOwnerRecord> {
-    const featureUpdate =
-      await this.featureUpdatesService.getFeatureUpdateRecord(
-        currentUser,
-        featureUpdatePublicNumber,
-      );
-    const contextArtifact = await this.prismaService.contextArtifact.findUnique(
-      {
-        where: { featureUpdateId: featureUpdate.id },
-      },
-    );
-
-    if (contextArtifact === null) {
-      throw new NotFoundException('Feature update context not found');
-    }
-
-    return {
-      contextArtifact,
-      featurePublicNumber: featureUpdate.feature.publicNumber,
-      featureUpdatePublicNumber: featureUpdate.publicNumber,
-      projectPublicNumber: featureUpdate.feature.project.publicNumber,
+      projectPublicNumber: feature.project.publicNumber,
     };
   }
 
@@ -763,25 +682,11 @@ export class ContextService {
       where: {
         publicNumber,
         contextArtifact: {
-          OR: [
-            {
-              feature: {
-                deletedAt: null,
-                projectId: currentUser.projectId,
-                project: { organizationId: currentUser.organizationId },
-              },
-            },
-            {
-              featureUpdate: {
-                deletedAt: null,
-                feature: {
-                  deletedAt: null,
-                  projectId: currentUser.projectId,
-                  project: { organizationId: currentUser.organizationId },
-                },
-              },
-            },
-          ],
+          feature: {
+            deletedAt: null,
+            projectId: currentUser.projectId,
+            project: { organizationId: currentUser.organizationId },
+          },
         },
       },
     });
@@ -898,12 +803,11 @@ export class ContextService {
   private toContextResponse(
     contextArtifact: {
       readonly publicNumber: number;
-      readonly promptContent: string;
+      readonly content: string;
       readonly createdAt: Date;
       readonly updatedAt: Date;
     },
     featurePublicNumber: number,
-    featureUpdatePublicNumber: number | null,
   ) {
     return this.prismaService.storageObject
       .findMany({
@@ -920,11 +824,7 @@ export class ContextService {
           contextArtifact.publicNumber,
         ),
         featureKey: formatPublicKey('feature', featurePublicNumber),
-        featureUpdateKey:
-          featureUpdatePublicNumber === null
-            ? null
-            : formatPublicKey('featureUpdate', featureUpdatePublicNumber),
-        promptContent: contextArtifact.promptContent,
+        content: contextArtifact.content,
         files: files.map((file) => this.toStorageObjectResponse(file)),
         createdAt: contextArtifact.createdAt,
         updatedAt: contextArtifact.updatedAt,

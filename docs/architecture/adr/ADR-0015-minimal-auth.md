@@ -4,6 +4,12 @@ Date: 2026-06-04
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> The authentication and scope decisions remain accepted. Protected data now
+> includes feature specifications, analysis inputs, findings, reviews, and LLM
+> logs rather than generated specifications.
+
 ## Context
 
 The application stores project context, uploaded files, images, generated specifications, and LLM logs. Even in a prototype, completely unauthenticated access would create unnecessary risk and make later evolution harder.

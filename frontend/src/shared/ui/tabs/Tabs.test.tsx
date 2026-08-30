@@ -14,9 +14,9 @@ const items = [
     panelId: 'overview-panel',
     tabId: 'overview-tab',
   },
-  { id: 'context', label: 'Context artifacts' },
-  { id: 'quality', label: 'Quality checks' },
-  { id: 'history', label: 'Spec history' },
+  { id: 'details', label: 'Details' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'activity', label: 'Activity' },
 ] satisfies TabsItems;
 
 let tabListWidth = 1000;
@@ -58,10 +58,10 @@ afterEach(() => {
 
 describe('Tabs', () => {
   it('renders named tab semantics with optional icon, info, and panel link', () => {
-    render(<Tabs aria-label="Feature workspace" items={items} />);
+    render(<Tabs aria-label="Example sections" items={items} />);
 
     const tabList = screen.getByRole('tablist', {
-      name: 'Feature workspace',
+      name: 'Example sections',
     });
     const overview = within(tabList).getByRole('tab', { name: 'Overview' });
 
@@ -80,21 +80,21 @@ describe('Tabs', () => {
     const onValueChange = vi.fn();
     render(
       <Tabs
-        aria-label="Feature workspace"
+        aria-label="Example sections"
         items={items}
         onValueChange={onValueChange}
         value="overview"
       />,
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Context artifacts' }));
+    await user.click(screen.getByRole('tab', { name: 'Details' }));
 
-    expect(onValueChange).toHaveBeenCalledWith('context');
+    expect(onValueChange).toHaveBeenCalledWith('details');
     expect(
       screen.getByRole('tab', { name: 'Overview' }),
     ).toHaveAttribute('aria-selected', 'true');
     expect(
-      screen.getByRole('tab', { name: 'Context artifacts' }),
+      screen.getByRole('tab', { name: 'Details' }),
     ).toHaveAttribute('aria-selected', 'false');
   });
 
@@ -103,7 +103,7 @@ describe('Tabs', () => {
     const onValueChange = vi.fn();
     render(
       <Tabs
-        aria-label="Feature workspace"
+        aria-label="Example sections"
         items={[
           items[0],
           { ...items[1], disabled: true },
@@ -114,13 +114,13 @@ describe('Tabs', () => {
     );
 
     const overview = screen.getByRole('tab', { name: 'Overview' });
-    const quality = screen.getByRole('tab', { name: 'Quality checks' });
+    const notes = screen.getByRole('tab', { name: 'Notes' });
     overview.focus();
     await user.keyboard('{ArrowRight}');
 
-    expect(quality).toHaveFocus();
-    expect(quality).toHaveAttribute('aria-selected', 'true');
-    expect(onValueChange).toHaveBeenCalledWith('quality');
+    expect(notes).toHaveFocus();
+    expect(notes).toHaveAttribute('aria-selected', 'true');
+    expect(onValueChange).toHaveBeenCalledWith('notes');
   });
 
   it('shows hidden tabs in More and swaps the chosen tab with the rightmost visible tab', async () => {
@@ -129,7 +129,7 @@ describe('Tabs', () => {
     const onValueChange = vi.fn();
     render(
       <Tabs
-        aria-label="Feature workspace"
+        aria-label="Example sections"
         items={items}
         onValueChange={onValueChange}
       />,
@@ -138,29 +138,29 @@ describe('Tabs', () => {
     const more = await screen.findByRole('button', { name: 'More tabs' });
     expect(screen.getAllByRole('tab')).toHaveLength(2);
     expect(
-      screen.getByRole('tab', { name: 'Context artifacts' }),
+      screen.getByRole('tab', { name: 'Details' }),
     ).toBeVisible();
 
     await user.click(more);
-    const qualityMenuItem = screen.getByRole('menuitem', {
-      name: 'Quality checks',
+    const notesMenuItem = screen.getByRole('menuitem', {
+      name: 'Notes',
     });
-    await waitFor(() => expect(qualityMenuItem).toHaveFocus());
-    await user.click(qualityMenuItem);
+    await waitFor(() => expect(notesMenuItem).toHaveFocus());
+    await user.click(notesMenuItem);
 
-    const qualityTab = await screen.findByRole('tab', {
-      name: 'Quality checks',
+    const notesTab = await screen.findByRole('tab', {
+      name: 'Notes',
     });
-    await waitFor(() => expect(qualityTab).toHaveFocus());
-    expect(qualityTab).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(notesTab).toHaveFocus());
+    expect(notesTab).toHaveAttribute('aria-selected', 'true');
     expect(
-      screen.queryByRole('tab', { name: 'Context artifacts' }),
+      screen.queryByRole('tab', { name: 'Details' }),
     ).not.toBeInTheDocument();
-    expect(onValueChange).toHaveBeenCalledWith('quality');
+    expect(onValueChange).toHaveBeenCalledWith('notes');
 
     await user.click(more);
     expect(
-      screen.getByRole('menuitem', { name: 'Context artifacts' }),
+      screen.getByRole('menuitem', { name: 'Details' }),
     ).toBeVisible();
     await user.keyboard('{Escape}');
 
@@ -169,7 +169,7 @@ describe('Tabs', () => {
   });
 
   it('does not show More while every tab fits', async () => {
-    render(<Tabs aria-label="Feature workspace" items={items} />);
+    render(<Tabs aria-label="Example sections" items={items} />);
 
     await waitFor(() =>
       expect(

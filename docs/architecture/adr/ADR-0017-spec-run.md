@@ -2,9 +2,17 @@
 
 Date: 2026-06-13
 
-Status: accepted
+Status: superseded
 
-Amended by: ADR-0020, ADR-0021, ADR-0029
+Superseded by:
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md) and
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+
+Previously amended by: ADR-0020, ADR-0021, ADR-0029
+
+> Historical record only. AnalysisRun now uses immutable input and
+> prepared-context snapshots with traceable evidence; the run model below must
+> not guide new implementation.
 
 ## Context
 

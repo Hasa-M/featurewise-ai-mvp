@@ -37,14 +37,14 @@ describe('Table', () => {
   it('renders native semantics and a row action', () => {
     render(
       <Table
-        caption='Feature readiness'
+        caption='Features'
         columns={columns}
         getRowKey={(row) => row.id}
         rows={rows}
       />,
     );
 
-    expect(screen.getByRole('table', { name: 'Feature readiness' })).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Features' })).toBeInTheDocument();
     expect(
       screen.getByRole('rowheader', {
         name: /Checkout recovery\s*Payment workflow/,
@@ -58,7 +58,7 @@ describe('Table', () => {
     const user = userEvent.setup();
     render(
       <Table
-        caption='Feature readiness'
+        caption='Features'
         columns={columns}
         getRowKey={(row) => row.id}
         onSortChange={onSortChange}
@@ -76,7 +76,7 @@ describe('Table', () => {
   it('keeps decorative header and cell icons out of accessible names', () => {
     render(
       <Table
-        caption='Feature readiness'
+        caption='Features'
         columns={columns}
         getRowKey={(row) => row.id}
         onSortChange={() => undefined}
@@ -97,7 +97,7 @@ describe('Table', () => {
   it('renders accessible loading and empty states', () => {
     const view = render(
       <Table
-        caption='Feature readiness'
+        caption='Features'
         columns={columns}
         getRowKey={(row) => row.id}
         loading
@@ -114,7 +114,7 @@ describe('Table', () => {
 
     view.rerender(
       <Table
-        caption='Feature readiness'
+        caption='Features'
         columns={columns}
         emptyContent='No features yet.'
         getRowKey={(row) => row.id}

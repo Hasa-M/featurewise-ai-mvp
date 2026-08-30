@@ -3,10 +3,12 @@
 NestJS + TypeScript REST API for the Featurewise local-first MVP.
 
 The modular-monolith API currently includes authentication, Organization and
-Project ownership, Features, editable Context Prompt content, and private S3
-Context file attachments. Spec generation remains a later implementation
-milestone; its accepted lifecycle and snapshot contracts are documented in the
-architecture ADRs.
+Project ownership, Features with user-authored specifications, editable
+feature and project context, and private S3 context file attachments. A
+non-executing Analysis module defines versioned contracts and reproducible
+input capture. Analyzer execution, analysis HTTP endpoints, and findings and
+review workflows remain separately scoped future work under the architecture
+ADRs.
 
 ## Commands
 
@@ -30,10 +32,10 @@ The API uses username/password login and bearer JWTs. Set `SEED_PASSWORD` in
 npm run prisma:seed
 ```
 
-The seed is idempotent. It creates the phase 1 organization, project, and
-`dev.operator` user when absent; later runs reactivate that user, update its
-Argon2id password hash from `SEED_PASSWORD`, and preserve existing workspace
-names and data.
+The seed is idempotent. It creates the `Featurewise` development organization,
+the `Featurewise MVP` project, and the `dev.operator` user when absent; later
+runs reactivate that user, update its Argon2id password hash from
+`SEED_PASSWORD`, and preserve existing workspace names and data.
 
 Log in with:
 

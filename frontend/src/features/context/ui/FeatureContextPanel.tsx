@@ -20,8 +20,8 @@ import { Modal } from '@/shared/ui/modal';
 import { Search } from '@/shared/ui/search';
 
 import {
-  contextPromptSchema,
-  type ContextPromptValues,
+  contextContentSchema,
+  type ContextContentValues,
 } from '../lib/context-form-schema';
 import { formatFileSize } from '../lib/file-format';
 import {
@@ -56,37 +56,36 @@ function FileIcon({ file }: { readonly file: ContextFile }) {
 
 interface FeatureContextPanelProps {
   readonly accessToken: string;
-  readonly brief: string | null;
   readonly featureKey: string;
 }
 
-interface ContextPromptFormProps {
+interface ContextContentFormProps {
   readonly accessToken: string;
   readonly featureKey: string;
-  readonly initialPrompt: string;
+  readonly initialContent: string;
   readonly onError: (message: string | null) => void;
 }
 
-function ContextPromptForm({
+function ContextContentForm({
   accessToken,
   featureKey,
-  initialPrompt,
+  initialContent,
   onError,
-}: ContextPromptFormProps) {
-  const updatePrompt = useUpdateFeatureContext(accessToken, featureKey);
-  const form = useForm<ContextPromptValues>({
-    defaultValues: { promptContent: initialPrompt },
-    resolver: zodResolver(contextPromptSchema),
+}: ContextContentFormProps) {
+  const updateContent = useUpdateFeatureContext(accessToken, featureKey);
+  const form = useForm<ContextContentValues>({
+    defaultValues: { content: initialContent },
+    resolver: zodResolver(contextContentSchema),
   });
 
   return (
     <form
-      className={styles.promptForm}
+      className={styles.contentForm}
       onSubmit={form.handleSubmit(async (values) => {
         onError(null);
         try {
-          const updated = await updatePrompt.mutateAsync(values.promptContent);
-          form.reset({ promptContent: updated.promptContent });
+          const updated = await updateContent.mutateAsync(values.content);
+          form.reset({ content: updated.content });
         } catch (error: unknown) {
           onError(errorMessage(error));
         }
@@ -94,11 +93,11 @@ function ContextPromptForm({
     >
       <Controller
         control={form.control}
-        name='promptContent'
+        name='content'
         render={({ field, fieldState }) => (
-          <Suspense fallback={<p className={styles.muted}>Loading Prompt editor…</p>}>
+          <Suspense fallback={<p className={styles.muted}>Loading context editor…</p>}>
             <RichText
-              aria-label='Context prompt'
+              aria-label='Supporting context'
               defaultValue={field.value}
               errorMessage={fieldState.error?.message}
               maxLength={20000}
@@ -113,15 +112,15 @@ function ContextPromptForm({
       <div className={styles.formActions}>
         <span className={styles.saveState}>
           {form.formState.isDirty
-            ? 'Unsaved Prompt changes'
-            : 'Prompt is saved'}
+            ? 'Unsaved context changes'
+            : 'Context is saved'}
         </span>
         <Button
           disabled={!form.formState.isDirty}
-          loading={updatePrompt.isPending}
+          loading={updateContent.isPending}
           type='submit'
         >
-          Save Prompt
+          Save context
         </Button>
       </div>
     </form>
@@ -130,7 +129,6 @@ function ContextPromptForm({
 
 export function FeatureContextPanel({
   accessToken,
-  brief,
   featureKey,
 }: FeatureContextPanelProps) {
   const contextQuery = useFeatureContext(accessToken, featureKey);
@@ -214,28 +212,20 @@ export function FeatureContextPanel({
 
   return (
     <div className={styles.layout}>
-      <Card className={styles.briefCard}>
-        <p className='fw-overline'>Brief</p>
-        <h2>Feature intent</h2>
-        <p className={brief ? styles.brief : styles.muted}>
-          {brief ?? 'No brief has been added yet. Use Edit feature to add one.'}
-        </p>
-      </Card>
-
       <Card className={styles.sectionCard}>
         <div className={styles.sectionHeading}>
           <div>
-            <p className='fw-overline'>Prompt</p>
-            <h2>Project and implementation context</h2>
+            <p className='fw-overline'>Supporting context</p>
+            <h2>Notes and constraints</h2>
             <p className={styles.muted}>
               Add editable notes and constraints. Attached files remain separate.
             </p>
           </div>
         </div>
-        <ContextPromptForm
+        <ContextContentForm
           accessToken={accessToken}
           featureKey={featureKey}
-          initialPrompt={context.promptContent}
+          initialContent={context.content}
           onError={setOperationError}
         />
       </Card>
@@ -244,9 +234,9 @@ export function FeatureContextPanel({
         <div className={styles.sectionHeading}>
           <div>
             <p className='fw-overline'>Files</p>
-            <h2>Selected model inputs</h2>
+            <h2>Selected context files</h2>
             <p className={styles.muted}>
-              {selectedFileCount}/10 selected · up to 50 MB combined · 20 retained per Context
+              {selectedFileCount}/10 selected · up to 50 MB combined · 20 retained per context
             </p>
           </div>
           <div className={styles.headingActions}>
@@ -335,7 +325,7 @@ export function FeatureContextPanel({
                         }
                         variant='secondary'
                       >
-                        Remove from Context
+                        Remove from context
                       </Button>
                     </>
                   ) : file.canDeletePermanently ? (
@@ -438,7 +428,7 @@ export function FeatureContextPanel({
         confirmLabel='Delete permanently'
         description={
           deleteFile
-            ? `${deleteFile.filename} has never been used by a SpecRun. Its stored bytes and prepared version will be deleted.`
+            ? `${deleteFile.filename} has never been used by a run. Its stored bytes and prepared version will be deleted.`
             : undefined
         }
         errorMessage={purgeFile.isError ? errorMessage(purgeFile.error) : null}

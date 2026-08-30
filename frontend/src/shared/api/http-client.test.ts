@@ -5,18 +5,20 @@ import { request } from './http-client';
 describe('request', () => {
   it('returns a JSON response', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: 'feature-1' }), {
+      new Response(JSON.stringify({ publicKey: 'FEAT-1' }), {
         headers: { 'Content-Type': 'application/json' },
         status: 200,
       }),
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(request<{ id: string }>('/features/feature-1')).resolves.toEqual(
-      { id: 'feature-1' },
+    await expect(
+      request<{ publicKey: string }>('/features/FEAT-1'),
+    ).resolves.toEqual(
+      { publicKey: 'FEAT-1' },
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/features/feature-1',
+      '/api/features/FEAT-1',
       expect.objectContaining({ headers: expect.any(Headers) }),
     );
   });
@@ -24,7 +26,9 @@ describe('request', () => {
   it('returns undefined for an empty response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
 
-    await expect(request<void>('/features/feature-1', { method: 'DELETE' })).resolves.toBeUndefined();
+    await expect(
+      request<void>('/features/FEAT-1', { method: 'DELETE' }),
+    ).resolves.toBeUndefined();
   });
 
   it('normalizes API errors', async () => {

@@ -2,52 +2,47 @@
 
 ## Purpose
 
-This diagram shows Featurewise as a black-box software system within its external environment.
+This diagram shows Featurewise as a Specification Analysis Engine and the
+Featurewise Console as its first-party client. It distinguishes the current
+product and system boundaries from the analyzer and analysis endpoints that
+remain deferred under ADR-0032.
 
-Featurewise is a product-intent readiness layer that helps teams clarify unclear feature ideas before implementation starts. It brings together product, design, engineering, QA, project context, and execution rules into a shared implementation-readiness artifact.
+## Diagram
 
-The system is not designed around a sequential handoff from product to design to engineering to QA. Instead, it supports a collaborative readiness workflow where ambiguity, assumptions, risks, missing information, and execution constraints are surfaced before development begins.
+```mermaid
+C4Context
+  title Featurewise Specification Analysis Engine — system context
 
-This diagram focuses on users, input sources, external dependencies, and downstream consumers. It intentionally excludes internal backend modules, database tables, implementation workflows, and low-level technical details.
+  Person(operator, "Product operator", "Supplies feature intent and context, reviews findings, and records decisions")
+  Person(engineer, "Engineer / QA / designer", "Contributes context and consumes evidence-backed findings")
 
-## Main System
+  System(featurewise, "Featurewise", "Specification Analysis Engine with the first-party Featurewise Console")
 
-Featurewise — Product-Intent Readiness Layer
+  System_Ext(sources, "Context sources", "Specifications, requirements, designs, history, product behavior, code, business rules, policies, and future adapters")
+  System_Ext(llm, "External LLM provider", "Future analyzer dependency that returns structured candidate findings")
+  System_Ext(consumers, "Future clients", "CLI, API clients, coding agents, workflow integrations, or embedded surfaces")
 
-Featurewise turns messy feature intent and contextual inputs into structured, reviewable, editable, and exportable specification artifacts.
+  Rel(operator, featurewise, "Manages specifications/context and reviews analyses", "Console")
+  Rel(engineer, featurewise, "Contributes context and consumes findings", "Console or shared output")
+  Rel(sources, featurewise, "Provides source-addressable context", "Uploaded or pasted artifacts in MVP")
+  Rel(featurewise, llm, "Sends versioned prepared context", "Backend only; deferred")
+  Rel(llm, featurewise, "Returns structured candidate findings", "Deferred")
+  Rel(consumers, featurewise, "Calls the same analysis application capability", "Future adapters")
+```
 
-These artifacts help product teams, designers, engineers, QA testers, and future AI coding agents understand what should be built, what is still unclear, which constraints matter, and whether the feature is ready for reliable execution.
+## Boundaries
 
-## Primary User
-
-The primary user is the Product Operator.
-
-This role may be an external consultant, founder, product manager, product engineer, or internal team member responsible for driving feature clarification before implementation.
-
-The Product Operator uses Featurewise to collect context, coordinate review checkpoints, refine the shared artifact, and export the final specification.
-
-## Collaborators and Input Providers
-
-Product and business stakeholders contribute goals, requirements, business rules, priorities, acceptance expectations, and decision feedback.
-
-Designers contribute user flows, UI behavior, screenshots, UI states, interaction constraints, design-system expectations, and missing-state concerns.
-
-Engineers contribute feasibility feedback, API/data needs, existing-system context, architecture constraints, implementation assumptions, technical risks, and execution-rule concerns.
-
-QA testers contribute an early testability perspective by reviewing edge cases, acceptance criteria, validation scenarios, and ambiguous expected behavior.
-
-Uploaded or pasted context artifacts provide additional project-specific information, including API documentation, selected code context, architecture notes, design-system rules, previous specifications, and execution rules such as `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules`.
-
-## External Dependency
-
-Featurewise uses an external LLM provider to generate structured draft specification content.
-
-The LLM provider is outside the Featurewise system boundary. Featurewise owns the readiness workflow, context handling, structured output format, review checkpoints, persistence, editing, and export.
-
-## Downstream Consumers
-
-Human developers use the specification artifact to understand what should be built, which constraints matter, what assumptions were made, and which risks or open questions remain.
-
-QA testers use the artifact to understand expected behavior, test scenarios, edge cases, acceptance criteria, and unresolved ambiguities.
-
-AI coding agents are shown only as future downstream consumers. The MVP may produce structured artifacts that are useful for agentic execution, but it does not execute agents, generate code, modify repositories, run tests, or open pull requests.
+- Featurewise analyzes existing product intent; it does not generate or own the
+  canonical specification.
+- A Feature is the sole analysis unit. Findings are individually addressable
+  and cite exact evidence.
+- No context type is the product. Requirements, code, business rules, and
+  policies use the same context/evidence architecture rather than separate
+  product centers or bespoke pipelines.
+- MVP context arrives through specifications, editable context, and uploaded
+  or pasted artifacts; dedicated source adapters remain deferred.
+- Human disposition is separate from model output.
+- The Console is a client/control plane; engine business logic remains in the
+  backend application boundary.
+- Direct third-party integrations, public API products, CLI, MCP, and embedded
+  distribution are future adapters, not MVP capabilities.

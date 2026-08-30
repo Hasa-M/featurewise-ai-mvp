@@ -1,6 +1,7 @@
 # Featurewise Frontend
 
-React + Vite + TypeScript frontend for the local-first Featurewise MVP.
+The Featurewise Console is the React + Vite + TypeScript first-party
+application for the local-first Featurewise MVP.
 
 ## Commands
 
@@ -60,7 +61,7 @@ Give every extracted utility or hook one implementation file, with a separate co
 
 Extract reusable, independently testable, duplicated, or complexity-reducing logic. Trivial render-only helpers and handlers tightly coupled to one component may remain colocated. Keep pages focused on route-level composition.
 
-`shared/api` is the generic HTTP transport, not a home for product endpoints. Endpoint functions and wire DTOs belong to the owning feature's `api` segment. For example, login endpoints belong to `features/auth/api`, session state and authentication hooks belong to `features/auth/model`, and application-wide provider or router wiring belongs to `app`. Roles and permissions are outside the Phase 1 scope.
+`shared/api` is the generic HTTP transport, not a home for product endpoints. Endpoint functions and wire DTOs belong to the owning feature's `api` segment. For example, login endpoints belong to `features/auth/api`, session state and authentication hooks belong to `features/auth/model`, and application-wide provider or router wiring belongs to `app`. Roles and permissions are outside the local-first MVP scope.
 
 ## Styling and Stories
 

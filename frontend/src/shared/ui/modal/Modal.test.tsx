@@ -32,7 +32,7 @@ function DismissibleModal({
       size="small"
       title="Delete feature?"
     >
-      The current valid spec will also be removed.
+      Its specification and supporting context will also be removed.
     </Modal>
   );
 }
@@ -44,7 +44,9 @@ describe('Modal', () => {
     const dialog = screen.getByRole('dialog', { name: 'Delete feature?' });
     expect(dialog).toHaveAccessibleDescription('This action cannot be undone.');
     expect(
-      screen.getByText('The current valid spec will also be removed.'),
+      screen.getByText(
+        'Its specification and supporting context will also be removed.',
+      ),
     ).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Keep feature' }),
@@ -71,12 +73,12 @@ describe('Modal', () => {
       <Modal
         onOpenChange={onOpenChange}
         open
-        title="Generation settings"
+        title="Workspace preferences"
       />,
     );
 
     const firstDialog = screen.getByRole('dialog', {
-      name: 'Generation settings',
+      name: 'Workspace preferences',
     });
     expect(
       fireEvent(firstDialog, new Event('cancel', { cancelable: true })),
@@ -87,11 +89,11 @@ describe('Modal', () => {
       <Modal
         onOpenChange={onOpenChange}
         open
-        title="Generation settings"
+        title="Workspace preferences"
       />,
     );
     fireEvent.click(
-      screen.getByRole('dialog', { name: 'Generation settings' }),
+      screen.getByRole('dialog', { name: 'Workspace preferences' }),
     );
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
     expect(onOpenChange).toHaveBeenCalledTimes(2);

@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Toggle',
   component: Toggle,
   args: {
-    label: 'Include context artifacts',
+    label: 'Show archived files',
   },
   argTypes: {
     checked: { control: 'boolean' },
@@ -51,7 +51,7 @@ export const MediumLabel: Story = {
 export const WithDescription: Story = {
   args: {
     defaultChecked: true,
-    description: 'Add uploaded and pasted artifacts to the next spec run.',
+    description: 'Include archived context files in this list.',
   },
 };
 

@@ -26,10 +26,9 @@ type Story = StoryObj<typeof meta>;
 export const Destructive: Story = {};
 
 export const Conflict: Story = {
-  args: { errorMessage: 'Feature cannot be deleted while a spec run is active.' },
+  args: { errorMessage: 'Feature could not be deleted. Try again.' },
 };
 
 export const Pending: Story = {
   args: { pending: true },
 };
-

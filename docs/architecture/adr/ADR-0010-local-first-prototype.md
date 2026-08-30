@@ -4,6 +4,12 @@ Date: 2026-06-02
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> The local-first prototype decision remains accepted. References below to
+> generation and spec artifacts now mean analysis runs, evidence-backed
+> findings, and their supporting context under ADR-0030.
+
 ## Context
 
 The first MVP is mainly intended for local development, learning, demos, and operator-assisted client conversations.

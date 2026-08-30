@@ -33,40 +33,40 @@ const featureItems = [
 
 const overflowItems = [
   {
-    href: '#projects',
+    href: '#resources',
     icon: <FolderClosed size={14} strokeWidth={1.75} />,
     kind: 'folder',
-    label: 'Projects',
+    label: 'Resources',
   },
   {
-    href: '#northstar-mobile',
+    href: '#design-system',
     icon: <FolderKanban size={14} strokeWidth={1.75} />,
     kind: 'item',
-    label: 'Northstar mobile',
+    label: 'Design system',
   },
   {
-    href: '#features',
+    href: '#components',
     icon: <FolderClosed size={14} strokeWidth={1.75} />,
     kind: 'folder',
-    label: 'Features',
+    label: 'Components',
   },
   {
-    href: '#authentication',
+    href: '#navigation',
     icon: <FileText size={14} strokeWidth={1.75} />,
     kind: 'item',
-    label: 'Authentication workflow',
+    label: 'Navigation',
   },
   {
-    href: '#generations',
+    href: '#breadcrumb',
     icon: <FolderClosed size={14} strokeWidth={1.75} />,
     kind: 'folder',
-    label: 'Generations',
+    label: 'Breadcrumb',
   },
   {
-    href: '#generation-2',
+    href: '#examples',
     icon: <FileText size={14} strokeWidth={1.75} />,
     kind: 'item',
-    label: 'Generation 2',
+    label: 'Examples',
   },
 ] satisfies BreadcrumbItems;
 
@@ -172,18 +172,18 @@ export const Overflow: Story = {
     });
 
     await expect(
-      canvas.queryByRole('menuitem', { name: 'Features' }),
+      canvas.queryByRole('menuitem', { name: 'Components' }),
     ).not.toBeInTheDocument();
     await userEvent.click(trigger);
 
-    const features = canvas.getByRole('menuitem', { name: 'Features' });
-    const authentication = canvas.getByRole('menuitem', {
-      name: 'Authentication workflow',
+    const components = canvas.getByRole('menuitem', { name: 'Components' });
+    const navigation = canvas.getByRole('menuitem', {
+      name: 'Navigation',
     });
-    await expect(features).toHaveFocus();
+    await expect(components).toHaveFocus();
 
     await userEvent.keyboard('{ArrowDown}');
-    await expect(authentication).toHaveFocus();
+    await expect(navigation).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     await expect(trigger).toHaveFocus();
     await expect(canvas.queryByRole('menu')).not.toBeInTheDocument();

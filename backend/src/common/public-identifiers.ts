@@ -1,15 +1,15 @@
 import { BadRequestException, type PipeTransform } from '@nestjs/common';
 
 export const PUBLIC_KEY_PREFIXES = {
+  analysisFinding: 'FND',
+  analysisRun: 'RUN',
   contextArtifact: 'CTX',
   feature: 'FEAT',
-  featureUpdate: 'UPD',
-  generatedSpec: 'SPEC',
+  findingReview: 'FREV',
   llmCallLog: 'CALL',
   organization: 'ORG',
   project: 'PRJ',
-  projectContextSummary: 'PSUM',
-  specRun: 'RUN',
+  projectContext: 'PCTX',
   storageObject: 'OBJ',
   user: 'USR',
 } as const;

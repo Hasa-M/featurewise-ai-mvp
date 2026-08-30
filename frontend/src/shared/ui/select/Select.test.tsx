@@ -6,9 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { Select } from './Select';
 
 const options = [
-  { label: 'Ready', value: 'ready' },
-  { label: 'Needs attention', value: 'attention' },
-  { label: 'Blocked', value: 'blocked' },
+  { label: 'Design', value: 'design' },
+  { label: 'Engineering', value: 'engineering' },
+  { label: 'Research', value: 'research' },
 ];
 
 describe('Select', () => {
@@ -16,14 +16,14 @@ describe('Select', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(
-      <Select label="Readiness" onChange={onChange} options={options} value="" />,
+      <Select label="Category" onChange={onChange} options={options} value="" />,
     );
 
-    const control = screen.getByRole('combobox', { name: 'Readiness' });
+    const control = screen.getByRole('combobox', { name: 'Category' });
     await user.click(control);
-    await user.click(screen.getByRole('option', { name: 'Ready' }));
+    await user.click(screen.getByRole('option', { name: 'Design' }));
 
-    expect(onChange).toHaveBeenCalledWith('ready');
+    expect(onChange).toHaveBeenCalledWith('design');
     expect(control).toHaveAttribute('aria-expanded', 'false');
   });
 
@@ -38,17 +38,17 @@ describe('Select', () => {
     control.focus();
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 
-    expect(onChange).toHaveBeenCalledWith('ready');
+    expect(onChange).toHaveBeenCalledWith('design');
   });
 
   it('adds and removes values in multiple mode', async () => {
     const user = userEvent.setup();
 
     function Example() {
-      const [value, setValue] = useState(['ready']);
+      const [value, setValue] = useState(['design']);
       return (
         <Select
-          label="Readiness filters"
+          label="Category filters"
           mode="multiple"
           onChange={setValue}
           options={options}
@@ -58,12 +58,12 @@ describe('Select', () => {
     }
 
     render(<Example />);
-    await user.click(screen.getByRole('combobox', { name: 'Readiness filters' }));
-    await user.click(screen.getByRole('option', { name: 'Blocked' }));
+    await user.click(screen.getByRole('combobox', { name: 'Category filters' }));
+    await user.click(screen.getByRole('option', { name: 'Research' }));
 
-    expect(screen.getByRole('button', { name: 'Remove Blocked' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Remove Ready' }));
-    expect(screen.queryByRole('button', { name: 'Remove Ready' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove Research' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Remove Design' }));
+    expect(screen.queryByRole('button', { name: 'Remove Design' })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'true');
   });
 
@@ -121,20 +121,20 @@ describe('Select', () => {
   it('exposes helper, error, and required states accessibly', () => {
     render(
       <Select
-        errorMessage="Select a readiness state."
-        helperText="Choose the current review outcome."
-        label="Readiness"
+        errorMessage="Select a category."
+        helperText="Choose the category for this example."
+        label="Category"
         onChange={() => undefined}
         options={options}
         required
       />,
     );
 
-    const control = screen.getByRole('combobox', { name: 'Readiness' });
+    const control = screen.getByRole('combobox', { name: 'Category' });
     expect(control).toHaveAttribute('aria-required', 'true');
     expect(control).toHaveAttribute('aria-invalid', 'true');
     expect(control).toHaveAccessibleDescription(
-      'Choose the current review outcome. Select a readiness state.',
+      'Choose the category for this example. Select a category.',
     );
   });
 
@@ -142,14 +142,14 @@ describe('Select', () => {
     const user = userEvent.setup();
     render(
       <Select
-        aria-label="Readiness"
+        aria-label="Category"
         disabled
         onChange={() => undefined}
         options={options}
       />,
     );
 
-    const control = screen.getByRole('combobox', { name: 'Readiness' });
+    const control = screen.getByRole('combobox', { name: 'Category' });
     await user.click(control);
     expect(control).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();

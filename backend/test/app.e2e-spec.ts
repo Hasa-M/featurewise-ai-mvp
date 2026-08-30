@@ -1,7 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FeatureOrigin } from '@prisma/client';
 import { argon2id, hash } from 'argon2';
 import request, { Response, Test as SuperTestRequest } from 'supertest';
 import { App } from 'supertest/types';
@@ -26,6 +25,14 @@ interface LoginResponse {
   readonly expiresInSeconds: number;
   readonly tokenType: 'Bearer';
   readonly user: CurrentUserResponse;
+}
+
+interface ProjectContextResponse {
+  readonly content: string;
+  readonly createdAt: string;
+  readonly projectKey: string;
+  readonly publicKey: string;
+  readonly updatedAt: string;
 }
 
 interface OrganizationRecord {
@@ -56,14 +63,21 @@ interface ProjectRecord {
   updatedAt: Date;
 }
 
+interface ProjectContextRecord {
+  readonly id: string;
+  readonly publicNumber: number;
+  readonly projectId: string;
+  content: string;
+  readonly createdAt: Date;
+  updatedAt: Date;
+}
+
 interface FeatureRecord {
   readonly id: string;
   readonly publicNumber: number;
   readonly projectId: string;
   title: string;
-  brief: string | null;
-  readonly origin: FeatureOrigin;
-  includeInProjectContext: boolean;
+  specificationContent: string;
   readonly createdById: string;
   readonly createdAt: Date;
   updatedAt: Date;
@@ -73,9 +87,8 @@ interface FeatureRecord {
 interface ContextArtifactRecord {
   readonly id: string;
   readonly publicNumber: number;
-  readonly featureId: string | null;
-  readonly featureUpdateId: string | null;
-  promptContent: string;
+  readonly featureId: string;
+  content: string;
   readonly createdAt: Date;
   updatedAt: Date;
 }
@@ -83,13 +96,11 @@ interface ContextArtifactRecord {
 interface FeatureCreateData {
   readonly projectId: string;
   readonly title: string;
-  readonly brief: string | null;
-  readonly origin: FeatureOrigin;
-  readonly includeInProjectContext: boolean;
+  readonly specificationContent: string;
   readonly createdById: string;
   readonly contextArtifact?: {
     readonly create: {
-      readonly promptContent: string;
+      readonly content: string;
     };
   };
 }
@@ -105,11 +116,13 @@ class InMemoryPrisma {
   private organizationPublicNumberCounter = 1;
   private userPublicNumberCounter = 1;
   private projectPublicNumberCounter = 1;
+  private projectContextPublicNumberCounter = 1;
   private featurePublicNumberCounter = 1;
   private contextArtifactPublicNumberCounter = 1;
   private readonly organizations: OrganizationRecord[] = [];
   private readonly users: UserRecord[] = [];
   private readonly projects: ProjectRecord[] = [];
+  private readonly projectContexts: ProjectContextRecord[] = [];
   private readonly features: FeatureRecord[] = [];
   private readonly contextArtifacts: ContextArtifactRecord[] = [];
 
@@ -279,6 +292,39 @@ class InMemoryPrisma {
     },
   };
 
+  readonly projectContext = {
+    upsert: ({
+      where,
+      create,
+      update,
+    }: {
+      where: { projectId: string };
+      create: { projectId: string; content: string };
+      update: { content?: string };
+    }) => {
+      let projectContext = this.projectContexts.find(
+        (candidate) => candidate.projectId === where.projectId,
+      );
+
+      if (projectContext === undefined) {
+        projectContext = {
+          id: this.nextId(),
+          publicNumber: this.projectContextPublicNumberCounter++,
+          projectId: create.projectId,
+          content: create.content,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        this.projectContexts.push(projectContext);
+      } else if (update.content !== undefined) {
+        projectContext.content = update.content;
+        projectContext.updatedAt = new Date();
+      }
+
+      return Promise.resolve(projectContext);
+    },
+  };
+
   readonly feature = {
     create: ({ data }: { data: FeatureCreateData }) => {
       const feature: FeatureRecord = {
@@ -286,9 +332,7 @@ class InMemoryPrisma {
         publicNumber: this.featurePublicNumberCounter++,
         projectId: data.projectId,
         title: data.title,
-        brief: data.brief,
-        origin: data.origin,
-        includeInProjectContext: data.includeInProjectContext,
+        specificationContent: data.specificationContent,
         createdById: data.createdById,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -302,8 +346,7 @@ class InMemoryPrisma {
           id: this.nextId(),
           publicNumber: this.contextArtifactPublicNumberCounter++,
           featureId: feature.id,
-          featureUpdateId: null,
-          promptContent: data.contextArtifact.create.promptContent,
+          content: data.contextArtifact.create.content,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -359,8 +402,7 @@ class InMemoryPrisma {
       where: { id: string };
       data: Partial<{
         title: string;
-        brief: string | null;
-        includeInProjectContext: boolean;
+        specificationContent: string;
         deletedAt: Date;
       }>;
     }) => {
@@ -391,7 +433,7 @@ class InMemoryPrisma {
       data,
     }: {
       where: { id: string };
-      data: { promptContent: string };
+      data: { content: string };
     }) => {
       const contextArtifact = this.contextArtifacts.find(
         (candidate) => candidate.id === where.id,
@@ -401,7 +443,7 @@ class InMemoryPrisma {
         throw new Error('ContextArtifact not found');
       }
 
-      contextArtifact.promptContent = data.promptContent;
+      contextArtifact.content = data.content;
       contextArtifact.updatedAt = new Date();
 
       return Promise.resolve(contextArtifact);
@@ -413,18 +455,15 @@ class InMemoryPrisma {
     updateMany: jest.fn().mockResolvedValue({ count: 0 }),
   };
 
-  readonly specRun = {
-    count: jest.fn().mockResolvedValue(0),
+  readonly analysisRun = {
     findFirst: jest.fn().mockResolvedValue(null),
   };
 
-  readonly generatedSpec = {
-    findFirst: jest.fn().mockResolvedValue(null),
-  };
-
-  readonly featureUpdate = {
-    findMany: jest.fn().mockResolvedValue([]),
-  };
+  countProjectContexts(projectId: string): number {
+    return this.projectContexts.filter(
+      (projectContext) => projectContext.projectId === projectId,
+    ).length;
+  }
 
   private nextId(): string {
     const suffix = this.idCounter.toString().padStart(12, '0');
@@ -510,6 +549,37 @@ function expectNoUuid(value: unknown): void {
   expect(JSON.stringify(value)).not.toMatch(UUID_PATTERN);
 }
 
+const publicFeatureKeys = [
+  'createdAt',
+  'createdByKey',
+  'projectKey',
+  'publicKey',
+  'specificationContent',
+  'title',
+  'updatedAt',
+];
+
+function expectPublicFeatureContract(value: unknown): void {
+  expect(value).toBeInstanceOf(Object);
+  expect(Object.keys(value as Record<string, unknown>).sort()).toEqual(
+    publicFeatureKeys,
+  );
+}
+
+function expectPublicProjectContextContract(
+  value: unknown,
+): asserts value is ProjectContextResponse {
+  expect(value).toBeInstanceOf(Object);
+  expect(Object.keys(value as Record<string, unknown>).sort()).toEqual([
+    'content',
+    'createdAt',
+    'projectKey',
+    'publicKey',
+    'updatedAt',
+  ]);
+  expectNoUuid(value);
+}
+
 describe('Featurewise backend (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: InMemoryPrisma;
@@ -565,6 +635,200 @@ describe('Featurewise backend (e2e)', () => {
       });
   });
 
+  it('edits one tenant-scoped ProjectContext through public keys', async () => {
+    await request(app.getHttpServer())
+      .get('/projects/PRJ-1/context')
+      .expect(401);
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ username: TEST_USERNAME, password: TEST_PASSWORD })
+      .expect(200);
+    const login = loginResponse.body as LoginResponse;
+    const authorizationHeader = `${login.tokenType} ${login.accessToken}`;
+
+    const emptyReads = await Promise.all([
+      withAuth(
+        request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+        authorizationHeader,
+      ).expect(200),
+      withAuth(
+        request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+        authorizationHeader,
+      ).expect(200),
+    ]);
+
+    const emptyBodies: unknown[] = [];
+
+    for (const response of emptyReads) {
+      emptyBodies.push(response.body as unknown);
+    }
+
+    for (const body of emptyBodies) {
+      expectPublicProjectContextContract(body);
+      expect(body).toMatchObject({
+        publicKey: 'PCTX-1',
+        projectKey: 'PRJ-1',
+        content: '',
+      });
+    }
+    const firstEmptyBody = emptyBodies[0] as ProjectContextResponse;
+    const secondEmptyBody = emptyBodies[1] as ProjectContextResponse;
+    expect(firstEmptyBody.createdAt).toBe(secondEmptyBody.createdAt);
+    expect(firstEmptyBody.updatedAt).toBe(secondEmptyBody.updatedAt);
+    expect(prisma.countProjectContexts(seededWorkspace.projectId)).toBe(1);
+
+    await Promise.all([
+      withAuth(
+        request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+        authorizationHeader,
+      ).expect(200),
+      withAuth(
+        request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+        authorizationHeader,
+      )
+        .send({ content: 'Concurrent update' })
+        .expect(200),
+    ]);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        const body = response.body as ProjectContextResponse;
+
+        expect(body.content).toBe('Concurrent update');
+      });
+    expect(prisma.countProjectContexts(seededWorkspace.projectId)).toBe(1);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({})
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 42 })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 'Valid', unexpected: true })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: 'x'.repeat(20001) })
+      .expect(400);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: '  Shared project rules  ' })
+      .expect(200)
+      .expect((response: Response) => {
+        expectPublicProjectContextContract(response.body);
+        expect(response.body).toMatchObject({
+          publicKey: 'PCTX-1',
+          projectKey: 'PRJ-1',
+          content: '  Shared project rules  ',
+        });
+      });
+
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        expect(response.body).toMatchObject({
+          publicKey: 'PCTX-1',
+          content: '  Shared project rules  ',
+        });
+      });
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .send({ content: '' })
+      .expect(200);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-1/context'),
+      authorizationHeader,
+    )
+      .expect(200)
+      .expect((response: Response) => {
+        const body = response.body as ProjectContextResponse;
+
+        expect(body.content).toBe('');
+      });
+    expect(prisma.countProjectContexts(seededWorkspace.projectId)).toBe(1);
+
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-01/context'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PCTX-1/context'),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get(
+        `/projects/${seededWorkspace.projectId}/context`,
+      ),
+      authorizationHeader,
+    ).expect(400);
+    await withAuth(
+      request(app.getHttpServer()).get('/projects/PRJ-999999/context'),
+      authorizationHeader,
+    ).expect(404);
+
+    const sameOrganizationProject = await prisma.project.create({
+      data: {
+        name: 'Other project',
+        organizationId: seededWorkspace.organizationId,
+      },
+    });
+    const otherOrganization = await prisma.organization.create({
+      data: { name: 'Other organization' },
+    });
+    const otherOrganizationProject = await prisma.project.create({
+      data: {
+        name: 'Other organization project',
+        organizationId: otherOrganization.id,
+      },
+    });
+
+    for (const inaccessibleProject of [
+      sameOrganizationProject,
+      otherOrganizationProject,
+    ]) {
+      await withAuth(
+        request(app.getHttpServer()).get(
+          `/projects/PRJ-${inaccessibleProject.publicNumber}/context`,
+        ),
+        authorizationHeader,
+      ).expect(404);
+      await withAuth(
+        request(app.getHttpServer()).patch(
+          `/projects/PRJ-${inaccessibleProject.publicNumber}/context`,
+        ),
+        authorizationHeader,
+      )
+        .send({ content: 'Rejected' })
+        .expect(404);
+      expect(prisma.countProjectContexts(inaccessibleProject.id)).toBe(0);
+    }
+  });
+
   it('uses public keys throughout the authenticated workspace and feature flow', async () => {
     await request(app.getHttpServer()).get('/auth/me').expect(401);
     await request(app.getHttpServer())
@@ -572,7 +836,7 @@ describe('Featurewise backend (e2e)', () => {
       .expect(401);
     await request(app.getHttpServer())
       .patch('/features/FEAT-1/context')
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(401);
 
     await request(app.getHttpServer())
@@ -716,7 +980,13 @@ describe('Featurewise backend (e2e)', () => {
       request(app.getHttpServer()).post('/projects/PRJ-1/features'),
       authorizationHeader,
     )
-      .send({ title: 'Invalid origin feature', origin: 'unsupported' })
+      .send({ title: 'Unexpected field', unexpected: true })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).post('/projects/PRJ-1/features'),
+      authorizationHeader,
+    )
+      .send({ title: 'Invalid feature', specificationContent: null })
       .expect(400);
 
     const createFeatureResponse = await withAuth(
@@ -725,12 +995,17 @@ describe('Featurewise backend (e2e)', () => {
     )
       .send({
         title: 'New checkout',
-        brief: 'Reduce friction in the checkout flow.',
-        origin: FeatureOrigin.brand_new,
-        includeInProjectContext: true,
+        specificationContent: 'Reduce friction in the checkout flow.',
       })
       .expect(201)
-      .expect((response: Response) => expectNoUuid(response.body));
+      .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
+        expect(response.body).toMatchObject({
+          specificationContent: 'Reduce friction in the checkout flow.',
+          title: 'New checkout',
+        });
+        expectNoUuid(response.body);
+      });
     const feature = createFeatureResponse.body as { publicKey: string };
     expect(feature.publicKey).toBe('FEAT-1');
 
@@ -740,23 +1015,17 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
-        expect(response.body).toEqual([
-          expect.objectContaining({
-            publicKey: 'FEAT-1',
-            projectKey: 'PRJ-1',
-            createdByKey: 'USR-1',
-            activity: {
-              currentValidSpecVersion: null,
-              generationRunCount: 0,
-              latestFeatureRun: null,
-            },
-            alignment: {
-              status: 'aligned',
-              pendingUpdates: [],
-            },
-          }),
-        ]);
-        expectNoUuid(response.body);
+        const body = response.body as unknown[];
+
+        expect(body).toHaveLength(1);
+        expectPublicFeatureContract(body[0]);
+        expect(body[0]).toMatchObject({
+          publicKey: 'FEAT-1',
+          projectKey: 'PRJ-1',
+          createdByKey: 'USR-1',
+          specificationContent: 'Reduce friction in the checkout flow.',
+        });
+        expectNoUuid(body);
       });
 
     await withAuth(
@@ -765,6 +1034,7 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
@@ -793,11 +1063,9 @@ describe('Featurewise backend (e2e)', () => {
     });
     const otherFeature = await prisma.feature.create({
       data: {
-        brief: null,
         createdById: seededWorkspace.userId,
-        includeInProjectContext: false,
-        origin: FeatureOrigin.brand_new,
         projectId: otherProject.id,
+        specificationContent: '',
         title: 'Other feature',
       },
     });
@@ -826,7 +1094,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(404);
 
     await withAuth(
@@ -835,11 +1103,12 @@ describe('Featurewise backend (e2e)', () => {
     )
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
           title: 'New checkout',
-          includeInProjectContext: true,
+          specificationContent: 'Reduce friction in the checkout flow.',
         });
         expectNoUuid(response.body);
       });
@@ -853,8 +1122,7 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          featureUpdateKey: null,
-          promptContent: '',
+          content: '',
         });
         expectNoUuid(response.body);
       });
@@ -882,32 +1150,32 @@ describe('Featurewise backend (e2e)', () => {
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 42 })
+      .send({ content: 42 })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'Valid', unexpected: true })
+      .send({ content: 'Valid', unexpected: true })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'x'.repeat(20001) })
+      .send({ content: 'x'.repeat(20001) })
       .expect(400);
 
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1/context'),
       authorizationHeader,
     )
-      .send({ promptContent: 'Screenshots and notes go here.' })
+      .send({ content: 'Screenshots and notes go here.' })
       .expect(200)
       .expect((response: Response) => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          promptContent: 'Screenshots and notes go here.',
+          content: 'Screenshots and notes go here.',
         });
         expectNoUuid(response.body);
       });
@@ -921,21 +1189,44 @@ describe('Featurewise backend (e2e)', () => {
         expect(response.body).toMatchObject({
           publicKey: 'CTX-1',
           featureKey: 'FEAT-1',
-          promptContent: 'Screenshots and notes go here.',
+          content: 'Screenshots and notes go here.',
         });
       });
     await withAuth(
       request(app.getHttpServer()).patch('/features/FEAT-1'),
       authorizationHeader,
     )
-      .send({ title: 'Updated checkout', includeInProjectContext: false })
+      .send({ unexpected: true })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({ specificationContent: null })
+      .expect(400);
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({ title: null })
+      .expect(400);
+
+    await withAuth(
+      request(app.getHttpServer()).patch('/features/FEAT-1'),
+      authorizationHeader,
+    )
+      .send({
+        title: 'Updated checkout',
+        specificationContent: 'Updated checkout specification.',
+      })
       .expect(200)
       .expect((response: Response) => {
+        expectPublicFeatureContract(response.body);
         expect(response.body).toMatchObject({
           publicKey: 'FEAT-1',
           projectKey: 'PRJ-1',
           title: 'Updated checkout',
-          includeInProjectContext: false,
+          specificationContent: 'Updated checkout specification.',
         });
         expectNoUuid(response.body);
       });
@@ -984,7 +1275,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ title: 'Rejected', origin: FeatureOrigin.brand_new })
+      .send({ title: 'Rejected' })
       .expect(400);
     await withAuth(
       request(app.getHttpServer()).get(
@@ -1016,7 +1307,7 @@ describe('Featurewise backend (e2e)', () => {
       ),
       authorizationHeader,
     )
-      .send({ promptContent: 'Rejected' })
+      .send({ content: 'Rejected' })
       .expect(400);
 
     await withAuth(

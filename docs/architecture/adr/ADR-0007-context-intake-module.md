@@ -4,6 +4,13 @@ Date: 2026-05-26
 
 Status: accepted
 
+Amended by:
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md)
+
+> Context intake now prepares traceable sources for specification analysis.
+> The in-process module and future-adapter decisions below remain accepted;
+> it does not generate specifications or decide findings.
+
 ## Context
 
 The product will eventually need to ingest context from external sources such as files, screenshots, Figma, repositories, MCP tools, and other APIs.

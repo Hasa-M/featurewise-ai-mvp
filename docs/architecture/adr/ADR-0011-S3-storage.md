@@ -4,7 +4,12 @@ Date: 2026-06-02
 
 Status: accepted
 
-Amended by: ADR-0029
+Amended by: ADR-0029,
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md)
+
+> Object storage remains accepted. ADR-0031 replaces SpecRun usage with exact
+> AnalysisRun input snapshots while preserving private, immutable object
+> versions and `firstUsedAt` purge protection.
 
 ## Context
 
@@ -40,3 +45,10 @@ Ready objects persist while selected or in the Context's Files archive. They
 are physically purgeable only when no SpecRun has snapshotted them. A lifecycle
 rule applies only to abandoned staging versions; confirmed originals and model
 derivatives have no phase-1 expiry.
+
+## Amendment (ADR-0031)
+
+PostgreSQL remains focused on relational data, context metadata, analysis
+runs, findings, reviews, and logs. An object is physically purgeable only when
+no immutable AnalysisRun input snapshot has captured it. All other lifecycle
+rules above remain unchanged.

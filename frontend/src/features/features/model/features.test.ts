@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { FeatureDto } from '../api';
 import { featureKeys, toFeature } from './features';
 
 describe('feature model', () => {
@@ -12,34 +13,22 @@ describe('feature model', () => {
     ]);
   });
 
-  it('maps the backend response without changing domain labels', () => {
-    const feature = toFeature({
-      activity: {
-        currentValidSpecVersion: 2,
-        generationRunCount: 3,
-        latestFeatureRun: {
-          runKind: 'generation',
-          status: 'completed',
-          usedProjectContext: true,
-        },
-      },
-      alignment: { pendingUpdates: [], status: 'updates_pending' },
-      brief: null,
+  it('maps only the specification-analysis contract from the backend response', () => {
+    const dto = {
       createdAt: '2026-07-18T10:00:00.000Z',
       createdByKey: 'USR-1',
-      includeInProjectContext: false,
-      origin: 'brand_new',
       projectKey: 'PRJ-204',
       publicKey: 'FEAT-5831',
+      specificationContent: 'Users can save filter configurations.',
       title: 'Authentication',
       updatedAt: '2026-07-18T11:00:00.000Z',
-    });
+    } as FeatureDto & Record<string, unknown>;
+    const feature = toFeature(dto);
 
-    expect(feature.activity.generationRunCount).toBe(3);
-    expect(feature.activity.latestFeatureRun?.usedProjectContext).toBe(true);
-    expect(feature.alignment.status).toBe('updates_pending');
-    expect(feature.origin).toBe('brand_new');
     expect(feature.publicKey).toBe('FEAT-5831');
+    expect(feature.specificationContent).toBe(
+      'Users can save filter configurations.',
+    );
     expect(feature.createdAt).toBeInstanceOf(Date);
   });
 });

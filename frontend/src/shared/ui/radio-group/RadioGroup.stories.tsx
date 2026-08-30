@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Radio group',
   component: RadioGroup,
   args: {
-    label: 'Generation mode',
+    label: 'Notification level',
   },
   argTypes: {
     clearable: { control: 'boolean' },
@@ -43,11 +43,11 @@ export const Default: Story = {
   args: {
     children: (
       <>
-        <Radio label="Generate a new spec" value="generation" />
-        <Radio label="Consolidate validated updates" value="consolidation" />
+        <Radio label="All activity" value="all" />
+        <Radio label="Important only" value="important" />
       </>
     ),
-    defaultValue: 'generation',
+    defaultValue: 'all',
   },
 };
 
@@ -55,11 +55,12 @@ export const Horizontal: Story = {
   args: {
     children: (
       <>
-        <Radio label="Feature" value="feature" />
-        <Radio label="Feature update" value="update" />
+        <Radio label="Compact" value="compact" />
+        <Radio label="Comfortable" value="comfortable" />
       </>
     ),
-    defaultValue: 'feature',
+    defaultValue: 'compact',
+    label: 'Display density',
     orientation: 'horizontal',
   },
 };
@@ -69,20 +70,20 @@ export const Cards: Story = {
     children: (
       <>
         <RadioCard
-          description="Create a readiness spec for a brand-new feature."
-          label="New feature"
-          value="new"
+          description="Show each item in a compact row."
+          label="List"
+          value="list"
         />
         <RadioCard
-          description="Capture an increment against an existing feature baseline."
-          label="Feature update"
-          value="update"
+          description="Show each item in a visual card."
+          label="Cards"
+          value="cards"
         />
       </>
     ),
-    defaultValue: 'new',
-    description: 'Choose the target that matches the product intent.',
-    label: 'Spec target',
+    defaultValue: 'list',
+    description: 'Choose how example items are displayed.',
+    label: 'Layout',
   },
 };
 
@@ -90,13 +91,13 @@ export const Clearable: Story = {
   args: {
     children: (
       <>
-        <RadioCard label="Ready" value="ready" />
-        <RadioCard label="Needs attention" value="needs-attention" />
+        <RadioCard label="Documentation" value="documentation" />
+        <RadioCard label="Design" value="design" />
       </>
     ),
     clearable: true,
-    defaultValue: 'ready',
-    label: 'Readiness filter',
+    defaultValue: 'documentation',
+    label: 'Category filter',
   },
 };
 
@@ -104,12 +105,12 @@ export const NoSelection: Story = {
   args: {
     children: (
       <>
-        <Radio label="Ready" value="ready" />
-        <Radio label="Blocked" value="blocked" />
+        <Radio label="Documentation" value="documentation" />
+        <Radio label="Design" value="design" />
       </>
     ),
     clearable: true,
-    label: 'Readiness filter',
+    label: 'Category filter',
   },
 };
 
@@ -118,19 +119,19 @@ export const Disabled: Story = {
     children: (
       <>
         <RadioCard
-          description="This target is already selected."
-          label="Feature"
-          value="feature"
+          description="Show each item in a compact row."
+          label="List"
+          value="list"
         />
         <RadioCard
-          description="Updates are unavailable for this feature."
-          label="Feature update"
-          value="update"
+          description="Show each item in a visual card."
+          label="Cards"
+          value="cards"
         />
       </>
     ),
-    defaultValue: 'feature',
+    defaultValue: 'list',
     disabled: true,
-    label: 'Spec target',
+    label: 'Layout',
   },
 };

@@ -11,7 +11,7 @@ export {
   type CreateFeatureInput,
   type Feature,
   type FeatureQuickEditInput,
-  type FeatureUpdateInput,
+  type UpdateFeatureInput,
 } from './model/features';
 export {
   useFeatureActions,
@@ -19,4 +19,5 @@ export {
   type FeatureDeleteSuccessBehavior,
 } from './model/feature-actions';
 export { FeatureActionsProvider } from './ui/FeatureActionsProvider';
+export { FeatureSpecificationPanel } from './ui/FeatureSpecificationPanel';
 export { getFeaturePath } from './lib/feature-path';

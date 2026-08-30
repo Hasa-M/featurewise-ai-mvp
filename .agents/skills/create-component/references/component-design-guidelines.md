@@ -4,7 +4,7 @@ Use this reference as the visual and content source of truth for reusable Featur
 
 ## Product character
 
-Make uncertainty visible, structure information clearly, and help users move product intent toward an implementation-ready specification. Components should feel calm, engineered, warm, and content-first.
+Make uncertainty visible, structure information clearly, and help users assess whether feature intent is ready for implementation. Components should feel calm, engineered, warm, and content-first.
 
 - Prefer clarity over decoration.
 - Expose readiness, uncertainty, and blocking issues immediately.
@@ -17,15 +17,13 @@ Make uncertainty visible, structure information clearly, and help users move pro
 - Refer to the product as Featurewise, never as we.
 - Use precise, calm, operational language. State gaps and conflicts directly.
 - Use sentence case for controls, titles, menus, labels, and messages.
-- Use imperative, specific actions such as Generate spec, Add context, Export, Mark valid, and Validate. Avoid Submit, OK, and Go.
-- Use Geist Mono for versions, IDs, schema versions, run statuses, origins, filenames, and other structured system values.
+- Use imperative, specific actions such as Save specification, Add context, Select file, Review finding, and Accept finding. Avoid Submit, OK, and Go.
+- Use Geist Mono for public keys, analyzer/prompt/schema versions, run statuses, filenames, source IDs, segment IDs, and other structured system values.
 - Show counts only when they support a decision or action. Do not add vanity statistics.
 
 Use these readiness labels exactly: Ready, Needs attention, Blocked, In progress, and Draft.
 
-Use these alignment labels exactly: Aligned and Updates pending.
-
-Use the established domain terms feature, spec run, context artifact, checkpoint, and readiness. Do not invent synonyms for statuses or domain concepts.
+Use the established domain terms feature, specification, context artifact, analysis run, analysis finding, evidence, finding review, and readiness. Do not invent synonyms for statuses or domain concepts.
 
 ## Color and surfaces
 
@@ -60,7 +58,7 @@ Use the established domain terms feature, spec run, context artifact, checkpoint
 - Let primary buttons use a brand-tinted shadow and at most a 1px hover lift; settle them on press.
 - Darken neutral surfaces on hover and use the blocked solid status color for destructive controls.
 - Use existing 130-200ms transition variables and easing tokens.
-- Reserve continuous animation for meaningful live progress, such as an in-progress dot or generation stepper.
+- Reserve continuous animation for meaningful live progress backed by current state, such as file processing or an active operation indicator.
 - Respect the global prefers-reduced-motion behavior.
 
 ## Icons and imagery

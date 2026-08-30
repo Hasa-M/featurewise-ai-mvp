@@ -31,7 +31,7 @@ describe('Tag', () => {
     const user = userEvent.setup();
     render(
       <Tag disabled onRemove={onRemove}>
-        Product brief
+        Product requirement
       </Tag>,
     );
 

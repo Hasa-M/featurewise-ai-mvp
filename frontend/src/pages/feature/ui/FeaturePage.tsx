@@ -11,6 +11,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
 import { FeatureContextPanel } from '@/features/context';
 import {
+  FeatureSpecificationPanel,
   getFeaturePath,
   useFeature,
   useFeatureActions,
@@ -26,40 +27,26 @@ import styles from './FeaturePage.module.css';
 
 const FEATURE_TABS = [
   {
+    id: 'specification',
+    label: 'Specification',
+    panelId: 'feature-specification-panel',
+    tabId: 'feature-specification-tab',
+  },
+  {
     id: 'context',
     label: 'Context',
     panelId: 'feature-context-panel',
     tabId: 'feature-context-tab',
   },
   {
-    id: 'generations',
-    label: 'Generations',
-    panelId: 'feature-generations-panel',
-    tabId: 'feature-generations-tab',
-  },
-  {
-    id: 'updates',
-    label: 'Updates',
-    panelId: 'feature-updates-panel',
-    tabId: 'feature-updates-tab',
-  },
-  {
-    id: 'specifications',
-    label: 'Specifications',
-    panelId: 'feature-specifications-panel',
-    tabId: 'feature-specifications-tab',
+    id: 'analyses',
+    label: 'Analyses',
+    panelId: 'feature-analyses-panel',
+    tabId: 'feature-analyses-tab',
   },
 ] as const satisfies TabsItems;
 
 type FeatureTabId = (typeof FEATURE_TABS)[number]['id'];
-
-const FEATURE_TAB_COPY: Record<Exclude<FeatureTabId, 'context'>, string> = {
-  generations:
-    'Generation history and controls will be added in a later milestone.',
-  updates: 'Feature updates will be added in a later milestone.',
-  specifications:
-    'Specification review will be added in a later milestone.',
-};
 
 function isFeatureTabId(value: string | null): value is FeatureTabId {
   return FEATURE_TABS.some((tab) => tab.id === value);
@@ -92,7 +79,7 @@ function FeatureContent({
   const requestedTab = searchParams.get('tab');
   const activeTab: FeatureTabId = isFeatureTabId(requestedTab)
     ? requestedTab
-    : 'context';
+    : 'specification';
   const targetMismatch =
     featureQuery.isSuccess && featureQuery.data.projectKey !== projectKey;
   const notFound =
@@ -161,7 +148,7 @@ function FeatureContent({
       ),
       subtitle:
         featureQuery.data && !targetMismatch
-          ? 'Manage feature context, generations, updates, and specifications.'
+          ? 'Edit the feature specification, manage supporting context, and review analyses when available.'
           : undefined,
     }),
     [
@@ -240,19 +227,30 @@ function FeatureContent({
       />
       <div
         aria-labelledby={activeTabItem.tabId}
-        className={activeTab === 'context' ? styles.contextPanel : styles.placeholder}
+        className={activeTab === 'analyses' ? styles.placeholder : styles.contentPanel}
         id={activeTabItem.panelId}
         role="tabpanel"
         tabIndex={0}
       >
-        {activeTab === 'context' ? (
+        {activeTab === 'specification' ? (
+          <FeatureSpecificationPanel
+            accessToken={accessToken}
+            feature={featureQuery.data}
+          />
+        ) : activeTab === 'context' ? (
           <FeatureContextPanel
             accessToken={accessToken}
-            brief={featureQuery.data.brief}
             featureKey={featureQuery.data.publicKey}
           />
         ) : (
-          FEATURE_TAB_COPY[activeTab]
+          <section aria-labelledby='feature-analyses-title'>
+            <p className='fw-overline'>Unavailable</p>
+            <h2 id='feature-analyses-title'>Analyses are unavailable</h2>
+            <p>
+              Analysis execution and evidence-backed findings are deferred and
+              are not available in the Console.
+            </p>
+          </section>
         )}
       </div>
     </section>

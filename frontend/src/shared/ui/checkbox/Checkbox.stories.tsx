@@ -6,7 +6,7 @@ const meta = {
   title: 'Shared/Checkbox',
   component: Checkbox,
   args: {
-    label: 'Mark readiness checklist item complete',
+    label: 'Select context artifact',
   },
   argTypes: {
     checked: { control: 'boolean' },
@@ -59,7 +59,7 @@ export const MediumLabel: Story = {
 
 export const WithDescription: Story = {
   args: {
-    description: 'Confirm the acceptance criteria are specific and testable.',
+    description: 'Include this ready file in captured analysis inputs.',
   },
 };
 

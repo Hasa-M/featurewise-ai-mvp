@@ -71,7 +71,7 @@ function FormExample() {
           placeholder="For example, Saved views"
         />
         <TextArea
-          label="Feature intent"
+          label="Feature specification"
           placeholder="Describe the user need and intended outcome"
           rows={5}
         />
@@ -113,14 +113,12 @@ const meta = {
   title: 'Shared/Modal',
   component: Modal,
   args: {
-    children:
-      'Generation settings apply to the next spec run and do not change existing generated specs.',
-    description:
-      'Review how Featurewise will prepare context before starting the next spec run.',
+    children: 'Workspace preferences apply to this browser session.',
+    description: 'Choose how the example workspace is displayed.',
     onOpenChange: fn(),
     open: true,
     size: 'medium',
-    title: 'Generation settings',
+    title: 'Workspace preferences',
   },
   argTypes: {
     actions: {
@@ -158,7 +156,7 @@ export const Default: Story = {
     actions: (
       <>
         <Button variant="secondary">Cancel</Button>
-        <Button>Save settings</Button>
+        <Button>Save preferences</Button>
       </>
     ),
   },
@@ -181,16 +179,14 @@ export const RequiredDecision: Story = {
   args: {
     actions: (
       <>
-        <Button variant="secondary">Review context</Button>
-        <Button>Continue generation</Button>
+        <Button variant="secondary">Keep editing</Button>
+        <Button>Discard changes</Button>
       </>
     ),
-    children:
-      'Choose how to continue before returning to the spec generation flow.',
-    description:
-      'One uploaded context artifact could not be read and will be excluded.',
+    children: 'Choose whether to keep editing or discard your changes.',
+    description: 'The feature specification has unsaved changes.',
     dismissible: false,
-    title: 'Context needs attention',
+    title: 'Discard changes?',
   },
 };
 

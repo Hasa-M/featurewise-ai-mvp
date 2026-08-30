@@ -10,13 +10,13 @@ describe('PageHeader', () => {
         <PageHeader
           actions={
             <>
-              <span>Draft</span>
-              <button type="button">Generate spec</button>
+              <span>FEAT-5831</span>
+              <button type="button">Edit feature</button>
             </>
           }
           breadcrumb={<h1>Authentication workflow</h1>}
           id="feature-page-header"
-          subtitle="Review the available context before generating a spec."
+          subtitle="Review the specification and supporting context."
         />
       </main>,
     );
@@ -27,14 +27,14 @@ describe('PageHeader', () => {
         name: 'Authentication workflow',
       }),
     ).toBeVisible();
-    expect(screen.getByText('Draft')).toBeVisible();
+    expect(screen.getByText('FEAT-5831')).toBeVisible();
     expect(
       screen.getByText(
-        'Review the available context before generating a spec.',
+        'Review the specification and supporting context.',
       ),
     ).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Generate spec' }),
+      screen.getByRole('button', { name: 'Edit feature' }),
     ).toBeVisible();
     expect(container.querySelector('header')).toHaveAttribute(
       'id',
@@ -54,7 +54,7 @@ describe('PageHeader', () => {
     ).toBeVisible();
     expect(
       screen.queryByText(
-        'Review the available context before generating a spec.',
+        'Review the specification and supporting context.',
       ),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

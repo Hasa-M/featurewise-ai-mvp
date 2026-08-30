@@ -16,7 +16,7 @@ export function LoginPage() {
           <LoginForm />
         </div>
         <p className={styles.footer}>
-          Phase 1 prototype · single-user, local-first.
+          Local-first MVP · single-user.
         </p>
       </section>
     </main>

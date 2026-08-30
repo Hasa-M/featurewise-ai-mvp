@@ -2,9 +2,16 @@
 
 Date: 2026-06-13
 
-Status: accepted
+Status: superseded
 
-Amended by: ADR-0020, ADR-0029
+Superseded by:
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md)
+
+Previously amended by: ADR-0020, ADR-0029
+
+> Historical record only. ADR-0031 removes FeatureUpdate ownership, renames
+> editable context to `content`, and models ProjectContext as an explicit
+> analysis source.
 
 ## Context
 

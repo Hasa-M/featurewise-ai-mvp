@@ -39,6 +39,9 @@ async function main(): Promise<void> {
         name: SEED_ORGANIZATION_NAME,
         projects: {
           create: {
+            context: {
+              create: {},
+            },
             name: SEED_PROJECT_NAME,
           },
         },
@@ -62,10 +65,20 @@ async function main(): Promise<void> {
       prisma.project.upsert({
         where: { organizationId: existingUser.organizationId },
         create: {
+          context: {
+            create: {},
+          },
           organizationId: existingUser.organizationId,
           name: SEED_PROJECT_NAME,
         },
-        update: {},
+        update: {
+          context: {
+            upsert: {
+              create: {},
+              update: {},
+            },
+          },
+        },
       }),
     ]);
   }

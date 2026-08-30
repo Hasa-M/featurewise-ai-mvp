@@ -4,6 +4,13 @@ Date: 2026-07-18
 
 Status: accepted
 
+Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md)
+
+> The React Hook Form and Zod decision remains accepted. Current product forms
+> cover authentication, feature specifications, and context. Future analysis
+> settings and finding-review forms must follow the same pattern when real
+> endpoints support them; generated-spec editing examples below are historical.
+
 ## Context
 
 Featurewise will include forms for authentication, workspace data, feature intent, context intake, generation settings, and specification review.
