@@ -148,6 +148,9 @@ function defaultFetch(
     }
     return Promise.resolve(jsonResponse(projectContext));
   }
+  if (path === `/api/projects/${project.publicKey}/repository`) {
+    return Promise.resolve(jsonResponse({ state: 'integration_disabled' }));
+  }
   if (path === `/api/projects/${project.publicKey}/features`) {
     return Promise.resolve(jsonResponse([feature]));
   }
@@ -162,6 +165,11 @@ function defaultFetch(
   }
   if (path === `/api/features/${feature.publicKey}/context`) {
     return Promise.resolve(jsonResponse(featureContext));
+  }
+  if (path === `/api/features/${feature.publicKey}/repository-context`) {
+    return Promise.resolve(
+      jsonResponse({ state: 'integration_disabled', featureKey: feature.publicKey }),
+    );
   }
   if (
     path === `/api/projects/${legacyProjectUuid}` ||
@@ -501,7 +509,7 @@ describe('application routes', () => {
     expect(
       await screen.findByRole('heading', { name: feature.title }),
     ).toBeVisible();
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
     expect(screen.getByRole('tab', { name: 'Specification' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -514,6 +522,48 @@ describe('application routes', () => {
         '?tab=specification&view=compact',
       );
     });
+  });
+
+  it('deep-links to the canonical Project Repository tab', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const { testRouter } = renderRoute(
+      `/projects/${project.publicKey}?tab=repository`,
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'GitHub integration is disabled',
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Repository' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(testRouter.state.location.search).toBe('?tab=repository');
+  });
+
+  it('deep-links to the canonical Feature Repository tab without analysis calls', async () => {
+    window.localStorage.setItem('featurewise.accessToken', 'stored-token');
+    const fetchMock = vi.mocked(fetch);
+    const { testRouter } = renderRoute(
+      `/projects/${project.publicKey}/features/${feature.publicKey}?tab=repository`,
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'GitHub integration is disabled',
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Repository' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(testRouter.state.location.search).toBe('?tab=repository');
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        requestPath(input).includes('/analysis'),
+      ),
+    ).toBe(false);
   });
 
   it('rejects a legacy UUID feature URL without canonicalizing it', async () => {

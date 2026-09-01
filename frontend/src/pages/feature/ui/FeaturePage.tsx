@@ -16,6 +16,7 @@ import {
   useFeature,
   useFeatureActions,
 } from '@/features/features';
+import { FeatureRepositoryPanel } from '@/features/repository-context';
 import { getProjectPath, useProject } from '@/features/workspace';
 import { ApiError } from '@/shared/api';
 import { usePageHeaderRegistration } from '@/shared/model';
@@ -37,6 +38,12 @@ const FEATURE_TABS = [
     label: 'Context',
     panelId: 'feature-context-panel',
     tabId: 'feature-context-tab',
+  },
+  {
+    id: 'repository',
+    label: 'Repository',
+    panelId: 'feature-repository-panel',
+    tabId: 'feature-repository-tab',
   },
   {
     id: 'analyses',
@@ -241,6 +248,12 @@ function FeatureContent({
           <FeatureContextPanel
             accessToken={accessToken}
             featureKey={featureQuery.data.publicKey}
+          />
+        ) : activeTab === 'repository' ? (
+          <FeatureRepositoryPanel
+            accessToken={accessToken}
+            featureKey={featureQuery.data.publicKey}
+            projectKey={projectQuery.data.publicKey}
           />
         ) : (
           <section aria-labelledby='feature-analyses-title'>

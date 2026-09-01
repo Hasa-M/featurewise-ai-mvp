@@ -16,13 +16,17 @@ product baseline and separately scoped future analysis work.
 - [ADR-0032](adr/ADR-0032-analysis-application-boundary-and-lifecycle.md)
   defines the analysis application boundary and run lifecycle while deferring
   the analyzer implementation and HTTP execution endpoints.
+- [ADR-0033](adr/ADR-0033-github-repository-context.md) authorizes the GitHub
+  App repository-context adapter, defines `repository_revision`, and keeps all
+  other third-party integrations deferred.
 
 Relevant context may include requirements, designs, product history, current
 behavior, source code, technical constraints, business/domain rules, and
 organization policies. These are generic context/evidence inputs rather than
 separate product domains or bespoke analysis pipelines. In the MVP they enter
-through specifications, editable context, or uploaded/pasted artifacts;
-dedicated source adapters remain deferred.
+through specifications, editable context, uploaded/pasted artifacts, or the
+single authorized GitHub repository adapter. Other dedicated source adapters
+remain deferred.
 
 Historical ADRs remain in `adr/`. Superseded records are preserved for
 rationale but are marked at the top and must not guide new implementation.
@@ -34,6 +38,16 @@ trunk-based development (ADR-0008), React/Vite Console (ADR-0009), local-first
 scope (ADR-0010), private S3 storage (ADR-0011 and ADR-0029), minimal auth
 (ADR-0015), frontend layering (ADR-0022 through ADR-0026), and public API
 identifiers (ADR-0028).
+
+Repository content remains an external source and is never converted into a
+`StorageObject`. The temporary v1 preparation policy is filtered manifest plus
+root allowlist plus all Feature-selected files. Retrieval, vector indexes, and
+AI-generated internal documentation require separate decisions and evals.
+
+Operational documentation:
+
+- [Local GitHub App setup](../integrations/github-app-local-development.md)
+- [GitHub data handling](../github-data-handling.md)
 
 ## Diagrams
 

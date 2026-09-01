@@ -6,7 +6,8 @@ Status: accepted
 
 Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md),
 [ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
-[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md),
+[ADR-0033](ADR-0033-github-repository-context.md)
 
 > The identifier format and API-boundary rules remain accepted. The implemented
 > registry removes `UPD` and `SPEC`, keeps `RUN` and `CALL` for AnalysisRun and
@@ -51,6 +52,7 @@ The central public-identifier registry defines these external prefixes:
 | AnalysisFinding | FND |
 | FindingReview | FREV |
 | LlmCallLog | CALL |
+| ProjectRepositoryConnection | REPO |
 
 External identifiers are formatted as PREFIX-positive_integer. Formatting and
 strict parsing are centralized in the backend. Keys are uppercase, contain no

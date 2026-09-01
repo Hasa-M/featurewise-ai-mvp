@@ -115,22 +115,24 @@ evidence-backed findings, understand why they matter, and record whether each
 finding is accepted, dismissed, resolved, or deferred.
 
 Featurewise does not generate or maintain the canonical specification. It does
-not become the customer's requirements system of record, and it does not add
-real Jira, GitHub, Figma, or similar integrations in the local-first MVP.
+not become the customer's requirements system of record. GitHub repository
+context is the single integration authorized by ADR-0033; Jira, Figma, and all
+other direct integrations remain deferred.
 
 ## Current product baseline
 
 The current architecture is defined by
 [ADR-0030](docs/architecture/adr/ADR-0030-specification-analysis-core-domain.md),
 [ADR-0031](docs/architecture/adr/ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
-and
-[ADR-0032](docs/architecture/adr/ADR-0032-analysis-application-boundary-and-lifecycle.md).
+and [ADR-0032](docs/architecture/adr/ADR-0032-analysis-application-boundary-and-lifecycle.md),
+as amended for GitHub repository context by
+[ADR-0033](docs/architecture/adr/ADR-0033-github-repository-context.md).
 
 The implemented local-first baseline provides authentication, Organization and
 Project workspaces, user-authored Feature specifications, editable feature and
-project context, and private uploaded context files. The Featurewise Console
-exposes the current Specification, Context, and unavailable Analyses
-workspaces.
+project context, private uploaded context files, and read-only GitHub repository
+configuration. The Featurewise Console exposes Specification, Context,
+Repository, and honestly unavailable Analyses workspaces.
 
 The backend also contains the non-executing analysis application boundary,
 versioned contracts, and reproducible input capture. Analyzer execution,

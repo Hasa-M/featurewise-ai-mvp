@@ -1,9 +1,10 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 import type { CurrentUserContext } from '../auth/current-user-context';
 import type { ContextService } from '../context/context.service';
 import type { PrismaService } from '../database/prisma.service';
 import type { FeaturesService } from '../features/features.service';
+import type { RepositoryContextService } from '../repository-context';
 import type { WorkspaceService } from '../workspace/workspace.service';
 import { AnalysisInputCaptureService } from './analysis-input-capture.service';
 import { ANALYSIS_SETTINGS_VERSION } from './contracts/analysis-contracts';
@@ -70,17 +71,39 @@ function createService(options?: { readonly projectContextMissing?: boolean }) {
       callback(transaction),
     ),
   };
+  const prepareFeatureRepositoryRevision = jest.fn().mockResolvedValue({
+    revision: null,
+    consistencyToken: {
+      featureId: '00000000-0000-4000-8000-000000000004',
+      projectId: currentUser.projectId,
+      connectionId: null,
+      configurationVersion: null,
+      contextUpdatedAt: null,
+      branchOverride: null,
+      selectedPaths: [],
+    },
+  });
+  const assertFeatureRepositoryRevisionConsistency = jest
+    .fn()
+    .mockResolvedValue(undefined);
   const service = new AnalysisInputCaptureService(
     { captureAnalysisContextInput } as unknown as ContextService,
     { getAnalysisFeatureInput } as unknown as FeaturesService,
     prisma as unknown as PrismaService,
+    {
+      prepareFeatureRepositoryRevision,
+      assertFeatureRepositoryRevisionConsistency,
+    } as unknown as RepositoryContextService,
     { getAnalysisProjectInput } as unknown as WorkspaceService,
   );
 
   return {
     captureAnalysisContextInput,
+    assertFeatureRepositoryRevisionConsistency,
     getAnalysisFeatureInput,
     getAnalysisProjectInput,
+    prepareFeatureRepositoryRevision,
+    prisma,
     service,
     transaction,
   };
@@ -203,5 +226,107 @@ describe('AnalysisInputCaptureService', () => {
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(getAnalysisFeatureInput).not.toHaveBeenCalled();
+  });
+
+  it('does not open the local capture transaction when GitHub capture fails', async () => {
+    const {
+      captureAnalysisContextInput,
+      prepareFeatureRepositoryRevision,
+      prisma,
+      service,
+    } = createService();
+    prisma.$transaction.mockClear();
+    prepareFeatureRepositoryRevision.mockRejectedValueOnce(
+      new Error('GitHub unavailable'),
+    );
+
+    await expect(
+      service.captureInputSnapshotV2(currentUser, {
+        projectKey: 'PRJ-204',
+        featureKey: 'FEAT-5831',
+        analysisSettings: settings,
+      }),
+    ).rejects.toThrow('GitHub unavailable');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(captureAnalysisContextInput).not.toHaveBeenCalled();
+  });
+
+  it('checks repository consistency before marking local files used', async () => {
+    const {
+      assertFeatureRepositoryRevisionConsistency,
+      captureAnalysisContextInput,
+      service,
+    } = createService();
+    assertFeatureRepositoryRevisionConsistency.mockRejectedValueOnce(
+      new ConflictException('changed'),
+    );
+
+    await expect(
+      service.captureInputSnapshotV2(currentUser, {
+        projectKey: 'PRJ-204',
+        featureKey: 'FEAT-5831',
+        analysisSettings: settings,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(captureAnalysisContextInput).not.toHaveBeenCalled();
+  });
+
+  it('validates the v2 snapshot inside the same transaction as firstUsedAt', async () => {
+    const {
+      captureAnalysisContextInput,
+      prepareFeatureRepositoryRevision,
+      service,
+    } = createService();
+    prepareFeatureRepositoryRevision.mockResolvedValueOnce({
+      revision: {
+        publicKey: 'REPO-1',
+        fullName: 'featurewise/private',
+        branch: 'main',
+        commitSha: 'not-a-commit',
+        capturedAt: '2026-08-31T12:00:00.000Z',
+        manifest: { paths: [], truncated: false },
+        files: [],
+      },
+      consistencyToken: {
+        featureId: '00000000-0000-4000-8000-000000000004',
+        projectId: currentUser.projectId,
+        connectionId: 'connection-id',
+        configurationVersion: 1,
+        contextUpdatedAt: null,
+        branchOverride: null,
+        selectedPaths: [],
+      },
+    });
+
+    await expect(
+      service.captureInputSnapshotV2(currentUser, {
+        projectKey: 'PRJ-204',
+        featureKey: 'FEAT-5831',
+        analysisSettings: settings,
+      }),
+    ).rejects.toThrow('Repository commit SHA is invalid');
+    expect(captureAnalysisContextInput).toHaveBeenCalledTimes(1);
+  });
+
+  it('commits a valid v2 snapshot only after the final consistency check', async () => {
+    const {
+      assertFeatureRepositoryRevisionConsistency,
+      captureAnalysisContextInput,
+      service,
+    } = createService();
+
+    await expect(
+      service.captureInputSnapshotV2(currentUser, {
+        projectKey: 'PRJ-204',
+        featureKey: 'FEAT-5831',
+        analysisSettings: settings,
+      }),
+    ).resolves.toMatchObject({
+      contractVersion: 'analysis-input-snapshot-v2',
+      repository: null,
+    });
+    expect(
+      assertFeatureRepositoryRevisionConsistency.mock.invocationCallOrder[0],
+    ).toBeLessThan(captureAnalysisContextInput.mock.invocationCallOrder[0]);
   });
 });

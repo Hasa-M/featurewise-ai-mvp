@@ -13,6 +13,7 @@ import { ContextService } from '../src/context/context.service';
 import type { ContextFileProcessorService } from '../src/context/context-file-processor.service';
 import type { PrismaService } from '../src/database/prisma.service';
 import { FeaturesService } from '../src/features/features.service';
+import type { RepositoryContextService } from '../src/repository-context';
 import type { StorageService } from '../src/storage/storage.service';
 import { WorkspaceService } from '../src/workspace/workspace.service';
 
@@ -47,10 +48,17 @@ describe('Analysis input capture PostgreSQL invariants', () => {
     {} as StorageService,
     {} as ContextFileProcessorService,
   );
+  const prepareFeatureRepositoryRevision = jest.fn();
+  const assertFeatureRepositoryRevisionConsistency = jest.fn();
+  const repositoryContextService = {
+    prepareFeatureRepositoryRevision,
+    assertFeatureRepositoryRevisionConsistency,
+  } as unknown as RepositoryContextService;
   const captureService = new AnalysisInputCaptureService(
     contextService,
     featuresService,
     prismaService,
+    repositoryContextService,
     workspaceService,
   );
 
@@ -309,6 +317,97 @@ describe('Analysis input capture PostgreSQL invariants', () => {
         analysisSettings: settings,
       }),
     ).rejects.toThrow('Feature not found');
+  });
+
+  it('rolls back firstUsedAt for every failed v2 finalization and commits it only on success', async () => {
+    const fixture = await createWorkspace({
+      featureContext: 'Atomic v2 context',
+      projectContext: null,
+      specificationContent: 'Atomic v2 specification',
+    });
+    const file = await createStorageObject(fixture, {
+      token: `${randomUUID()}-atomic-v2`,
+      status: StorageObjectStatus.ready,
+      selected: true,
+      preparationVersion: 'original',
+    });
+    const token = {
+      featureId: fixture.featureId,
+      projectId: fixture.currentUser.projectId,
+      connectionId: null,
+      configurationVersion: null,
+      contextUpdatedAt: null,
+      branchOverride: null,
+      selectedPaths: [],
+    };
+    const command = {
+      projectKey: fixture.projectKey,
+      featureKey: fixture.featureKey,
+      analysisSettings: settings,
+    };
+
+    prepareFeatureRepositoryRevision.mockRejectedValueOnce(
+      new Error('GitHub unavailable'),
+    );
+    await expect(
+      captureService.captureInputSnapshotV2(fixture.currentUser, command),
+    ).rejects.toThrow('GitHub unavailable');
+    expect(
+      (await prisma.storageObject.findUniqueOrThrow({ where: { id: file.id } }))
+        .firstUsedAt,
+    ).toBeNull();
+
+    prepareFeatureRepositoryRevision.mockResolvedValueOnce({
+      revision: null,
+      consistencyToken: token,
+    });
+    assertFeatureRepositoryRevisionConsistency.mockRejectedValueOnce(
+      new Error('Concurrent repository configuration change'),
+    );
+    await expect(
+      captureService.captureInputSnapshotV2(fixture.currentUser, command),
+    ).rejects.toThrow('Concurrent repository configuration change');
+    expect(
+      (await prisma.storageObject.findUniqueOrThrow({ where: { id: file.id } }))
+        .firstUsedAt,
+    ).toBeNull();
+
+    prepareFeatureRepositoryRevision.mockResolvedValueOnce({
+      revision: {
+        publicKey: 'REPO-1',
+        fullName: 'featurewise/private',
+        branch: 'main',
+        commitSha: 'invalid',
+        capturedAt: new Date().toISOString(),
+        manifest: { paths: [], truncated: false },
+        files: [],
+      },
+      consistencyToken: token,
+    });
+    assertFeatureRepositoryRevisionConsistency.mockResolvedValueOnce(undefined);
+    await expect(
+      captureService.captureInputSnapshotV2(fixture.currentUser, command),
+    ).rejects.toThrow('Repository commit SHA is invalid');
+    expect(
+      (await prisma.storageObject.findUniqueOrThrow({ where: { id: file.id } }))
+        .firstUsedAt,
+    ).toBeNull();
+
+    prepareFeatureRepositoryRevision.mockResolvedValueOnce({
+      revision: null,
+      consistencyToken: token,
+    });
+    assertFeatureRepositoryRevisionConsistency.mockResolvedValueOnce(undefined);
+    await expect(
+      captureService.captureInputSnapshotV2(fixture.currentUser, command),
+    ).resolves.toMatchObject({
+      contractVersion: 'analysis-input-snapshot-v2',
+      repository: null,
+    });
+    expect(
+      (await prisma.storageObject.findUniqueOrThrow({ where: { id: file.id } }))
+        .firstUsedAt,
+    ).not.toBeNull();
   });
 
   async function createWorkspace(input: {

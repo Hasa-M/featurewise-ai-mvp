@@ -6,9 +6,11 @@ Status: accepted
 
 Amended by: [ADR-0030](ADR-0030-specification-analysis-core-domain.md),
 [ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
-[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md),
+[ADR-0033](ADR-0033-github-repository-context.md)
 
-> Integrations, a queue, a worker, and a dedicated AI service remain deferred.
+> ADR-0033 authorizes GitHub repository context only. All other integrations,
+> a queue, a worker, and a dedicated AI service remain deferred.
 > Future integrations are neutral context or client adapters over the analysis
 > boundary; the old generation workflow below is historical product context.
 

@@ -10,11 +10,13 @@ backend vertical slice exists.
 ## Routes and workspaces
 
 - `/` renders Projects and remains the application home.
-- `/projects/:projectKey` renders a Project workspace with `features` and
-  `context` tabs. The Context tab edits the Project's ProjectContext.
+- `/projects/:projectKey` renders a Project workspace with `features`,
+  `context`, and `repository` tabs. Repository owns connection, selection,
+  base-branch, refresh, and disconnect states.
 - `/projects/:projectKey/features/:featureKey` renders a Feature workspace with
-  `specification`, `context`, and `analyses` tabs. Missing or invalid values
-  resolve to `specification`.
+  `specification`, `context`, `repository`, and `analyses` tabs. Repository
+  owns branch inheritance/override and atomic file selection. Missing or
+  invalid values resolve to `specification`.
 
 The Specification tab edits the user's canonical
 `Feature.specificationContent`. Context edits separate supporting
@@ -44,7 +46,14 @@ Projects
 
 Workspace and Features slices own typed API contracts, mappings, queries,
 forms, actions, and cache updates. Context owns supporting text and the private
-file lifecycle. A later Analysis slice will own runs, findings, evidence, and
+file lifecycle. Repository Context owns typed configuration queries, lazy tree
+navigation, client-side search over loaded allowed paths, and branch-impact
+errors. Repository, branch, and per-directory collections use manually
+advanced 100-item infinite queries. Later tree pages are pinned to the first
+page commit SHA; pages are deterministically flattened and deduplicated, while
+repository, effective-branch, or commit changes reset loaded metadata, search,
+and open directories without discarding saved selections. A later Analysis
+slice will own runs, findings, evidence, and
 review behavior; it must call the backend application boundary rather than
 contain engine rules.
 
@@ -52,7 +61,7 @@ contain engine rules.
 
 TanStack Query remains the Console server-state cache and React Router remains
 the URL/navigation owner. Existing organization, project, feature, feature
-context, and file-archive query policies remain in force. A future contract
+context, repository-context, and file-archive query policies remain in force. A future contract
 change must update its owning slice and cache policy together.
 
 Removed product projections include generated-spec version/count, generation
@@ -74,9 +83,9 @@ C4Component
     Component(shell, "AppShell + PageStructure", "React components", "Keeps Header, Sidebar, and Outlet mounted")
     Component(actions, "Entity action providers", "React context", "Own reusable organization, project, and feature actions")
     Component(header, "PageHeader registration", "React context", "Connects lazy route breadcrumbs/actions to the persistent shell")
-    Component(pages, "Projects, Project, and Feature pages", "Lazy route modules", "Compose Specification, Context, and Analyses workspaces")
+    Component(pages, "Projects, Project, and Feature pages", "Lazy route modules", "Compose Specification, Context, Repository, and Analyses workspaces")
     Component(query, "TanStack QueryClient", "In-memory server-state cache", "Caches, deduplicates, retries, seeds, and prefetches REST data")
-    Component(slices, "Workspace, Features, Context, and future Analysis slices", "Typed feature boundaries", "Own API DTOs, mappings, hooks, uploads, findings, and reviews")
+    Component(slices, "Workspace, Features, Context, Repository Context, and future Analysis slices", "Typed feature boundaries", "Own API DTOs, mappings, hooks, uploads, repository navigation, findings, and reviews")
     Component(http, "Shared HTTP client", "Fetch wrapper", "Adds API base URL, auth, JSON parsing, and normalized errors")
   }
 

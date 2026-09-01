@@ -1,6 +1,7 @@
 import type { CurrentUserContext } from '../../auth/current-user-context';
 import type {
   AnalysisInputSnapshotV1,
+  AnalysisInputSnapshotV2,
   AnalysisRunStatus,
   AnalysisSettingsV1,
   FindingReviewDecision,
@@ -18,6 +19,10 @@ export interface AnalysisInputCapturePort {
     currentUser: CurrentUserContext,
     command: CaptureAnalysisInputCommand,
   ): Promise<AnalysisInputSnapshotV1>;
+  captureInputSnapshotV2(
+    currentUser: CurrentUserContext,
+    command: CaptureAnalysisInputCommand,
+  ): Promise<AnalysisInputSnapshotV2>;
 }
 
 export interface AnalysisApplicationPort {
