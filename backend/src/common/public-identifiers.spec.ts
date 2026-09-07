@@ -18,6 +18,7 @@ describe('public identifiers', () => {
       organization: 'ORG',
       project: 'PRJ',
       projectContext: 'PCTX',
+      projectRepositoryConnection: 'REPO',
       storageObject: 'OBJ',
       user: 'USR',
     });

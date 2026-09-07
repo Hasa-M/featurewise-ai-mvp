@@ -4,11 +4,17 @@ NestJS + TypeScript REST API for the Featurewise local-first MVP.
 
 The modular-monolith API currently includes authentication, Organization and
 Project ownership, Features with user-authored specifications, editable
-feature and project context, and private S3 context file attachments. A
+feature and project context, private S3 context file attachments, and a
+provider-neutral repository-context module with a read-only GitHub App adapter. A
 non-executing Analysis module defines versioned contracts and reproducible
 input capture. Analyzer execution, analysis HTTP endpoints, and findings and
 review workflows remain separately scoped future work under the architecture
 ADRs.
+
+GitHub is disabled by default. When enabled, all App/OAuth configuration is
+validated at startup and temporary GitHub tokens are never persisted. See the
+[local GitHub App guide](../docs/integrations/github-app-local-development.md)
+and [GitHub data handling](../docs/github-data-handling.md).
 
 ## Commands
 

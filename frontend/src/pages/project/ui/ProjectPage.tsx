@@ -11,6 +11,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '@/features/auth';
 import { ProjectContextPanel } from '@/features/context';
+import { ProjectRepositoryPanel } from '@/features/repository-context';
 import {
   getFeaturePath,
   useFeatureActions,
@@ -33,7 +34,7 @@ import { Tabs, type TabsItems } from '@/shared/ui/tabs';
 
 import styles from './ProjectPage.module.css';
 
-const PROJECT_TAB_IDS = ['features', 'context'] as const;
+const PROJECT_TAB_IDS = ['features', 'context', 'repository'] as const;
 type ProjectTabId = (typeof PROJECT_TAB_IDS)[number];
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -191,6 +192,12 @@ function ProjectContent({
         panelId: 'project-context-panel',
         tabId: 'project-context-tab',
       },
+      {
+        id: 'repository',
+        label: 'Repository',
+        panelId: 'project-repository-panel',
+        tabId: 'project-repository-tab',
+      },
     ],
     [featuresQuery.data?.length],
   );
@@ -245,7 +252,9 @@ function ProjectContent({
       subtitle: projectQuery.data
         ? activeTab === 'features'
           ? 'Open a feature to edit its specification and supporting context.'
-          : 'Add shared project-level context for future feature analyses.'
+          : activeTab === 'context'
+            ? 'Add shared project-level context for future feature analyses.'
+            : 'Connect and configure the GitHub repository used as traceable feature context.'
         : undefined,
     }),
     [
@@ -339,8 +348,13 @@ function ProjectContent({
               projectPublicKey={projectQuery.data.publicKey}
             />
           )
-        ) : (
+        ) : activeTab === 'context' ? (
           <ProjectContextPanel
+            accessToken={accessToken}
+            projectKey={projectQuery.data.publicKey}
+          />
+        ) : (
+          <ProjectRepositoryPanel
             accessToken={accessToken}
             projectKey={projectQuery.data.publicKey}
           />

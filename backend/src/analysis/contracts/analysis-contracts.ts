@@ -1,8 +1,12 @@
 export const ANALYSIS_SETTINGS_VERSION = 'analysis-settings-v1' as const;
 export const ANALYSIS_INPUT_SNAPSHOT_VERSION =
   'analysis-input-snapshot-v1' as const;
+export const ANALYSIS_INPUT_SNAPSHOT_VERSION_V2 =
+  'analysis-input-snapshot-v2' as const;
 export const PREPARED_CONTEXT_SNAPSHOT_VERSION =
   'prepared-context-snapshot-v1' as const;
+export const PREPARED_CONTEXT_SNAPSHOT_VERSION_V2 =
+  'prepared-context-snapshot-v2' as const;
 export const ANALYSIS_ENGINE_INPUT_VERSION =
   'analysis-engine-input-v1' as const;
 export const STRUCTURED_FINDING_OUTPUT_VERSION =
@@ -134,6 +138,37 @@ export interface AnalysisInputSnapshotV1 {
   readonly analysisSettings: AnalysisSettingsV1;
 }
 
+export interface SnapshotRepositoryFileV2 {
+  readonly path: string;
+  readonly roles: readonly ('automatic_root' | 'feature_selected')[];
+  readonly blobSha: string;
+  readonly sizeBytes: number;
+  readonly checksumSha256: string;
+  readonly content: string;
+}
+
+export interface SnapshotRepositoryRevisionV2 {
+  readonly publicKey: string;
+  readonly sourceId: SourceIdentifier;
+  readonly fullName: string;
+  readonly branch: string;
+  readonly commitSha: string;
+  readonly capturedAt: string;
+  readonly manifest: {
+    readonly paths: readonly string[];
+    readonly truncated: boolean;
+  };
+  readonly files: readonly SnapshotRepositoryFileV2[];
+}
+
+export interface AnalysisInputSnapshotV2 extends Omit<
+  AnalysisInputSnapshotV1,
+  'contractVersion'
+> {
+  readonly contractVersion: typeof ANALYSIS_INPUT_SNAPSHOT_VERSION_V2;
+  readonly repository: SnapshotRepositoryRevisionV2 | null;
+}
+
 export interface PreparedContextSegment {
   readonly segmentId: SegmentIdentifier;
   readonly position: number;
@@ -154,6 +189,20 @@ export interface PreparedContextSnapshotV1 {
   readonly snapshotId: PreparedContextSnapshotIdentifier;
   readonly inputSnapshotVersion: typeof ANALYSIS_INPUT_SNAPSHOT_VERSION;
   readonly sources: readonly PreparedContextSource[];
+}
+
+export interface PreparedContextSourceV2 extends Omit<
+  PreparedContextSource,
+  'sourceType'
+> {
+  readonly sourceType: PreparedSourceType | 'repository_revision';
+}
+
+export interface PreparedContextSnapshotV2 {
+  readonly contractVersion: typeof PREPARED_CONTEXT_SNAPSHOT_VERSION_V2;
+  readonly snapshotId: PreparedContextSnapshotIdentifier;
+  readonly inputSnapshotVersion: typeof ANALYSIS_INPUT_SNAPSHOT_VERSION_V2;
+  readonly sources: readonly PreparedContextSourceV2[];
 }
 
 export interface EvidenceReference {
@@ -248,6 +297,29 @@ export function createImmutableAnalysisInputSnapshot(
   return deepFreeze(detached);
 }
 
+export function createRepositoryRevisionSourceIdentifier(
+  repositoryKey: string,
+): SourceIdentifier {
+  assertPublicKey(repositoryKey, 'REPO');
+  return `repository_revision:${repositoryKey}` as SourceIdentifier;
+}
+
+export function createImmutableAnalysisInputSnapshotV2(
+  snapshot: AnalysisInputSnapshotV2,
+): AnalysisInputSnapshotV2 {
+  const detached = structuredClone(snapshot);
+  validateAnalysisInputSnapshotV2(detached);
+  return deepFreeze(detached);
+}
+
+export function createImmutablePreparedContextSnapshotV2(
+  snapshot: PreparedContextSnapshotV2,
+): PreparedContextSnapshotV2 {
+  const detached = structuredClone(snapshot);
+  validatePreparedContextSnapshotV2(detached);
+  return deepFreeze(detached);
+}
+
 export function createImmutablePreparedContextSnapshot(
   snapshot: PreparedContextSnapshotV1,
 ): PreparedContextSnapshotV1 {
@@ -323,6 +395,162 @@ export function validateAnalysisInputSnapshot(
     if (file.prepared !== null) {
       validateObjectRepresentation(file.prepared);
     }
+  }
+}
+
+export function validateAnalysisInputSnapshotV2(
+  snapshot: AnalysisInputSnapshotV2,
+): void {
+  if (snapshot.contractVersion !== ANALYSIS_INPUT_SNAPSHOT_VERSION_V2) {
+    throw new AnalysisContractValidationError(
+      'Analysis input snapshot v2 contract version is unsupported',
+    );
+  }
+  validateAnalysisInputSnapshot({
+    ...snapshot,
+    contractVersion: ANALYSIS_INPUT_SNAPSHOT_VERSION,
+  });
+  if (snapshot.repository === null) return;
+  const repository = snapshot.repository;
+  assertPublicKey(repository.publicKey, 'REPO');
+  if (
+    repository.sourceId !==
+    createRepositoryRevisionSourceIdentifier(repository.publicKey)
+  ) {
+    throw new AnalysisContractValidationError(
+      'Repository revision source identifier is invalid',
+    );
+  }
+  assertIsoTimestamp(repository.capturedAt);
+  if (!/^[0-9a-f]{40,64}$/i.test(repository.commitSha))
+    throw new AnalysisContractValidationError(
+      'Repository commit SHA is invalid',
+    );
+  if (
+    repository.manifest.paths.length > 20_000 ||
+    manifestUtf8Bytes(repository.manifest.paths) > 512 * 1024
+  ) {
+    throw new AnalysisContractValidationError(
+      'Repository manifest exceeds v2 limits',
+    );
+  }
+  assertSortedUnique(repository.manifest.paths, 'Repository manifest paths');
+  let previousPath = '';
+  let selectedCount = 0;
+  let selectedBytes = 0;
+  let automaticCount = 0;
+  let automaticBytes = 0;
+  for (const file of repository.files) {
+    if (previousPath && previousPath.localeCompare(file.path) >= 0)
+      throw new AnalysisContractValidationError(
+        'Repository files must be path ordered and unique',
+      );
+    previousPath = file.path;
+    if (
+      !/^[0-9a-f]{40,64}$/i.test(file.blobSha) ||
+      !/^[0-9a-f]{64}$/i.test(file.checksumSha256)
+    )
+      throw new AnalysisContractValidationError(
+        'Repository file checksum metadata is invalid',
+      );
+    const size = Buffer.byteLength(file.content, 'utf8');
+    if (size !== file.sizeBytes || file.sizeBytes < 0)
+      throw new AnalysisContractValidationError(
+        'Repository file byte size does not match content',
+      );
+    if (
+      createHash('sha256').update(file.content, 'utf8').digest('hex') !==
+      file.checksumSha256.toLowerCase()
+    )
+      throw new AnalysisContractValidationError(
+        'Repository file checksum does not match content',
+      );
+    if (
+      file.roles.length === 0 ||
+      file.roles.length > 2 ||
+      new Set(file.roles).size !== file.roles.length
+    )
+      throw new AnalysisContractValidationError(
+        'Repository file roles are invalid',
+      );
+    if (file.roles.includes('automatic_root')) {
+      automaticCount += 1;
+      automaticBytes += size;
+      if (size > 256 * 1024)
+        throw new AnalysisContractValidationError(
+          'Automatic root file exceeds its limit',
+        );
+    }
+    if (file.roles.includes('feature_selected')) {
+      selectedCount += 1;
+      selectedBytes += size;
+      if (size > 1024 * 1024)
+        throw new AnalysisContractValidationError(
+          'Selected repository file exceeds its limit',
+        );
+    }
+  }
+  if (
+    selectedCount > 50 ||
+    selectedBytes > 5 * 1024 * 1024 ||
+    automaticCount > 20 ||
+    automaticBytes > 1024 * 1024
+  ) {
+    throw new AnalysisContractValidationError(
+      'Repository file collection exceeds v2 limits',
+    );
+  }
+}
+
+export function validatePreparedContextSnapshotV2(
+  snapshot: PreparedContextSnapshotV2,
+): void {
+  if (
+    snapshot.contractVersion !== PREPARED_CONTEXT_SNAPSHOT_VERSION_V2 ||
+    snapshot.inputSnapshotVersion !== ANALYSIS_INPUT_SNAPSHOT_VERSION_V2
+  ) {
+    throw new AnalysisContractValidationError(
+      'Prepared-context snapshot v2 version is unsupported',
+    );
+  }
+  parsePreparedContextSnapshotIdentifier(snapshot.snapshotId);
+  const sourceIds = new Set<string>();
+  const segmentIds = new Set<string>();
+  for (const source of snapshot.sources) {
+    if (source.sourceType === 'repository_revision') {
+      const repositoryKey = source.sourceId.slice(
+        'repository_revision:'.length,
+      );
+      if (
+        source.sourceId !==
+        createRepositoryRevisionSourceIdentifier(repositoryKey)
+      )
+        throw new AnalysisContractValidationError(
+          'Repository prepared source identifier is invalid',
+        );
+    } else {
+      const publicKey = source.sourceId.slice(source.sourceId.indexOf(':') + 1);
+      assertSourceIdentifier(source.sourceId, source.sourceType, publicKey);
+    }
+    assertJsonObject(source.metadata);
+    if (sourceIds.has(source.sourceId))
+      throw new AnalysisContractValidationError(
+        'Prepared source identifiers must be unique',
+      );
+    sourceIds.add(source.sourceId);
+    source.segments.forEach((segment, index) => {
+      if (segment.position !== index)
+        throw new AnalysisContractValidationError(
+          'Prepared segments must use contiguous ordered positions',
+        );
+      assertSegmentIdentifier(segment.segmentId, source.sourceId);
+      assertJsonObject(segment.metadata);
+      if (segmentIds.has(segment.segmentId))
+        throw new AnalysisContractValidationError(
+          'Prepared segment identifiers must be unique in one snapshot',
+        );
+      segmentIds.add(segment.segmentId);
+    });
   }
 }
 
@@ -514,6 +742,24 @@ function assertIsoTimestamp(value: string): void {
   }
 }
 
+function manifestUtf8Bytes(paths: readonly string[]): number {
+  return paths.reduce(
+    (total, path, index) =>
+      total + Buffer.byteLength(path, 'utf8') + (index === 0 ? 0 : 1),
+    0,
+  );
+}
+
+function assertSortedUnique(values: readonly string[], label: string): void {
+  for (let index = 1; index < values.length; index += 1) {
+    if ((values[index - 1] ?? '').localeCompare(values[index] ?? '') >= 0) {
+      throw new AnalysisContractValidationError(
+        `${label} must be sorted and unique`,
+      );
+    }
+  }
+}
+
 function assertJsonObject(value: JsonObject): void {
   if (value === null || Array.isArray(value) || typeof value !== 'object') {
     throw new AnalysisContractValidationError('Expected a JSON object');
@@ -561,3 +807,4 @@ function deepFreeze<T>(value: T): T {
 
   return value;
 }
+import { createHash } from 'node:crypto';

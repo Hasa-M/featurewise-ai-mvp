@@ -16,7 +16,13 @@ erDiagram
     ORGANIZATION ||--o{ USER : has
     ORGANIZATION ||--o{ PROJECT : owns
     PROJECT ||--o| PROJECT_CONTEXT : has
+    PROJECT ||--o| PROJECT_REPOSITORY_CONNECTION : connects
+    PROJECT ||--o{ GITHUB_CONNECTION_ATTEMPT : authorizes
     PROJECT ||--o{ FEATURE : contains
+    USER ||--o{ GITHUB_CONNECTION_ATTEMPT : starts
+    FEATURE ||--o| FEATURE_REPOSITORY_CONTEXT : configures
+    PROJECT_REPOSITORY_CONNECTION ||--o{ FEATURE_REPOSITORY_CONTEXT : supplies
+    FEATURE_REPOSITORY_CONTEXT ||--o{ FEATURE_REPOSITORY_SELECTED_FILE : selects
     FEATURE ||--|| CONTEXT_ARTIFACT : owns
     CONTEXT_ARTIFACT ||--o{ STORAGE_OBJECT : contains
     FEATURE ||--o{ ANALYSIS_RUN : analyzes
@@ -60,6 +66,61 @@ erDiagram
         int publicNumber UK
         uuid projectId FK,UK
         text content
+        timestamptz createdAt
+        timestamptz updatedAt
+    }
+
+    PROJECT_REPOSITORY_CONNECTION {
+        uuid id PK
+        int publicNumber UK
+        uuid projectId FK,UK
+        bigint installationId
+        bigint repositoryId
+        text owner
+        text name
+        text fullName
+        boolean private
+        text defaultBranch
+        text baseBranch
+        int configurationVersion
+        text status
+        timestamptz lastCheckedAt
+        timestamptz rateLimitResetAt
+        text lastErrorCode
+        text lastErrorMessage
+        timestamptz createdAt
+        timestamptz updatedAt
+    }
+
+    FEATURE_REPOSITORY_CONTEXT {
+        uuid id PK
+        uuid featureId FK,UK
+        uuid projectId FK
+        uuid connectionId FK
+        text branchOverride
+        timestamptz createdAt
+        timestamptz updatedAt
+    }
+
+    FEATURE_REPOSITORY_SELECTED_FILE {
+        uuid id PK
+        uuid featureRepositoryContextId FK
+        text path
+        timestamptz createdAt
+    }
+
+    GITHUB_CONNECTION_ATTEMPT {
+        uuid id PK
+        uuid projectId FK
+        uuid userId FK
+        bytea stateDigest UK
+        text status
+        timestamptz expiresAt
+        bigint verifiedInstallationId
+        jsonb verifiedInstallations
+        timestamptz verifiedAt
+        timestamptz consumedAt
+        timestamptz failedAt
         timestamptz createdAt
         timestamptz updatedAt
     }
@@ -188,7 +249,15 @@ lifecycle timestamps, optional LLM usage/cost/error fields, and review reason.
 
 - Every externally identifiable domain table keeps its independent positive,
   immutable `publicNumber` contract from ADR-0028. Current prefixes are `PCTX`,
-  `RUN`, `FND`, `FREV`, and `CALL`; `UPD` and `SPEC` are removed.
+  `RUN`, `FND`, `FREV`, `CALL`, and `REPO`; `UPD` and `SPEC` are removed.
+- A Project has at most one repository connection. Feature repository contexts
+  reference the connection belonging to their own Project, and selected paths
+  are unique within the Feature context. Cascades remove current connection,
+  overrides, and selections without touching historical AnalysisRun snapshots.
+- Repository connection `configurationVersion` starts at 1 and changes only
+  with `baseBranch`; health and GitHub metadata refreshes leave it unchanged.
+- GitHub installation and repository IDs are PostgreSQL `bigint` and cross the
+  JSON boundary as decimal strings, never JavaScript numbers.
 - A Feature has one ContextArtifact from creation. `featureId` is non-null and
   unique; there is no exclusive Feature/FeatureUpdate owner arc.
 - At most one non-terminal AnalysisRun exists per Feature. A PostgreSQL partial

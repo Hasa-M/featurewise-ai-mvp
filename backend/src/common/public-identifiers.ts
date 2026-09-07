@@ -10,6 +10,7 @@ export const PUBLIC_KEY_PREFIXES = {
   organization: 'ORG',
   project: 'PRJ',
   projectContext: 'PCTX',
+  projectRepositoryConnection: 'REPO',
   storageObject: 'OBJ',
   user: 'USR',
 } as const;

@@ -17,17 +17,22 @@ C4Container
   System_Boundary(featurewise, "Featurewise") {
     Container(console, "Featurewise Console", "React, Vite, TypeScript", "First-party client for Specification, Context, and Analyses workflows")
     Container(api, "Backend API", "NestJS, TypeScript, REST/JSON", "Modular monolith owning authorization, context lifecycle, analysis application boundary, persistence, and future analyzer orchestration")
+    Container(repository, "Repository Context Module", "NestJS + provider-neutral port", "Owns GitHub connection, filtering, navigation, and exact repository revision capture")
     ContainerDb(db, "PostgreSQL", "PostgreSQL", "Ownership data, editable context, immutable analysis runs, findings, reviews, and call logs")
     ContainerDb(storage, "Private object storage", "AWS S3", "Immutable original and prepared context objects")
   }
 
   System_Ext(llm, "External LLM provider", "Future model-provider adapter used only by the backend")
-  System_Ext(integrations, "Deferred context/client adapters", "Jira, Linear, GitHub, Figma, CLI, MCP, or embedded clients")
+  System_Ext(github, "GitHub API", "Authorized GitHub App installation with Contents read-only")
+  System_Ext(integrations, "Deferred context/client adapters", "Jira, Linear, Figma, Azure DevOps, CLI, MCP, or embedded clients")
 
   Rel(user, console, "Uses", "Browser")
   Rel(console, api, "Calls first-party adapter", "HTTPS REST/JSON")
   Rel(console, storage, "Uploads bytes", "Backend-authorized presigned POST")
   Rel(api, db, "Reads and writes domain state", "Prisma/PostgreSQL")
+  Rel(api, repository, "Uses public repository-context API", "In-process port")
+  Rel(repository, github, "Lists and reads repositories at a resolved commit", "Temporary installation token")
+  Rel(repository, db, "Stores metadata, branches, selected paths, and immutable snapshot JSON", "Prisma/PostgreSQL")
   Rel(api, storage, "Confirms, prepares, versions, signs, and cleans objects", "AWS SDK")
   Rel(api, llm, "Sends prepared context and receives structured findings", "Deferred backend adapter")
   Rel(integrations, api, "Uses the same application capability", "Future adapters")
@@ -58,6 +63,7 @@ metadata; SQL migrations never delete S3 objects.
 
 ### External systems
 
-The LLM provider and broader integrations are architectural boundaries only
-until real vertical slices implement them. Uploaded or pasted artifacts stand
-in for direct product integrations during the MVP.
+GitHub is the only implemented external repository adapter. It is separated
+from S3-backed uploaded artifacts and never creates `StorageObject` rows. The
+LLM provider and every other integration remain architectural boundaries only
+until separately accepted vertical slices implement them.
