@@ -209,6 +209,7 @@ model GitHubConnectionAttempt {
   status                 GitHubConnectionAttemptStatus @default(pending)
   expiresAt              DateTime                      @map("expires_at") @db.Timestamptz(6)
   verifiedInstallationId BigInt?                       @map("verified_installation_id")
+  verifiedInstallations  Json?                         @map("verified_installations")
   verifiedAt             DateTime?                     @map("verified_at") @db.Timestamptz(6)
   consumedAt             DateTime?                     @map("consumed_at") @db.Timestamptz(6)
   failedAt               DateTime?                     @map("failed_at") @db.Timestamptz(6)

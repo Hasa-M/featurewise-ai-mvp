@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 
 import * as api from '../api';
+import { useRepositoryAttemptExpiry } from './use-repository-attempt-expiry';
 
 export interface TreePageParameter {
   readonly page: number;
@@ -17,8 +18,18 @@ export interface TreePageParameter {
 export const repositoryKeys = {
   project: (projectKey: string) =>
     ['repository-context', 'project', projectKey] as const,
-  available: (projectKey: string) =>
-    ['repository-context', 'available', projectKey] as const,
+  available: (
+    projectKey: string,
+    installationId?: string,
+    attemptScope?: string,
+  ) =>
+    [
+      'repository-context',
+      'available',
+      projectKey,
+      installationId ?? '',
+      attemptScope ?? '',
+    ] as const,
   branches: (projectKey: string, repositoryKey: string) =>
     ['repository-context', 'branches', projectKey, repositoryKey] as const,
   feature: (featureKey: string) =>
@@ -55,11 +66,22 @@ export const availableRepositoriesQueryOptions = (
   token: string,
   projectKey: string,
   enabled: boolean,
+  installationId?: string,
+  attemptScope?: string,
 ) =>
   infiniteQueryOptions({
-    queryKey: repositoryKeys.available(projectKey),
+    queryKey: repositoryKeys.available(
+      projectKey,
+      installationId,
+      attemptScope,
+    ),
     queryFn: ({ pageParam }) =>
-      api.getAvailableRepositories(token, projectKey, pageParam),
+      api.getAvailableRepositories(
+        token,
+        projectKey,
+        pageParam,
+        installationId,
+      ),
     initialPageParam: 1,
     getNextPageParam: nextPageNumber,
     enabled,
@@ -117,16 +139,26 @@ export const treeQueryOptions = (
   });
 
 export function useProjectRepository(token: string, projectKey: string) {
-  return useQuery(projectRepositoryQueryOptions(token, projectKey));
+  const query = useQuery(projectRepositoryQueryOptions(token, projectKey));
+  useRepositoryAttemptExpiry(query.data?.attemptExpiresAt, query.refetch);
+  return query;
 }
 
 export function useAvailableRepositories(
   token: string,
   projectKey: string,
   enabled: boolean,
+  installationId?: string,
+  attemptScope?: string,
 ) {
   return useInfiniteQuery(
-    availableRepositoriesQueryOptions(token, projectKey, enabled),
+    availableRepositoriesQueryOptions(
+      token,
+      projectKey,
+      enabled,
+      installationId,
+      attemptScope,
+    ),
   );
 }
 
@@ -137,12 +169,7 @@ export function useBranches(
   enabled = true,
 ) {
   return useInfiniteQuery(
-    branchesQueryOptions(
-      token,
-      projectKey,
-      repositoryKey,
-      enabled,
-    ),
+    branchesQueryOptions(token, projectKey, repositoryKey, enabled),
   );
 }
 
@@ -168,10 +195,7 @@ export function useRepositoryTree(
   );
 }
 
-export function useFeatureRepositoryContext(
-  token: string,
-  featureKey: string,
-) {
+export function useFeatureRepositoryContext(token: string, featureKey: string) {
   return useQuery({
     queryKey: repositoryKeys.feature(featureKey),
     queryFn: () => api.getFeatureRepositoryContext(token, featureKey),
@@ -195,11 +219,40 @@ export function useRepositoryMutations(token: string, projectKey: string) {
   };
   return {
     attempt: useMutation({
-      mutationFn: () => api.createGitHubAttempt(token, projectKey),
+      mutationFn: (mode: 'authorize' | 'install' = 'authorize') =>
+        api.createGitHubAttempt(token, projectKey, mode),
+      onSuccess: (data) => {
+        client.removeQueries({
+          queryKey: ['repository-context', 'available', projectKey],
+        });
+        client.setQueryData(repositoryKeys.project(projectKey), {
+          state: 'connecting',
+          githubAppAccessUrl: client.getQueryData<api.ProjectRepositoryDto>(
+            repositoryKeys.project(projectKey),
+          )?.githubAppAccessUrl,
+          attemptExpiresAt: data.expiresAt,
+        } satisfies api.ProjectRepositoryDto);
+      },
+    }),
+    cancelAttempt: useMutation({
+      mutationFn: () => api.cancelGitHubAttempt(token, projectKey),
+      onSuccess: () => {
+        client.removeQueries({
+          queryKey: ['repository-context', 'available', projectKey],
+        });
+        void client.invalidateQueries({
+          queryKey: repositoryKeys.project(projectKey),
+        });
+      },
     }),
     connect: useMutation({
-      mutationFn: (repositoryId: string) =>
-        api.connectRepository(token, projectKey, repositoryId),
+      mutationFn: (input: { repositoryId: string; installationId?: string }) =>
+        api.connectRepository(
+          token,
+          projectKey,
+          input.repositoryId,
+          input.installationId,
+        ),
       onSuccess: resetConnectionData,
     }),
     updateBranch: useMutation({

@@ -35,6 +35,7 @@ import {
   REPOSITORY_PROVIDER_PORT,
   RepositoryProviderError,
   type ProviderRepository,
+  type ProviderInstallation,
   type RepositoryProviderPort,
 } from './ports/repository-provider.port';
 
@@ -69,12 +70,21 @@ export class RepositoryContextService {
     this.config = this.configService.getOrThrow<GitHubConfig>('github');
   }
 
-  async createAttempt(currentUser: CurrentUserContext, projectKey: string) {
+  async createAttempt(
+    currentUser: CurrentUserContext,
+    projectKey: string,
+    mode: 'authorize' | 'install' = 'authorize',
+  ) {
     this.requireEnabled();
     const project = await this.resolveProject(currentUser, projectKey);
     const state = randomBytes(32).toString('base64url');
     const stateDigest = this.digestState(state);
     const expiresAt = new Date(Date.now() + ATTEMPT_TTL_MS);
+    // Validate App configuration before creating a pending attempt.
+    const redirectUrl =
+      mode === 'install'
+        ? await this.provider.createInstallationUrl(state)
+        : await this.provider.createUserAuthorizationUrl(state);
     await this.prisma.$transaction(async (transaction) => {
       await transaction.gitHubConnectionAttempt.updateMany({
         where: {
@@ -94,21 +104,37 @@ export class RepositoryContextService {
       });
     });
     return {
-      installationUrl: await this.provider.createInstallationUrl(state),
+      redirectUrl,
       expiresAt: expiresAt.toISOString(),
     };
+  }
+
+  async cancelAttempt(
+    currentUser: CurrentUserContext,
+    projectKey: string,
+  ): Promise<void> {
+    const project = await this.resolveProject(currentUser, projectKey);
+    await this.prisma.gitHubConnectionAttempt.updateMany({
+      where: {
+        projectId: project.id,
+        userId: currentUser.userId,
+        status: { in: ['pending', 'verifying', 'verified'] },
+      },
+      data: { status: 'expired', failedAt: new Date() },
+    });
   }
 
   async handleCallback(input: {
     code?: string;
     state?: string;
     installationId?: string;
+    error?: string;
   }): Promise<string> {
     if (
       !this.config.enabled ||
       !input.state ||
-      !input.installationId ||
-      !/^[1-9][0-9]*$/.test(input.installationId)
+      (input.installationId !== undefined &&
+        !/^[1-9][0-9]*$/.test(input.installationId))
     ) {
       return this.frontendUrl('/', 'githubError', 'invalid_callback');
     }
@@ -131,13 +157,29 @@ export class RepositoryContextService {
         'expired_or_replayed',
       );
     }
+    if (input.error) {
+      await this.prisma.gitHubConnectionAttempt.updateMany({
+        where: { id: attempt.id, status: 'pending' },
+        data: { status: 'failed', failedAt: new Date() },
+      });
+      return this.frontendUrl(
+        projectPath,
+        'githubError',
+        'authorization_denied',
+      );
+    }
     if (!input.code) {
+      if (!input.installationId)
+        return this.frontendUrl(projectPath, 'githubError', 'invalid_callback');
       try {
-        return await this.provider.createUserAuthorizationUrl(
-          input.state,
-          input.installationId,
-        );
+        // The setup redirect is only a signal to authorize, never proof of access.
+        // Discover installations through OAuth using the registered base callback.
+        return await this.provider.createUserAuthorizationUrl(input.state);
       } catch {
+        await this.prisma.gitHubConnectionAttempt.updateMany({
+          where: { id: attempt.id, status: 'pending' },
+          data: { status: 'failed', failedAt: new Date() },
+        });
         return this.frontendUrl(
           projectPath,
           'githubError',
@@ -152,20 +194,50 @@ export class RepositoryContextService {
     if (claimed.count !== 1)
       return this.frontendUrl(projectPath, 'githubError', 'replayed');
     try {
-      await this.provider.verifyUserInstallation(
+      const installations = await this.provider.verifyUserInstallation(
         input.code,
         input.installationId,
       );
-      await this.prisma.gitHubConnectionAttempt.update({
-        where: { id: attempt.id },
+      if (!installations.length) {
+        await this.prisma.gitHubConnectionAttempt.updateMany({
+          where: { id: attempt.id, status: 'verifying' },
+          data: { status: 'failed', failedAt: new Date() },
+        });
+        return this.frontendUrl(
+          projectPath,
+          'githubError',
+          'installation_required',
+        );
+      }
+      const verified = await this.prisma.gitHubConnectionAttempt.updateMany({
+        where: {
+          id: attempt.id,
+          status: 'verifying',
+          expiresAt: { gt: new Date() },
+        },
         data: {
           status: 'verified',
-          verifiedInstallationId: BigInt(input.installationId),
+          verifiedInstallationId:
+            installations.length === 1
+              ? BigInt(installations[0].installationId)
+              : null,
+          verifiedInstallations: installations.map(
+            ({ installationId, accountLogin }) => ({
+              installationId,
+              accountLogin,
+            }),
+          ),
           verifiedAt: new Date(),
         },
       });
+      if (verified.count !== 1)
+        return this.frontendUrl(
+          projectPath,
+          'githubError',
+          'expired_or_replayed',
+        );
       return this.frontendUrl(projectPath);
-    } catch {
+    } catch (error) {
       await this.prisma.gitHubConnectionAttempt.updateMany({
         where: { id: attempt.id, status: 'verifying' },
         data: { status: 'failed', failedAt: new Date() },
@@ -173,12 +245,30 @@ export class RepositoryContextService {
       return this.frontendUrl(
         projectPath,
         'githubError',
-        'authorization_failed',
+        error instanceof RepositoryProviderError && error.kind === 'conflict'
+          ? 'permissions_required'
+          : 'authorization_failed',
       );
     }
   }
 
   async getProjectRepository(
+    currentUser: CurrentUserContext,
+    projectKey: string,
+  ) {
+    return {
+      ...(await this.getProjectRepositoryState(currentUser, projectKey)),
+      githubAppAccessUrl: this.githubAppAccessUrl(),
+    };
+  }
+
+  private githubAppAccessUrl(): string {
+    return this.config.appSlug
+      ? `https://github.com/apps/${encodeURIComponent(this.config.appSlug)}/installations/new`
+      : 'https://github.com/settings/installations';
+  }
+
+  private async getProjectRepositoryState(
     currentUser: CurrentUserContext,
     projectKey: string,
   ) {
@@ -203,6 +293,10 @@ export class RepositoryContextService {
               ? ('repository_selection' as const)
               : ('connecting' as const),
           attemptExpiresAt: attempt.expiresAt.toISOString(),
+          installations:
+            attempt.status === 'verified'
+              ? this.verifiedInstallations(attempt)
+              : undefined,
         };
       return { state: 'disconnected' as const };
     }
@@ -214,6 +308,7 @@ export class RepositoryContextService {
     projectKey: string,
     page: number,
     pageSize: number,
+    requestedInstallationId?: string,
   ) {
     const project = await this.resolveProject(currentUser, projectKey);
     const attempt = await this.requireVerifiedAttempt(
@@ -221,7 +316,7 @@ export class RepositoryContextService {
       currentUser.userId,
     );
     return this.provider.listRepositories(
-      String(attempt.verifiedInstallationId),
+      this.selectVerifiedInstallation(attempt, requestedInstallationId),
       page,
       pageSize,
     );
@@ -237,7 +332,10 @@ export class RepositoryContextService {
       project.id,
       currentUser.userId,
     );
-    const installationId = String(attempt.verifiedInstallationId);
+    const installationId = this.selectVerifiedInstallation(
+      attempt,
+      dto.installationId,
+    );
     const repository = await this.provider.getRepository(
       installationId,
       dto.repositoryId,
@@ -809,6 +907,7 @@ export class RepositoryContextService {
   ) {
     return {
       state,
+      githubAppAccessUrl: this.githubAppAccessUrl(),
       connection: {
         publicKey: formatPublicKey(
           'projectRepositoryConnection',
@@ -919,12 +1018,58 @@ export class RepositoryContextService {
     if (
       !attempt ||
       attempt.expiresAt <= new Date() ||
-      attempt.verifiedInstallationId === null
+      this.verifiedInstallations(attempt).length === 0
     )
       throw new ConflictException(
         'A verified GitHub connection attempt is required',
       );
     return attempt;
+  }
+
+  private verifiedInstallations(attempt: {
+    verifiedInstallationId: bigint | null;
+    verifiedInstallations?: Prisma.JsonValue;
+  }): ProviderInstallation[] {
+    const result: ProviderInstallation[] = [];
+    if (Array.isArray(attempt.verifiedInstallations)) {
+      for (const item of attempt.verifiedInstallations) {
+        if (
+          item &&
+          typeof item === 'object' &&
+          !Array.isArray(item) &&
+          typeof item.installationId === 'string' &&
+          typeof item.accountLogin === 'string'
+        )
+          result.push({
+            installationId: item.installationId,
+            accountLogin: item.accountLogin,
+          });
+      }
+    }
+    if (!result.length && attempt.verifiedInstallationId != null)
+      result.push({
+        installationId: String(attempt.verifiedInstallationId),
+        accountLogin: 'GitHub account',
+      });
+    return result;
+  }
+
+  private selectVerifiedInstallation(
+    attempt: {
+      verifiedInstallationId: bigint | null;
+      verifiedInstallations?: Prisma.JsonValue;
+    },
+    requestedId?: string,
+  ): string {
+    const installations = this.verifiedInstallations(attempt);
+    const selected = requestedId
+      ? installations.find((item) => item.installationId === requestedId)
+      : installations.length === 1
+        ? installations[0]
+        : undefined;
+    if (!selected)
+      throw new BadRequestException('Select a verified GitHub account.');
+    return selected.installationId;
   }
 
   private digestState(state: string): Uint8Array<ArrayBuffer> {

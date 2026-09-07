@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
@@ -23,6 +24,23 @@ export class PaginationQueryDto {
 
 export class ConnectRepositoryDto {
   @IsString() @Matches(/^[1-9][0-9]*$/) readonly repositoryId!: string;
+  @IsOptional()
+  @IsString()
+  @Matches(/^[1-9][0-9]*$/)
+  readonly installationId?: string;
+}
+
+export class CreateGitHubAttemptDto {
+  @IsOptional() @IsIn(['authorize', 'install']) readonly mode:
+    | 'authorize'
+    | 'install' = 'authorize';
+}
+
+export class AvailableRepositoriesQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsString()
+  @Matches(/^[1-9][0-9]*$/)
+  readonly installationId?: string;
 }
 
 export class UpdateProjectRepositoryDto {

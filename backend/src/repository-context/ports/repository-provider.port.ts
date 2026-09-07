@@ -21,6 +21,11 @@ export interface ProviderBranch {
   readonly commitSha: string;
 }
 
+export interface ProviderInstallation {
+  readonly installationId: string;
+  readonly accountLogin: string;
+}
+
 export interface ProviderRevision {
   readonly commitSha: string;
   readonly treeSha: string;
@@ -68,9 +73,12 @@ export interface RepositoryProviderPort {
   createInstallationUrl(state: string): Promise<string>;
   createUserAuthorizationUrl(
     state: string,
-    installationId: string,
+    installationId?: string,
   ): Promise<string>;
-  verifyUserInstallation(code: string, installationId: string): Promise<void>;
+  verifyUserInstallation(
+    code: string,
+    installationId?: string,
+  ): Promise<readonly ProviderInstallation[]>;
   listRepositories(
     installationId: string,
     page: number,

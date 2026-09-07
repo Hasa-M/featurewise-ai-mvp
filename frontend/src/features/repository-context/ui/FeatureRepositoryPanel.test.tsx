@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -108,6 +108,24 @@ describe('FeatureRepositoryPanel', () => {
       branchOverride: null,
       selectedPaths: ['src/index.ts'],
     });
+  });
+
+  it('places the save action in the selected files header', () => {
+    render(
+      <FeatureRepositoryPanel
+        accessToken='token'
+        featureKey='FEAT-1'
+        projectKey='PRJ-1'
+      />,
+    );
+    const heading = screen.getByRole('heading', { name: 'Selected files' });
+    const header = heading.parentElement;
+    expect(header).not.toBeNull();
+    expect(
+      within(header as HTMLElement).getByRole('button', {
+        name: 'Save repository context',
+      }),
+    ).toBeVisible();
   });
 
   it('shows third tree/branch pages and fetches more only through accessible actions', async () => {

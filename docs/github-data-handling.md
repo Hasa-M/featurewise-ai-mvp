@@ -12,6 +12,11 @@ privacy flag, GitHub default branch, selected Project base branch, connection
 health and audit timestamps. For each Feature it stores an optional branch
 override and the normalized paths explicitly selected by the user.
 
+Connection attempts retain verified installation IDs and account names for
+account selection, together with non-secret attempt status and timestamps.
+Authorization expires after ten minutes or when the attempt is cancelled or
+replaced; the metadata does not grant access outside that attempt.
+
 Before an analysis is captured, Featurewise persists only the connection
 metadata, branch configuration, and selected paths. It does not persist GitHub
 file contents while browsing or configuring a Feature. GitHub OAuth user tokens

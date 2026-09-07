@@ -308,7 +308,20 @@ export function FeatureRepositoryPanel({
           </div>
         </Card>
         <Card className={styles.card} width='100%'>
-          <h2>Selected files</h2>
+          <div className={styles.heading}>
+            <h2>Selected files</h2>
+            <Button
+              type='submit'
+              variant='primary'
+              loading={update.isPending}
+              disabled={
+                !form.formState.isDirty ||
+                (branchMode === 'override' && !branchOverride)
+              }
+            >
+              Save repository context
+            </Button>
+          </div>
           <p aria-live='polite'>
             {selectedPaths.length}/50 files ·{' '}
             {(selectedBytes / 1024 / 1024).toFixed(2)}/5 MiB loaded
@@ -361,18 +374,6 @@ export function FeatureRepositoryPanel({
           ) : null}
         </div>
       ) : null}
-      <div className={styles.actions}>
-        <Button
-          type='submit'
-          loading={update.isPending}
-          disabled={
-            !form.formState.isDirty ||
-            (branchMode === 'override' && !branchOverride)
-          }
-        >
-          Save repository context
-        </Button>
-      </div>
     </form>
   );
 }

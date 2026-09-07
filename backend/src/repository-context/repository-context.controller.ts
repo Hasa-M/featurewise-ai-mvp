@@ -18,6 +18,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserContext } from '../auth/current-user-context';
 import {
   ConnectRepositoryDto,
+  CreateGitHubAttemptDto,
+  AvailableRepositoriesQueryDto,
   PaginationQueryDto,
   RepositoryTreeQueryDto,
   UpdateFeatureRepositoryContextDto,
@@ -32,11 +34,28 @@ export class RepositoryContextController {
 
   @Post('projects/:projectKey/repository/github/attempts')
   @UseGuards(AuthGuard)
-  createAttempt(
+  async createAttempt(
+    @CurrentUser() user: CurrentUserContext,
+    @Param('projectKey') projectKey: string,
+    @Body() dto: CreateGitHubAttemptDto,
+  ) {
+    try {
+      return await this.service.createAttempt(user, projectKey, dto.mode);
+    } catch (error) {
+      if (error instanceof RepositoryProviderError)
+        this.service.throwProviderError(error);
+      throw error;
+    }
+  }
+
+  @Delete('projects/:projectKey/repository/github/attempts')
+  @UseGuards(AuthGuard)
+  @HttpCode(204)
+  cancelAttempt(
     @CurrentUser() user: CurrentUserContext,
     @Param('projectKey') projectKey: string,
   ) {
-    return this.service.createAttempt(user, projectKey);
+    return this.service.cancelAttempt(user, projectKey);
   }
 
   @Get('integrations/github/callback')
@@ -45,9 +64,15 @@ export class RepositoryContextController {
     @Query('code') code?: string,
     @Query('state') state?: string,
     @Query('installation_id') installationId?: string,
+    @Query('error') error?: string,
   ) {
     return {
-      url: await this.service.handleCallback({ code, state, installationId }),
+      url: await this.service.handleCallback({
+        code,
+        state,
+        installationId,
+        error,
+      }),
       statusCode: 302,
     };
   }
@@ -57,7 +82,7 @@ export class RepositoryContextController {
   async available(
     @CurrentUser() user: CurrentUserContext,
     @Param('projectKey') projectKey: string,
-    @Query() query: PaginationQueryDto,
+    @Query() query: AvailableRepositoriesQueryDto,
   ) {
     try {
       return await this.service.listAvailableRepositories(
@@ -65,6 +90,7 @@ export class RepositoryContextController {
         projectKey,
         query.page,
         query.pageSize,
+        query.installationId,
       );
     } catch (error) {
       if (error instanceof RepositoryProviderError)

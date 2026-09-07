@@ -117,6 +117,7 @@ erDiagram
         text status
         timestamptz expiresAt
         bigint verifiedInstallationId
+        jsonb verifiedInstallations
         timestamptz verifiedAt
         timestamptz consumedAt
         timestamptz failedAt

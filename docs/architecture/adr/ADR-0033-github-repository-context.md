@@ -34,6 +34,14 @@ OAuth is transient and used only to prove that the callback installation is
 visible to the connecting user. User and installation tokens are never
 persisted. Installation tokens are created and refreshed inside the adapter.
 
+Connection starts with user OAuth so existing installations can return directly
+to repository selection. Installation/update is an explicit alternate action.
+An attempt retains only the verified installation IDs and account labels from
+that OAuth exchange; the user chooses an account when multiple installations
+are available. Listing and connecting recheck the chosen installation against
+that attempt. Attempts can be cancelled or replaced, and a late callback cannot
+revive them. The Console refreshes once at the attempt deadline, without polling.
+
 Repository metadata and selected paths remain relational. Repository bytes are
 not `StorageObject` records and never enter S3. A new prepared source type,
 `repository_revision`, identifies one `REPO-*` connection captured at one

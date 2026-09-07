@@ -7,9 +7,35 @@ import {
   flattenTreePages,
   nextPageNumber,
   nextTreePageParameter,
+  availableRepositoriesQueryOptions,
 } from './repository-context';
 
 describe('repository context pagination', () => {
+  it('keeps repository caches separate between verified accounts and attempts', () => {
+    const first = availableRepositoriesQueryOptions(
+      'token',
+      'PRJ-1',
+      true,
+      '10',
+      'first',
+    );
+    const otherAccount = availableRepositoriesQueryOptions(
+      'token',
+      'PRJ-1',
+      true,
+      '20',
+      'first',
+    );
+    const newAttempt = availableRepositoriesQueryOptions(
+      'token',
+      'PRJ-1',
+      true,
+      '10',
+      'second',
+    );
+    expect(first.queryKey).not.toEqual(otherAccount.queryKey);
+    expect(first.queryKey).not.toEqual(newAttempt.queryKey);
+  });
   it('flattens and deterministically deduplicates repository and branch pages', () => {
     expect(
       flattenRepositoryPages([

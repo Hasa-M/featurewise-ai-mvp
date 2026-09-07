@@ -7,6 +7,7 @@ import {
   RepositoryProviderError,
   type ProviderBlob,
   type ProviderBranch,
+  type ProviderInstallation,
   type ProviderPage,
   type ProviderRepository,
   type ProviderRevision,
@@ -31,6 +32,7 @@ export class GitHubRepositoryAdapter implements RepositoryProviderPort {
   }
 
   async createInstallationUrl(state: string): Promise<string> {
+    await this.checkAppPermissions();
     return (
       await (await this.requireApp()).getInstallationUrl({ state })
     ).toString();
@@ -38,8 +40,9 @@ export class GitHubRepositoryAdapter implements RepositoryProviderPort {
 
   async createUserAuthorizationUrl(
     state: string,
-    installationId: string,
+    installationId?: string,
   ): Promise<string> {
+    await this.checkAppPermissions();
     const app = await this.requireApp();
     return app.oauth.getWebFlowAuthorizationUrl({
       state,
@@ -49,8 +52,8 @@ export class GitHubRepositoryAdapter implements RepositoryProviderPort {
 
   async verifyUserInstallation(
     code: string,
-    installationId: string,
-  ): Promise<void> {
+    installationId?: string,
+  ): Promise<readonly ProviderInstallation[]> {
     try {
       const userOctokit = await (
         await this.requireApp()
@@ -59,21 +62,39 @@ export class GitHubRepositoryAdapter implements RepositoryProviderPort {
         redirectUrl: this.oauthRedirectUrl(installationId),
       });
       let page = 1;
+      const installations: ProviderInstallation[] = [];
+      let missingPermissions = false;
       for (;;) {
         const response = await userOctokit.request('GET /user/installations', {
           page,
           per_page: 100,
           headers: { 'X-GitHub-Api-Version': API_VERSION },
         });
-        if (
-          response.data.installations.some(
-            (item) => String(item.id) === installationId,
-          )
-        )
-          return;
+        for (const item of response.data.installations) {
+          if (installationId && String(item.id) !== installationId) continue;
+          if (item.suspended_at) continue;
+          if (item.permissions.contents !== 'read') {
+            missingPermissions = true;
+            continue;
+          }
+          installations.push({
+            installationId: String(item.id),
+            accountLogin:
+              item.account && 'login' in item.account
+                ? item.account.login
+                : String(item.target_id),
+          });
+        }
         if (response.data.installations.length < 100) break;
         page += 1;
       }
+      if (installations.length) return installations;
+      if (missingPermissions)
+        throw new RepositoryProviderError(
+          'conflict',
+          'Approve Contents: read-only access for the GitHub App installation.',
+        );
+      if (!installationId) return [];
       throw new RepositoryProviderError(
         'forbidden',
         'Installation is not visible to the authorizing GitHub user',
@@ -290,10 +311,27 @@ export class GitHubRepositoryAdapter implements RepositoryProviderPort {
     return (await this.requireApp()).getInstallationOctokit(id);
   }
 
-  private oauthRedirectUrl(installationId: string): string {
+  private oauthRedirectUrl(installationId?: string): string {
     const url = new URL(this.config.callbackUrl);
-    url.searchParams.set('installation_id', installationId);
+    if (installationId) url.searchParams.set('installation_id', installationId);
     return url.toString();
+  }
+
+  private async checkAppPermissions(): Promise<void> {
+    try {
+      const { data } = await (
+        await this.requireApp()
+      ).octokit.request('GET /app', {
+        headers: { 'X-GitHub-Api-Version': API_VERSION },
+      });
+      if (data?.permissions?.contents !== 'read')
+        throw new RepositoryProviderError(
+          'conflict',
+          'The GitHub App needs Contents: read-only repository permission. Update its App settings and approve the installation permissions.',
+        );
+    } catch (error) {
+      throw this.mapError(error);
+    }
   }
 
   private toRepository(repository: {
