@@ -1,0 +1,20 @@
+name: featurewise-harness
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - "127.0.0.1:5434:5432"
+    environment:
+      POSTGRES_USER: featurewise_harness
+      POSTGRES_PASSWORD: ${HARNESS_DB_PASSWORD:?Harness password required}
+      POSTGRES_DB: featurewise_harness
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U featurewise_harness -d featurewise_harness"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - harness_data:/var/lib/postgresql/data
+volumes:
+  harness_data:

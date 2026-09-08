@@ -17,7 +17,7 @@ import type { RepositoryContextService } from '../src/repository-context';
 import type { StorageService } from '../src/storage/storage.service';
 import { WorkspaceService } from '../src/workspace/workspace.service';
 
-loadEnv({ quiet: true });
+if (!process.env.HARNESS_MODE) loadEnv({ quiet: true });
 
 jest.setTimeout(60_000);
 

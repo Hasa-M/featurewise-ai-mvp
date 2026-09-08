@@ -18,6 +18,7 @@ import { RepositoryContextModule } from './repository-context';
 @Module({
   imports: [
     ConfigModule.forRoot({
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
       expandVariables: true,
       isGlobal: true,
       load: [

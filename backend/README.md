@@ -18,6 +18,9 @@ and [GitHub data handling](../docs/github-data-handling.md).
 
 ## Commands
 
+For isolated integration tests, Swagger, database inspection, and captured input
+reports, see the [development harness runbook](../docs/testing/development-harness.md).
+
 ```bash
 npm install
 npm run start:dev

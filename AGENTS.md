@@ -116,7 +116,17 @@ Prisma is wired under `backend/prisma/`. The backend package provides `prisma:ge
 and package scripts before database work.
  
 ## General behavior
- 
+
+### Development harness and browser verification
+
+Use [the harness runbook](docs/testing/development-harness.md) for isolated
+fixtures, API/database inspection, input capture, and integration tests.
+Use the connected Chrome extension when a task heavly affects a user-visible workflow, navigation, forms, or browser-specific behavior, or when browser verification is requested. Skip unrelated browser exploration when focused backend tests suffice.
+Record expected/actual results and useful evidence; repeat only after relevant
+changes, failures, or unresolved concerns. Never report an unavailable browser
+check as passed. The harness capture command can set `firstUsedAt`; it is not a
+read-only preview. Keep fixture data and generated artifacts in the harness.
+
 - Prefer small, reviewable changes that map to one conventional commit.
 - Do not add dependencies without stating why; prefer what NestJS/Vite already provide.
 - TypeScript strict mode; no `any` unless justified in a comment.
