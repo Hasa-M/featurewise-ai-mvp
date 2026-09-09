@@ -75,7 +75,7 @@ or private captured content.
 1. Read the session manifest and relevant architecture. Run `harness:status`.
 2. Inspect the affected API/data and establish expected behavior.
 3. Make the change and run the relevant integration tests.
-4. Use Chrome when the task affects a user-visible workflow, navigation, form,
+4. Use Chrome DevTools MCP when the task heavily affects a user-visible workflow, navigation, form,
    interaction state, or browser-specific behavior; also use it when requested.
 5. Capture inputs or inspect persisted state when needed to verify the result.
 6. Record expected/actual results and evidence. Repeat checks only after changes
@@ -85,11 +85,45 @@ Do not browse for unrelated documentation-only or backend changes adequately
 covered by focused tests. Browser observations and automated tests are separate
 evidence; neither substitutes for an unavailable check in the other layer.
 
-Install/connect the official Chrome extension through the desktop application's
-browser setup. The operator completes extension installation/permission prompts
-and selects `@Chrome` with the intended Chrome profile. See
-[official setup](https://learn.chatgpt.com/docs/chrome-extension). Do not add a
-Playwright MCP connection or silently enable broad browser permissions.
+### Codex CLI connection
+
+Use Google's Chrome DevTools MCP server for CLI browser verification. Install it
+in the same Codex user/profile that starts your CLI session. On Windows:
+
+```powershell
+codex mcp add chrome-devtools -- cmd /c npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux
+```
+
+Restart Codex CLI, use `/mcp` to confirm the connection, then ask the agent to
+list browser pages and open `http://127.0.0.1:5174`. Actual successful tool calls
+are the connection acceptance evidence. `codex mcp list` checks the invoking
+CLI's configuration; a different profile or host may expose different servers.
+If the CLI reports none while another chat has tools, check the active profile
+and `CODEX_HOME` before reinstalling or overwriting configuration.
+
+The server launches a separate Chrome profile on demand. Sign into GitHub in
+that profile when testing OAuth; the ordinary Chrome session is not implicitly
+shared. No OpenAI browser extension is required for this connection. The MCP
+server is agent tooling installed outside the app's npm dependencies. It does
+not run tests automatically or add a Playwright suite/CI job.
+
+See [official Codex/Windows setup](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/client-configurations.md).
+Use DOM snapshots and stable element identifiers to navigate, fill, and click.
+Inspect console/network errors or take screenshots when relevant. Never save
+tokens, passwords, authorization headers, or signed URLs in verification reports.
+After a browser reconnect, list pages again instead of reusing stale page IDs.
+If `fill_form` changes visible text but leaves React's character count and dirty
+state unchanged, focus the field and use keyboard select-all plus `type_text`.
+Observe the updated dirty state before clicking Save; verify persistence after
+reload. This fallback was needed for the specification textarea in the setup smoke.
+Screenshot export depends on the MCP host's allowed workspace roots. If export
+is denied, record the limitation and preserve text/API/capture evidence; do not
+claim a screenshot was saved or broaden access silently.
+
+The OpenAI Chrome extension remains an optional **desktop-app** connection,
+configured through Computer Use and the actual `@Chrome` selector; it is not
+how the CLI setup above works. Do not silently add another browser integration
+or enable broad browser permissions.
 
 Connection acceptance: open the harness Console, log in, inspect a Feature,
 edit specification text, reload, then verify the text through the API and a

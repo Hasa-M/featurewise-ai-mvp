@@ -229,7 +229,7 @@ export async function execute(
       console.log('Harness API/database health and frontend are ready.');
     }
     console.log(
-      'Chrome: connection must be verified using @Chrome. Live credentials are not probed by doctor.',
+      'Chrome: verify the CLI connection with Chrome DevTools MCP. Live credentials are not probed by doctor.',
     );
     return;
   }

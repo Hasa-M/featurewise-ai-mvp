@@ -6,6 +6,15 @@ Status: accepted
 
 Supersedes: ADR-0012, ADR-0013, ADR-0019
 
+Amended by: [ADR-0033](ADR-0033-github-repository-context.md)
+
+> ADR-0033 extends the input-capture boundary and versioned snapshot contracts
+> for repository context. GitHub retrieval precedes the final database
+> transaction, which locks and rechecks configuration consistency and validates
+> snapshot v2; failure rolls back local file first-use markers. Lifecycle
+> statuses, concurrency and snapshot-immutability guarantees remain unchanged.
+> The analyzer and analysis HTTP endpoints remain deferred.
+
 ## Context
 
 The engine must be callable by the Featurewise Console and future adapters

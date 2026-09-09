@@ -7,7 +7,7 @@
 | Unit | Contracts, repository filtering/traversal, adapter/service branches; existing Jest/Vitest suites |
 | PostgreSQL integration | Real constraints, authorization inputs, concurrent first use, rollback, reproducibility |
 | HTTP integration | Real Nest modules, authentication, validation and database; deterministic external adapters |
-| Chrome | Task-triggered visual/workflow verification with recorded expected/actual results |
+| Chrome DevTools MCP | Codex CLI uses Chrome on demand for visual/workflow verification with recorded expected/actual results; desktop extension is optional |
 | Live providers | Separately invoked GitHub/S3 checks; OAuth remains human-assisted |
 | Deferred | Prepared context, model requests, analyzer lifecycle, finding quality |
 

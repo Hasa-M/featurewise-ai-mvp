@@ -4,7 +4,10 @@ Date: 2026-08-31
 
 Status: accepted
 
-Amends: ADR-0014, ADR-0028, ADR-0031, ADR-0032
+Amends: [ADR-0014](ADR-0014-defer-real-integration.md),
+[ADR-0028](ADR-0028-public-identifiers-at-the-api-boundary.md),
+[ADR-0031](ADR-0031-feature-specifications-and-traceable-analysis-inputs.md),
+[ADR-0032](ADR-0032-analysis-application-boundary-and-lifecycle.md)
 
 ## Context
 
@@ -30,23 +33,41 @@ treating operational health refreshes as configuration changes.
 The NestJS `RepositoryContextModule` exposes provider-neutral application
 contracts and contains a GitHub adapter based on `@octokit/app`. The GitHub App
 requests no selectable permission other than repository Contents: read. User
-OAuth is transient and used only to prove that the callback installation is
-visible to the connecting user. User and installation tokens are never
+OAuth is transient and used to discover and verify App installations visible
+to the connecting user. User and installation tokens are never
 persisted. Installation tokens are created and refreshed inside the adapter.
 
 Connection starts with user OAuth so existing installations can return directly
-to repository selection. Installation/update is an explicit alternate action.
-An attempt retains only the verified installation IDs and account labels from
-that OAuth exchange; the user chooses an account when multiple installations
-are available. Listing and connecting recheck the chosen installation against
-that attempt. Attempts can be cancelled or replaced, and a late callback cannot
-revive them. The Console refreshes once at the attempt deadline, without polling.
+to repository selection. **Connect GitHub** starts authorization; **Continue
+with GitHub** is the recovery action while connecting, starting a fresh
+authorization attempt and replacing the previous attempt. An attempt retains
+the verified installation IDs and account labels, not the tokens, from that
+OAuth exchange; the user chooses an account when multiple installations are
+available, then selects a repository. Listing and connecting recheck the chosen
+installation against that attempt.
+
+**Install or manage GitHub App access** is an independent external link with an
+external-link icon, opening a new tab with `noopener noreferrer`. It remains
+enabled in loaded setup and connected states, independently of pending
+connection mutations. It manages App installation, permission approval, and
+repository access on GitHub; it does not start or replace a Featurewise attempt
+or disconnect a repository. Returning from this link does not itself complete
+authorization. The user can use Connect GitHub or Continue with GitHub when
+setting up or recovering a connection. Once connected, App access management
+remains available without displaying the authorization-recovery action.
+
+**Cancel connection** expires the user's attempt without uninstalling the App
+or disconnecting an existing repository. Attempts expire after ten minutes;
+late callbacks cannot revive cancelled, replaced, or expired attempts. The
+Console refreshes once at the attempt deadline, without polling.
 
 Repository metadata and selected paths remain relational. Repository bytes are
 not `StorageObject` records and never enter S3. A new prepared source type,
 `repository_revision`, identifies one `REPO-*` connection captured at one
 commit SHA. Input and prepared-context contract v2 add this source without
-changing v1 semantics.
+changing v1 semantics. This narrowly amends ADR-0031's repository-source and
+direct-integration deferral for GitHub only; existing uploaded-file and S3
+lifecycle guarantees and other source/integration deferrals remain unchanged.
 
 Repository capture resolves the effective branch, then the commit SHA, tree,
 and blobs at that revision. Selected Feature files are mandatory and are
@@ -72,6 +93,10 @@ inputs, sets `StorageObject.firstUsedAt`, and validates snapshot v2. Any
 failure rolls back the S3 usage markers and no PostgreSQL transaction remains
 open during GitHub calls.
 
+This extends ADR-0032's input-capture boundary and versioned contracts, not its
+analysis lifecycle. Its statuses, one-active-run constraint, immutable input
+snapshot, and write-once prepared-context snapshot remain unchanged.
+
 Retrieval, vector indexing, AI-generated internal documentation, analyzer
 behavior, prompts, provider policy, and evaluation policy remain deferred and
 require dedicated evaluation before adoption. No analysis HTTP endpoint is
@@ -92,4 +117,5 @@ public-number wording.
 - GitHub availability and rate limits are explicit operational states.
 - Capturing repository content costs GitHub API requests and may produce an
   explicitly truncated manifest, but never silently omits a selected file.
-- No webhook, polling loop, queue, worker, provider call, or analyzer is added.
+- No webhook, polling loop, queue, worker, LLM/model-provider call, or analyzer
+  is added.

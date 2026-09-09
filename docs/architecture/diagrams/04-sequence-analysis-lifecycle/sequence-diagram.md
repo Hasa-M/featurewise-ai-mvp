@@ -3,7 +3,8 @@
 ## Purpose and implementation status
 
 This sequence defines the deferred application flow accepted by ADR-0031 and
-ADR-0032. It is not an implemented endpoint contract. The REST controller,
+ADR-0032, as amended for repository context by ADR-0033. It is not an implemented
+endpoint contract. The REST controller,
 analyzer, provider adapter, retries, verifier policy, and polling UI remain
 deferred until a real analyzer vertical slice exists.
 

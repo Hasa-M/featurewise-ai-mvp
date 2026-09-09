@@ -88,8 +88,9 @@ This is the most important rule in this file:
  
 No queue, worker, dedicated AI service, or multi-agent orchestration. Analysis is asynchronous
 from the client perspective but remains inside the NestJS process for the local-first MVP
-(ADR-0032). No real third-party integrations: Figma/GitHub/Jira context arrives as uploaded or
-pasted artifacts, and future connectors remain deferred (ADR-0014/0031).
+(ADR-0032). GitHub repository context is the sole real third-party integration
+authorized by ADR-0033, which amends ADR-0014/0031/0032. Figma/Jira context arrives
+as uploaded or pasted artifacts; other connectors remain deferred.
 No teams, roles, permissions, invitations, 2FA, password reset (ADR-0015).
 No public production deployment (ADR-0010 file). If a task seems to require one of
 these, flag it instead of building it.
@@ -121,7 +122,11 @@ and package scripts before database work.
 
 Use [the harness runbook](docs/testing/development-harness.md) for isolated
 fixtures, API/database inspection, input capture, and integration tests.
-Use the connected Chrome extension when a task heavly affects a user-visible workflow, navigation, forms, or browser-specific behavior, or when browser verification is requested. Skip unrelated browser exploration when focused backend tests suffice.
+Use Chrome DevTools MCP from Codex CLI when a task heavily affects a user-visible
+workflow, navigation, forms, or browser-specific behavior, or when browser
+verification is requested. The Claude Code Chrome extension is an optional desktop
+alternative if we are using Claude Code. Skip unrelated browser exploration
+when focused backend tests suffice.
 Record expected/actual results and useful evidence; repeat only after relevant
 changes, failures, or unresolved concerns. Never report an unavailable browser
 check as passed. The harness capture command can set `firstUsedAt`; it is not a
