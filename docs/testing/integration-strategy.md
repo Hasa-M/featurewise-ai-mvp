@@ -31,7 +31,7 @@ text versus visual representations, normalization and segmentation versions,
 source budgeting, unsupported-input behavior, and replay artifacts. ADR-0029
 preserves document visuals; do not silently treat text extraction as equivalent.
 Align the preparation, engine, and persistence ports with the accepted v2
-repository source model while preserving historical v1 contracts.
+repository source model5
 
 | Scenario | Required acceptance evidence |
 | --- | --- |
