@@ -33,10 +33,7 @@ Studio for persisted data. Use Chrome DevTools MCP for relevant agent-led UI
 verification from Codex CLI, with one connection smoke check during setup.
 The Claude Code Chrome extension remains an optional alternative when using Claude Code. Browser
 use is triggered by affected user workflows, browser-specific failures, or explicit
-requests; it is not an unconditional step for every edit. No new Playwright
-suite, queue, or agent orchestration is introduced. Chrome DevTools MCP is
-operator-installed development tooling, not a product integration or a
-Featurewise MCP server (updated 2026-09-08 at the operator's request).
+requests; it is not an unconditional step for every edit.
 
 ## Consequences
 
