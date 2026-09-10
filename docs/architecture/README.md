@@ -5,6 +5,12 @@ MVP. Historical ADRs and migrations intentionally retain superseded
 terminology; the accepted ADRs below are authoritative for the implemented
 product baseline and separately scoped future analysis work.
 
+[ADR-0035](adr/ADR-0035-analysis-input-v0-initial-decisions.md) sets the accepted
+constraints for the analysis-input V0 workstream. Its completion requires one
+current context contract and removal of superseded context documentation,
+overriding the historical-retention statements below for that scope. The V0
+structure itself remains undecided.
+
 ## Current product-domain decisions
 
 - [ADR-0030](adr/ADR-0030-specification-analysis-core-domain.md) makes
