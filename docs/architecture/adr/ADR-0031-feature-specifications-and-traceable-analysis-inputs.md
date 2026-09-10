@@ -8,6 +8,15 @@ Supersedes: ADR-0016, ADR-0017
 
 Amends: ADR-0007, ADR-0011, ADR-0014, ADR-0029
 
+Amended by: [ADR-0033](ADR-0033-github-repository-context.md)
+
+> ADR-0033 lifts the repository-source and direct-integration deferral below
+> for GitHub only. Version-2 input and prepared-context snapshots add
+> `repository_revision` at an immutable commit; repository bytes are not
+> StorageObject records and do not enter S3. Version-1 semantics, uploaded-file
+> lifecycle guarantees, and the other deferred sources and integrations remain
+> unchanged.
+
 ## Context
 
 Analysis must distinguish the user's feature specification from supporting

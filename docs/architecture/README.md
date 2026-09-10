@@ -48,6 +48,9 @@ Operational documentation:
 
 - [Local GitHub App setup](../integrations/github-app-local-development.md)
 - [GitHub data handling](../github-data-handling.md)
+- [Development harness](../testing/development-harness.md)
+- [Integration strategy and future preparation tests](../testing/integration-strategy.md)
+- [Proposed ADR-0034: inspectable development harness](adr/ADR-0034-inspectable-development-harness.md)
 
 ## Diagrams
 

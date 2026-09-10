@@ -3,7 +3,7 @@ import { config as loadEnv } from 'dotenv';
 
 import { buildDatabaseUrl } from './src/config/database-url';
 
-loadEnv();
+if (process.env.NODE_ENV !== 'test') loadEnv();
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
