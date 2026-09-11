@@ -9,6 +9,11 @@ Featurewise is a Specification Analysis Engine for software product development.
 user-authored feature specifications and supporting context and returns individually addressable,
 evidence-backed findings. The Featurewise Console is its first-party control plane and client.
 The MVP is a local-first prototype built by a solo developer. It is NOT a production system.
+
+[ADR-0036](docs/architecture/adr/ADR-0036-product-direction-and-inference-sources.md)
+records MVP completion and future product direction. Complete the Console analysis path with one model configuration with access provided and usage paid for by Featurewise. No personal AI connection, customer API key, local model setup, or model selector is required for that mode.
+The analyzer and analysis endpoints remain unimplemented; this decision does not make them
+available. Specific provider/model choice and analyzer policies remain open.
  
 ## Architecture documentation is the source of truth
  
@@ -39,8 +44,8 @@ This is the most important rule in this file:
   analysis settings and immutable snapshots use JSON where defined by ADR-0031/0032.
 - Object storage: private AWS S3 for uploaded context originals and prepared derivatives;
   Postgres stores metadata and immutable keys/version identifiers only (ADR-0011/0029/0031).
-- LLM/model providers are called ONLY from the backend analysis boundary. The frontend never
-  calls a provider directly.
+- For the MVP, LLM/model providers are called ONLY from the backend analysis boundary.
+  The Console never calls a provider directly.
 
 ## Domain model (do not improvise on this)
  
@@ -76,7 +81,7 @@ This is the most important rule in this file:
   versioned keys; SQL migrations never delete S3 objects (ADR-0029/0031).
 - Prompt templates are versioned repository files. Engine output is runtime-validated against
   the schema version recorded by the AnalysisRun, and every LLM attempt is logged. Retry limits,
-  provider/model selection, prompt content, verification, deduplication, and evaluation policy
+  specific provider/model choice, prompt content, verification, deduplication, and evaluation policy
   are deferred (ADR-0032).
 - Future analysis start/status/history, finding, and review endpoints must not be implemented
   until a real analyzer vertical slice backs them (ADR-0032).
@@ -88,9 +93,14 @@ This is the most important rule in this file:
  
 No queue, worker, dedicated AI service, or multi-agent orchestration. Analysis is asynchronous
 from the client perspective but remains inside the NestJS process for the local-first MVP
-(ADR-0032). GitHub repository context is the sole real third-party integration
+(ADR-0032). GitHub repository context is the sole real third-party context integration
 authorized by ADR-0033, which amends ADR-0014/0031/0032. Figma/Jira context arrives
 as uploaded or pasted artifacts; other connectors remain deferred.
+Customer API accounts, AI-subscription connections, local/private inference integrations,
+and additional product clients are deferred under ADR-0036. Cloud is the product destination,
+not an instruction to refactor or expand the current MVP. Local-first does not mean local
+inference. Future clients share the application capability and authorized data; they do not
+duplicate engine logic. Do not invent provider support, integration contracts, or fallback policy.
 No teams, roles, permissions, invitations, 2FA, password reset (ADR-0015).
 No public production deployment (ADR-0010 file). If a task seems to require one of
 these, flag it instead of building it.

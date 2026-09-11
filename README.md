@@ -20,9 +20,9 @@ It is designed to reason across the available information that defines how the p
 - organization-specific policies, standards, and conventions.
 
 In the local-first MVP, this information enters Featurewise through the feature
-specification, editable feature and project context, and uploaded or pasted
-artifacts. Dedicated repository and third-party source adapters remain future
-capabilities.
+specification, editable feature and project context, uploaded or pasted
+artifacts, and the read-only GitHub repository adapter. Other dedicated
+third-party source adapters remain deferred.
 
 This allows Featurewise to identify not only problems inside a specification, but also problems that emerge when a proposed feature conflicts with the wider product, business logic, or organizational rules.
 
@@ -56,27 +56,20 @@ The goal is simple:
 
 ## The engine is the product
 
-Featurewise is designed as infrastructure rather than as a standalone product-management application.
+Featurewise owns the analysis process: organizing context, preparing work for
+models, managing analysis phases, processing and verifying outputs, and keeping
+evidence-backed findings and human decisions with their history.
 
-The Specification Analysis Engine is the core capability.
+- **Engine:** the analysis method, orchestration, evidence, results, and history.
+- **Inference:** the model reasoning capacity used by the process.
+- **Interface:** the proprietary **Featurewise Console**, or a future API, CLI,
+  or agent client.
 
-It is intended to be consumable through different interfaces and workflows:
+The Console is the first-party web client and control plane for context,
+analyses, evidence, reviews, and history. Future clients must use the same
+application capability and authorized data without duplicating product logic.
 
-- API;
-- CLI;
-- AI-agent protocols and tools;
-- integrations with systems such as Jira, Linear, GitHub, Figma, Azure DevOps, and others;
-- the first-party Featurewise Console.
-
-The **Featurewise Console** is the control interface provided by Featurewise for teams that want a richer way to manage context, inspect analyses, review evidence, resolve findings, configure behavior, and inspect analysis history.
-
-The Console is one interface to the engine, not the engine itself.
-
-The engine/application boundary is adapter-neutral. Future API, CLI, agent,
-integration, or embedded clients must call the same analysis capability rather
-than own separate product logic.
-
-## Core workflow
+## Intended core workflow
 
 ```text
 Feature specification
@@ -88,36 +81,57 @@ Specification Analysis Engine
         ↓
 Evidence-backed findings
         ↓
-Human or AI review / resolution
+Human review / resolution
         ↓
 Implementation
 ```
 
 ## Product direction
 
-```text
-Jira / Linear / Docs / Figma / Code
-                  ↓
-             Featurewise
-                  ↓
-         analyzed product intent
-      and evidence-backed findings
-                  ↓
-       Humans / Codex / Claude /
-       Cursor / other agents
-```
+The future product is a cloud-accessible engine with its own Console and
+integrations for API, CLI, and agent clients. It can be described as a
+**superskill delivered as software**: a specialized capability combining
+software, analysis method, context management, checks, persistence, and
+history.
+
+The approved product direction distinguishes these inference sources:
+
+| Mode | Intended experience | Status |
+| --- | --- | --- |
+| Featurewise-managed inference (Featurewise Default) | Use the Console without personal AI connections; Featurewise supplies model access and pays for its use. | Mode for completing the MVP; not yet implemented. |
+| Customer API account | The customer supplies provider access and is billed directly by that provider. | Future; implementation deferred. |
+| Customer AI subscription | Use included subscription capacity through a supported integration, with an authorized Console connection also desired. | Product objective; provider support and mechanisms remain to be verified. |
+| Customer local/private inference | Supply a model in the customer's environment, initially mainly through API/CLI integrations. | Advanced future direction; mechanism undecided. |
+
+Application login, provider API accounts, and AI subscriptions are distinct.
+Managed inference remains an independent choice; no automatic fallback or removal policy is decided.
+Different models and integrations may offer different quality, functionality,
+performance, and process control. Initial API/CLI emphasis for private
+inference does not permanently exclude the Console.
 
 ## MVP boundary
 
-The MVP is complete when a user can provide a software feature specification
-plus relevant context, run analysis, receive a small set of structured and
-evidence-backed findings, understand why they matter, and record whether each
-finding is accepted, dismissed, resolved, or deferred.
+The next objective is to complete the existing application. Using its existing
+authentication, a user must be able to provide a feature specification and
+context, start analysis from the Console, inspect individually addressable
+findings with evidence and possible resolutions, record accepted, dismissed,
+resolved, or deferred reviews, and consult analysis and review history. Zero
+findings is a valid result.
+
+The initial path uses one model configuration with Featurewise-managed
+inference. Users do not need a personal AI subscription, API key, or local
+model. Featurewise may use an external provider through its own API account.
+One configuration may serve several calls or phases; an MVP model selector is not required.
+The prototype remains local-first under ADR-0010. External inference is
+compatible with that scope: local-first does not mean local inference. Cloud
+distribution is a later phase, without authorization for public production
+deployment or new MVP infrastructure.
 
 Featurewise does not generate or maintain the canonical specification. It does
 not become the customer's requirements system of record. GitHub repository
-context is the single integration authorized by ADR-0033; Jira, Figma, and all
-other direct integrations remain deferred.
+context is the single context integration authorized by ADR-0033; Jira, Figma,
+and other direct context integrations remain deferred. Review persistence
+does not imply continuous learning, fine-tuning, or cross-customer data use.
 
 ## Current product baseline
 
@@ -135,6 +149,11 @@ configuration. The Featurewise Console exposes Specification, Context,
 Repository, and honestly unavailable Analyses workspaces.
 
 The backend also contains the non-executing analysis application boundary,
-versioned contracts, and reproducible input capture. Analyzer execution,
-analysis HTTP endpoints, findings and review workflows, prompts, providers,
-verification, and evaluations remain separately scoped deferred product work.
+versioned contracts, reproducible input capture, and database definitions for
+runs, findings, reviews, and call logs. Capture does not create an AnalysisRun.
+Prepared context, analyzer execution, model-provider calls, analysis HTTP
+endpoints, and findings/review workflows remain unimplemented work needed to
+complete the MVP. Prompt content, specific provider/model choice, retries,
+verification, and evaluation policy remain deferred decisions. The development
+harness can inspect captured inputs; its CLI is developer tooling, not the
+future product CLI.

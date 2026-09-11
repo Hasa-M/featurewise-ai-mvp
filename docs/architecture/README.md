@@ -18,7 +18,21 @@ product baseline and separately scoped future analysis work.
   the analyzer implementation and HTTP execution endpoints.
 - [ADR-0033](adr/ADR-0033-github-repository-context.md) authorizes the GitHub
   App repository-context adapter, defines `repository_revision`, and keeps all
-  other third-party integrations deferred.
+  other third-party context integrations deferred.
+
+## MVP completion and product direction
+
+[ADR-0036](adr/ADR-0036-product-direction-and-inference-sources.md) records the
+accepted next objective: complete the Console analysis path using one model
+configuration managed and funded by Featurewise.
+
+It also records the future cloud engine, shared clients and authorized data,
+and customer API, subscription, and local/private inference directions.
+Those integrations and their technical designs remain deferred. This is a
+product direction and a narrow clarification of ADR-0032's initial inference
+provisioning; the current architecture and local-first scope remain valid.
+
+## Preserved architecture and context boundaries
 
 Relevant context may include requirements, designs, product history, current
 behavior, source code, technical constraints, business/domain rules, and
@@ -50,7 +64,7 @@ Operational documentation:
 - [GitHub data handling](../github-data-handling.md)
 - [Development harness](../testing/development-harness.md)
 - [Integration strategy and future preparation tests](../testing/integration-strategy.md)
-- [Proposed ADR-0034: inspectable development harness](adr/ADR-0034-inspectable-development-harness.md)
+- [ADR-0034: inspectable development harness](adr/ADR-0034-inspectable-development-harness.md)
 
 ## Diagrams
 

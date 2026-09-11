@@ -7,6 +7,11 @@ and unavailable**. The repository has no analysis controller or route. These
 shapes document the intended future REST adapter from ADR-0032; the real
 analyzer vertical slice must validate and finalize them before implementation.
 
+[ADR-0036](../adr/ADR-0036-product-direction-and-inference-sources.md) sets
+Featurewise-managed inference with one initial model configuration as the MVP
+completion target. This does not make these operations available or define
+request fields for inference selection or future customer connections.
+
 The future adapter calls the analysis application boundary. It does not own
 authorization, snapshot capture, lifecycle transitions, analyzer behavior,
 finding persistence, or review projections. All identities below are ADR-0028
@@ -114,7 +119,8 @@ Provisional request:
 Provisional success: `202 Accepted` with `AnalysisRunResource`. The future
 application service resolves `featureKey`, selects recorded engine versions,
 captures immutable inputs, creates the run, and enforces the one-active-run
-constraint. None of that behavior is implemented.
+constraint. This analysis-start use case is not implemented. Input capture
+exists separately and does not create an AnalysisRun.
 
 ### Read run status — unimplemented
 
