@@ -8,6 +8,14 @@ endpoint contract. The REST controller,
 analyzer, provider adapter, retries, verifier policy, and polling UI remain
 deferred until a real analyzer vertical slice exists.
 
+For MVP completion,
+[ADR-0036](../../adr/ADR-0036-product-direction-and-inference-sources.md)
+specifies one model configuration with inference access provided and usage
+paid for by Featurewise. Calls remain backend-only and may span multiple
+phases; the engine port represents Featurewise's analysis capability, not a
+requirement to own model weights or make a single LLM call. Customer-provided
+inference mechanisms remain future work and add no paths or states here.
+
 Feature is the sole analysis target. There is no FeatureOrigin, FeatureUpdate,
 generation run, GeneratedSpec, validation, consolidation, or alignment flow.
 

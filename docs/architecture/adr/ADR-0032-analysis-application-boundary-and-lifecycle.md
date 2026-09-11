@@ -6,7 +6,8 @@ Status: accepted
 
 Supersedes: ADR-0012, ADR-0013, ADR-0019
 
-Amended by: [ADR-0033](ADR-0033-github-repository-context.md)
+Amended by: [ADR-0033](ADR-0033-github-repository-context.md),
+[ADR-0036](ADR-0036-product-direction-and-inference-sources.md)
 
 > ADR-0033 extends the input-capture boundary and versioned snapshot contracts
 > for repository context. GitHub retrieval precedes the final database
@@ -14,6 +15,14 @@ Amended by: [ADR-0033](ADR-0033-github-repository-context.md)
 > snapshot v2; failure rolls back local file first-use markers. Lifecycle
 > statuses, concurrency and snapshot-immutability guarantees remain unchanged.
 > The analyzer and analysis HTTP endpoints remain deferred.
+
+> ADR-0036 decides the initial inference provisioning for MVP completion: one
+> model configuration managed and funded by Featurewise,
+> without personal AI connections or an MVP model selector. It may serve
+> multiple calls or phases through the backend. The specific provider/model,
+> prompts, retries, and verification policy remain undecided. This amendment
+> changes no port, contract, lifecycle, or concurrency rule and does not make
+> the analyzer or its endpoints implemented.
 
 ## Context
 
@@ -85,7 +94,7 @@ findings, and finding-review operations. Those endpoints are documented as
 deferred contracts and must not be implemented until a real analyzer vertical
 slice backs them.
 
-Provider/model selection, prompt content, retry limits, verification and
+Specific provider/model choice, prompt content, retry limits, verification and
 deduplication policy, taxonomy evolution, confidence scoring, and evaluation
 design are explicitly deferred.
 

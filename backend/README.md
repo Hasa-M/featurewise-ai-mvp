@@ -7,9 +7,12 @@ Project ownership, Features with user-authored specifications, editable
 feature and project context, private S3 context file attachments, and a
 provider-neutral repository-context module with a read-only GitHub App adapter. A
 non-executing Analysis module defines versioned contracts and reproducible
-input capture. Analyzer execution, analysis HTTP endpoints, and findings and
-review workflows remain separately scoped future work under the architecture
-ADRs.
+input capture.
+
+The initial path uses one model
+configuration managed and funded by Featurewise under
+[ADR-0036](../docs/architecture/adr/ADR-0036-product-direction-and-inference-sources.md).
+Customer inference connections and additional product clients are deferred.
 
 GitHub is disabled by default. When enabled, all App/OAuth configuration is
 validated at startup and temporary GitHub tokens are never persisted. See the

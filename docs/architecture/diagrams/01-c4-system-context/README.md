@@ -4,8 +4,14 @@
 
 This diagram shows Featurewise as a Specification Analysis Engine and the
 Featurewise Console as its first-party client. It distinguishes the current
-product and system boundaries from the analyzer and analysis endpoints that
-remain deferred under ADR-0032.
+product and system boundaries from the analyzer and analysis endpoints needed
+to complete the MVP, which remain unimplemented under ADR-0032. Finding and
+review interactions below describe that completion target, not availability.
+
+[ADR-0036](../../adr/ADR-0036-product-direction-and-inference-sources.md)
+defines the initial inference as Featurewise-managed. Cloud distribution,
+additional clients, and customer-provided inference are later product
+directions; this view adds no future execution infrastructure.
 
 ## Diagram
 
@@ -20,16 +26,16 @@ C4Context
 
   System_Ext(sources, "Context sources", "Specifications, requirements, designs, history, product behavior, code, business rules, policies, and future adapters")
   System_Ext(github, "GitHub", "Read-only repository source authorized through a GitHub App")
-  System_Ext(llm, "External LLM provider", "Future analyzer dependency that returns structured candidate findings")
+  System_Ext(llm, "External LLM provider", "Planned MVP inference supplied and funded by Featurewise; provider/model undecided")
   System_Ext(consumers, "Future clients", "CLI, API clients, coding agents, workflow integrations, or embedded surfaces")
 
-  Rel(operator, featurewise, "Manages specifications/context and reviews analyses", "Console")
-  Rel(engineer, featurewise, "Contributes context and consumes findings", "Console or shared output")
+  Rel(operator, featurewise, "Manages specifications/context; analysis reviews await MVP completion", "Console")
+  Rel(engineer, featurewise, "Contributes context; findings await MVP completion", "Console or shared output")
   Rel(sources, featurewise, "Provides source-addressable context", "Uploaded or pasted artifacts in MVP")
   Rel(featurewise, github, "Reads authorized repositories on demand", "GitHub App; Contents read-only")
-  Rel(featurewise, llm, "Sends versioned prepared context", "Backend only; deferred")
-  Rel(llm, featurewise, "Returns structured candidate findings", "Deferred")
-  Rel(consumers, featurewise, "Calls the same analysis application capability", "Future adapters")
+  Rel(featurewise, llm, "Sends versioned prepared context", "Backend only; MVP work, unimplemented")
+  Rel(llm, featurewise, "Returns structured candidate findings", "MVP work, unimplemented")
+  Rel(consumers, featurewise, "Uses the same analysis capability and authorized data", "Future adapters")
 ```
 
 ## Boundaries
@@ -47,5 +53,5 @@ C4Context
 - Human disposition is separate from model output.
 - The Console is a client/control plane; engine business logic remains in the
   backend application boundary.
-- Third-party integrations other than GitHub, public API products, CLI, MCP,
-  and embedded distribution are future adapters, not MVP capabilities.
+- Other third-party context integrations, customer inference connections,
+  public API products, CLI, MCP, and embedded distribution remain deferred.
