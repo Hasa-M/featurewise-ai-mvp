@@ -157,3 +157,8 @@ complete the MVP. Prompt content, specific provider/model choice, retries,
 verification, and evaluation policy remain deferred decisions. The development
 harness can inspect captured inputs; its CLI is developer tooling, not the
 future product CLI.
+
+## License
+
+Featurewise is source-available software licensed under the
+[PolyForm Noncommercial License 1.0.0](LICENSE).
